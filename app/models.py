@@ -76,8 +76,8 @@ class Profissional(db.Model):
     especialidade = db.Column(db.String(100))
     # Numero do conselho (CRM, CRO, CRP, etc) — texto livre pra cobrir conselhos.
     registro_conselho = db.Column(db.String(40))
-    # Cor hex pra diferenciar profissionais na agenda (ex: #2563eb).
-    cor_agenda = db.Column(db.String(7), default="#2563eb")
+    # Cor hex pra diferenciar profissionais na agenda (ex: #43B8A5).
+    cor_agenda = db.Column(db.String(7), default="#43B8A5")
     duracao_padrao_min = db.Column(db.Integer, default=30)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
@@ -119,6 +119,10 @@ class Paciente(db.Model):
         "Atendimento", back_populates="paciente",
         order_by="Atendimento.criado_em.desc()",
     )
+    lancamentos = db.relationship(
+        "LancamentoFinanceiro", back_populates="paciente",
+        order_by="LancamentoFinanceiro.criado_em.desc()",
+    )
 
     def __repr__(self):
         return f"<Paciente {self.id} {self.nome_completo}>"
@@ -156,6 +160,10 @@ class Agendamento(db.Model):
     profissional = db.relationship("Profissional", back_populates="agendamentos")
     atendimento = db.relationship(
         "Atendimento", back_populates="agendamento", uselist=False
+    )
+    # Recebimento integrado: 0..1 lancamento financeiro ligado a consulta.
+    lancamento = db.relationship(
+        "LancamentoFinanceiro", back_populates="agendamento", uselist=False
     )
 
     def __repr__(self):
@@ -196,6 +204,72 @@ class Atendimento(db.Model):
         return f"<Atendimento {self.id} pac={self.paciente_id}>"
 
 
+class LancamentoFinanceiro(db.Model):
+    """Lancamento do modulo financeiro: uma entrada (receita) ou saida (despesa).
+
+    Um unico modelo cobre receitas/despesas, contas a receber/pagar (status
+    pendente) e fluxo de caixa (somas por pago_em). Pode ligar a um paciente
+    (historico financeiro) e a um agendamento (recebimento integrado da
+    consulta, relacao 1:1 via unique). Dinheiro SEMPRE Numeric(12, 2).
+    """
+    __tablename__ = "lancamentos_financeiros"
+
+    TIPO_RECEITA = "receita"
+    TIPO_DESPESA = "despesa"
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_PAGO = "pago"
+    STATUS_CANCELADO = "cancelado"
+
+    # Categorias livres-controladas (label PT-BR nos filtros Jinja).
+    CATEGORIAS_RECEITA = ("consulta", "procedimento", "convenio", "outro")
+    CATEGORIAS_DESPESA = ("aluguel", "salario", "insumo", "imposto", "outro")
+
+    FORMAS_PAGAMENTO = (
+        "dinheiro", "pix", "cartao_credito", "cartao_debito",
+        "convenio", "boleto", "transferencia",
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(10), nullable=False, default=TIPO_RECEITA, index=True)
+    categoria = db.Column(db.String(30))
+    descricao = db.Column(db.String(200))
+    valor = db.Column(Numeric(12, 2), nullable=False)
+
+    status = db.Column(db.String(12), nullable=False, default=STATUS_PENDENTE, index=True)
+    forma_pagamento = db.Column(db.String(20))
+
+    # Conta a receber/pagar: data de vencimento (sem hora). pago_em = realizado.
+    vencimento = db.Column(db.Date)
+    pago_em = db.Column(db.DateTime(timezone=True), index=True)
+
+    # Ligacoes opcionais.
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), index=True
+    )
+    agendamento_id = db.Column(
+        db.Integer, db.ForeignKey("agendamentos.id"), unique=True, index=True
+    )
+    convenio = db.Column(db.String(80))
+
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    paciente = db.relationship("Paciente", back_populates="lancamentos")
+    agendamento = db.relationship("Agendamento", back_populates="lancamento")
+
+    @property
+    def vencido(self):
+        """True se pendente e o vencimento ja passou (compara em data BR)."""
+        if self.status != self.STATUS_PENDENTE or not self.vencimento:
+            return False
+        from datetime import date
+        return self.vencimento < date.today()
+
+    def __repr__(self):
+        return f"<LancamentoFinanceiro {self.id} {self.tipo} {self.status} {self.valor}>"
+
+
 class AuditLog(db.Model):
     """Trilha de auditoria. NUNCA gravar PII em `detalhes`."""
     __tablename__ = "audit_logs"
@@ -211,6 +285,9 @@ class AuditLog(db.Model):
     ACAO_AGENDAMENTO_STATUS = "agendamento_status"
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
+    ACAO_LANCAMENTO_CRIADO = "lancamento_criado"
+    ACAO_LANCAMENTO_PAGO = "lancamento_pago"
+    ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
