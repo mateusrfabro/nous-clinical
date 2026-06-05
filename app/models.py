@@ -1,0 +1,226 @@
+"""Modelos do dominio: gestao de clinica / agenda.
+
+Convencoes herdadas da plataforma:
+- Dinheiro SEMPRE Numeric(12, 2) — nunca Float.
+- Datas SEMPRE DateTime(timezone=True), armazenadas em UTC. Display converte
+  pro fuso de Brasilia nos filtros Jinja (data_br / datetime_br / hora_br).
+- Acesso por papel via Usuario.tipo: admin | profissional | recepcao.
+
+Dados de saude sao "dados sensiveis" pela LGPD (art. 5, II). Prontuario
+(Atendimento) so e acessivel por profissional/admin — nunca pela recepcao.
+"""
+from datetime import datetime, timezone
+
+from flask_login import UserMixin
+from sqlalchemy import Numeric
+
+from app import db, login_manager
+
+
+def _agora():
+    return datetime.now(timezone.utc)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(Usuario, int(user_id))
+
+
+class Usuario(UserMixin, db.Model):
+    __tablename__ = "usuarios"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    senha_hash = db.Column(db.String(255), nullable=False)
+    nome_responsavel = db.Column(db.String(150), nullable=False)
+    telefone = db.Column(db.String(30))
+    # admin | profissional | recepcao
+    tipo = db.Column(db.String(20), nullable=False, default="recepcao")
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Canal opcional de notificacao/reset de senha.
+    telegram_chat_id = db.Column(db.String(40))
+
+    aceite_termos_em = db.Column(db.DateTime(timezone=True))
+    senha_atualizada_em = db.Column(db.DateTime(timezone=True))
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    profissional = db.relationship(
+        "Profissional", back_populates="usuario", uselist=False
+    )
+
+    @property
+    def is_admin(self):
+        return self.tipo == "admin"
+
+    @property
+    def is_profissional(self):
+        return self.tipo == "profissional"
+
+    @property
+    def is_recepcao(self):
+        return self.tipo == "recepcao"
+
+    def __repr__(self):
+        return f"<Usuario {self.id} {self.email} {self.tipo}>"
+
+
+class Profissional(db.Model):
+    __tablename__ = "profissionais"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id"), unique=True, nullable=False
+    )
+    nome = db.Column(db.String(150), nullable=False)
+    especialidade = db.Column(db.String(100))
+    # Numero do conselho (CRM, CRO, CRP, etc) — texto livre pra cobrir conselhos.
+    registro_conselho = db.Column(db.String(40))
+    # Cor hex pra diferenciar profissionais na agenda (ex: #2563eb).
+    cor_agenda = db.Column(db.String(7), default="#2563eb")
+    duracao_padrao_min = db.Column(db.Integer, default=30)
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    usuario = db.relationship("Usuario", back_populates="profissional")
+    agendamentos = db.relationship("Agendamento", back_populates="profissional")
+
+    def __repr__(self):
+        return f"<Profissional {self.id} {self.nome}>"
+
+
+class Paciente(db.Model):
+    __tablename__ = "pacientes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome_completo = db.Column(db.String(150), nullable=False, index=True)
+    cpf = db.Column(db.String(14), unique=True)  # formato 000.000.000-00
+    data_nascimento = db.Column(db.Date)
+    sexo = db.Column(db.String(1))  # M | F | O
+    telefone = db.Column(db.String(30))
+    email = db.Column(db.String(255))
+
+    endereco = db.Column(db.String(200))
+    bairro = db.Column(db.String(80))
+    cidade = db.Column(db.String(80))
+
+    convenio = db.Column(db.String(80))
+    observacoes = db.Column(db.Text)
+
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    agendamentos = db.relationship(
+        "Agendamento", back_populates="paciente",
+        order_by="Agendamento.inicio.desc()",
+    )
+    atendimentos = db.relationship(
+        "Atendimento", back_populates="paciente",
+        order_by="Atendimento.criado_em.desc()",
+    )
+
+    def __repr__(self):
+        return f"<Paciente {self.id} {self.nome_completo}>"
+
+
+class Agendamento(db.Model):
+    __tablename__ = "agendamentos"
+
+    STATUS_AGENDADO = "agendado"
+    STATUS_CONFIRMADO = "confirmado"
+    STATUS_ATENDIDO = "atendido"
+    STATUS_CANCELADO = "cancelado"
+    STATUS_FALTOU = "faltou"
+
+    id = db.Column(db.Integer, primary_key=True)
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), nullable=False, index=True
+    )
+    profissional_id = db.Column(
+        db.Integer, db.ForeignKey("profissionais.id"), nullable=False, index=True
+    )
+
+    inicio = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    fim = db.Column(db.DateTime(timezone=True), nullable=False)
+
+    status = db.Column(db.String(20), nullable=False, default=STATUS_AGENDADO)
+    convenio = db.Column(db.String(80))
+    valor = db.Column(Numeric(12, 2))
+    observacoes = db.Column(db.Text)
+
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    paciente = db.relationship("Paciente", back_populates="agendamentos")
+    profissional = db.relationship("Profissional", back_populates="agendamentos")
+    atendimento = db.relationship(
+        "Atendimento", back_populates="agendamento", uselist=False
+    )
+
+    def __repr__(self):
+        return f"<Agendamento {self.id} pac={self.paciente_id} {self.status}>"
+
+
+class Atendimento(db.Model):
+    """Prontuario clinico de uma consulta. DADO SENSIVEL (LGPD).
+
+    Acesso restrito a profissional/admin. Append-only na pratica: edicoes
+    deveriam virar adendos, mas pro MVP permitimos editar enquanto o
+    atendimento e do dia (regra aplicada na rota, nao no modelo).
+    """
+    __tablename__ = "atendimentos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    agendamento_id = db.Column(
+        db.Integer, db.ForeignKey("agendamentos.id"), unique=True
+    )
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), nullable=False, index=True
+    )
+    profissional_id = db.Column(
+        db.Integer, db.ForeignKey("profissionais.id"), nullable=False
+    )
+
+    queixa = db.Column(db.Text)       # queixa principal / anamnese
+    evolucao = db.Column(db.Text)     # evolucao / conduta
+    prescricao = db.Column(db.Text)   # prescricao / receituario
+
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    agendamento = db.relationship("Agendamento", back_populates="atendimento")
+    paciente = db.relationship("Paciente", back_populates="atendimentos")
+    profissional = db.relationship("Profissional")
+
+    def __repr__(self):
+        return f"<Atendimento {self.id} pac={self.paciente_id}>"
+
+
+class AuditLog(db.Model):
+    """Trilha de auditoria. NUNCA gravar PII em `detalhes`."""
+    __tablename__ = "audit_logs"
+
+    # Acoes (constantes — usadas pelos services/rotas pra evitar string solta)
+    ACAO_LOGIN_OK = "login_ok"
+    ACAO_LOGIN_FAIL = "login_fail"
+    ACAO_LOGOUT = "logout"
+    ACAO_SENHA_REDEFINIDA = "senha_redefinida"
+    ACAO_PACIENTE_CRIADO = "paciente_criado"
+    ACAO_PACIENTE_EDITADO = "paciente_editado"
+    ACAO_AGENDAMENTO_CRIADO = "agendamento_criado"
+    ACAO_AGENDAMENTO_STATUS = "agendamento_status"
+    ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
+    ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
+    acao = db.Column(db.String(50), nullable=False, index=True)
+    recurso_tipo = db.Column(db.String(40))
+    recurso_id = db.Column(db.Integer)
+    detalhes = db.Column(db.String(500))
+    ip = db.Column(db.String(45))
+    user_agent = db.Column(db.String(255))
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora, index=True)
+
+    def __repr__(self):
+        return f"<AuditLog {self.id} {self.acao}>"

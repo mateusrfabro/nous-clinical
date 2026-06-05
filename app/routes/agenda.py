@@ -1,0 +1,199 @@
+"""Agenda de consultas + registro de atendimento (prontuario).
+
+- Listagem/criacao/status: recepcao ou admin (profissional ve a propria).
+- Registro de atendimento clinico: profissional ou admin (clinico_required).
+"""
+from datetime import datetime, date, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+from flask import (
+    Blueprint, render_template, redirect, url_for, flash, request,
+)
+from flask_login import login_required, current_user
+from sqlalchemy import select
+
+from app import db
+from app.auth_decorators import recepcao_ou_admin, clinico_required
+from app.models import (
+    Agendamento, Atendimento, Paciente, Profissional, AuditLog,
+)
+from app.services.audit import audit
+
+agenda_bp = Blueprint("agenda", __name__, url_prefix="/agenda")
+
+_BR_TZ = ZoneInfo("America/Sao_Paulo")
+_STATUS_VALIDOS = {
+    Agendamento.STATUS_AGENDADO, Agendamento.STATUS_CONFIRMADO,
+    Agendamento.STATUS_ATENDIDO, Agendamento.STATUS_CANCELADO,
+    Agendamento.STATUS_FALTOU,
+}
+
+
+def _parse_dia(valor: str) -> date:
+    """'YYYY-MM-DD' -> date. Default: hoje (fuso BR)."""
+    if valor:
+        try:
+            return datetime.strptime(valor, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    return datetime.now(_BR_TZ).date()
+
+
+def _br_para_utc(dia: date, hora_str: str) -> datetime | None:
+    """Combina dia + 'HH:MM' no fuso BR e converte pra UTC aware."""
+    try:
+        h, m = map(int, hora_str.split(":"))
+    except (ValueError, AttributeError):
+        return None
+    local = datetime.combine(dia, time(h, m), tzinfo=_BR_TZ)
+    return local.astimezone(timezone.utc)
+
+
+@agenda_bp.route("/")
+@login_required
+def listar():
+    dia = _parse_dia(request.args.get("dia", ""))
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+
+    q = (
+        select(Agendamento)
+        .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
+        .order_by(Agendamento.inicio)
+    )
+    # Profissional ve so a propria agenda. Recepcao/admin veem tudo, com
+    # filtro opcional por profissional.
+    filtro_prof = request.args.get("profissional_id", type=int)
+    if current_user.is_profissional and current_user.profissional:
+        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    elif filtro_prof:
+        q = q.where(Agendamento.profissional_id == filtro_prof)
+
+    agendamentos = db.session.execute(q).scalars().all()
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    return render_template(
+        "agenda/listar.html",
+        agendamentos=agendamentos, dia=dia,
+        profissionais=profissionais, filtro_prof=filtro_prof,
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+    )
+
+
+@agenda_bp.route("/novo", methods=["GET", "POST"])
+@login_required
+@recepcao_ou_admin
+def novo():
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+    pacientes = db.session.execute(
+        select(Paciente).where(Paciente.ativo.is_(True))
+        .order_by(Paciente.nome_completo)
+    ).scalars().all()
+
+    if request.method == "POST":
+        paciente_id = request.form.get("paciente_id", type=int)
+        profissional_id = request.form.get("profissional_id", type=int)
+        dia = _parse_dia(request.form.get("dia", ""))
+        hora = request.form.get("hora", "").strip()
+        duracao = request.form.get("duracao_min", type=int) or 30
+
+        paciente = db.session.get(Paciente, paciente_id) if paciente_id else None
+        profissional = (db.session.get(Profissional, profissional_id)
+                        if profissional_id else None)
+        inicio = _br_para_utc(dia, hora)
+
+        if not (paciente and profissional and inicio):
+            flash("Selecione paciente, profissional e horário válidos.", "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
+
+        ag = Agendamento(
+            paciente_id=paciente.id,
+            profissional_id=profissional.id,
+            inicio=inicio,
+            fim=inicio + timedelta(minutes=duracao),
+            status=Agendamento.STATUS_AGENDADO,
+            convenio=request.form.get("convenio", "").strip() or None,
+            observacoes=request.form.get("observacoes", "").strip() or None,
+            criado_por_id=current_user.id,
+        )
+        db.session.add(ag)
+        db.session.commit()
+        audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
+              recurso_id=ag.id)
+        flash("Consulta agendada.", "success")
+        return redirect(url_for("agenda.listar", dia=dia.isoformat()))
+
+    dia_default = _parse_dia(request.args.get("dia", "")).isoformat()
+    return render_template("agenda/form.html", profissionais=profissionais,
+                           pacientes=pacientes, form={}, dia=dia_default)
+
+
+@agenda_bp.route("/<int:agendamento_id>/status", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def mudar_status(agendamento_id):
+    ag = db.session.get(Agendamento, agendamento_id)
+    if not ag:
+        flash("Agendamento não encontrado.", "error")
+        return redirect(url_for("agenda.listar"))
+    novo_status = request.form.get("status", "").strip()
+    if novo_status not in _STATUS_VALIDOS:
+        flash("Status inválido.", "error")
+        return redirect(url_for("agenda.listar"))
+    ag.status = novo_status
+    db.session.commit()
+    audit(AuditLog.ACAO_AGENDAMENTO_STATUS, recurso_tipo="agendamento",
+          recurso_id=ag.id, detalhes=f"status={novo_status}")
+    flash("Status atualizado.", "success")
+    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
+    return redirect(url_for("agenda.listar", dia=dia))
+
+
+@agenda_bp.route("/<int:agendamento_id>/atendimento", methods=["GET", "POST"])
+@login_required
+@clinico_required
+def atendimento(agendamento_id):
+    """Registra/edita o prontuario de uma consulta. Dado sensivel (LGPD)."""
+    ag = db.session.get(Agendamento, agendamento_id)
+    if not ag:
+        flash("Agendamento não encontrado.", "error")
+        return redirect(url_for("agenda.listar"))
+
+    # Profissional so registra atendimento da PROPRIA agenda.
+    if (current_user.is_profissional and current_user.profissional
+            and ag.profissional_id != current_user.profissional.id):
+        flash("Você só pode registrar atendimentos da sua agenda.", "error")
+        return redirect(url_for("agenda.listar"))
+
+    registro = ag.atendimento
+
+    if request.method == "POST":
+        if registro is None:
+            registro = Atendimento(
+                agendamento_id=ag.id,
+                paciente_id=ag.paciente_id,
+                profissional_id=ag.profissional_id,
+            )
+            db.session.add(registro)
+        registro.queixa = request.form.get("queixa", "").strip() or None
+        registro.evolucao = request.form.get("evolucao", "").strip() or None
+        registro.prescricao = request.form.get("prescricao", "").strip() or None
+        # Marca a consulta como atendida ao registrar.
+        ag.status = Agendamento.STATUS_ATENDIDO
+        db.session.commit()
+        audit(AuditLog.ACAO_ATENDIMENTO_REGISTRADO, recurso_tipo="atendimento",
+              recurso_id=registro.id)
+        flash("Atendimento registrado.", "success")
+        return redirect(url_for("pacientes.detalhe", paciente_id=ag.paciente_id))
+
+    return render_template("agenda/atendimento.html", ag=ag, registro=registro)

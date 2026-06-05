@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Erro interno — medsaas{% endblock %}
+{% block content %}
+<div class="error-page">
+    <span class="error-page-eyebrow">Erro 500</span>
+    <h1>500</h1>
+    <h2>Erro interno</h2>
+    <p>Algo deu errado do nosso lado. A equipe foi notificada — tente novamente em instantes.</p>
+    <div class="error-page-actions">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">Ir para o início</a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline">Meu painel</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

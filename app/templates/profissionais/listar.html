@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Profissionais — medsaas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Profissionais</h2>
+  <a href="{{ url_for('profissionais.novo') }}" class="btn btn-primary">+ Novo profissional</a>
+</div>
+{% if profissionais %}
+<table class="table">
+  <thead><tr><th>Nome</th><th>Especialidade</th><th>Conselho</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for p in profissionais %}
+    <tr>
+      <td>{{ p.nome }}</td>
+      <td>{{ p.especialidade or '—' }}</td>
+      <td>{{ p.registro_conselho or '—' }}</td>
+      <td><span class="tag {{ 'tag-success' if p.ativo else 'tag-danger' }}">{{ 'Ativo' if p.ativo else 'Inativo' }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum profissional cadastrado.</p></div>
+{% endif %}
+{% endblock %}

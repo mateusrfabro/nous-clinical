@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Novo profissional — medsaas{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header">
+    <h2>Novo profissional</h2>
+    <p class="muted">Cria o acesso ao sistema (login) junto com o cadastro.</p>
+  </div>
+  <form method="POST" action="{{ url_for('profissionais.novo') }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="nome">Nome *</label>
+      <input type="text" id="nome" name="nome" required value="{{ form.get('nome','') }}">
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="especialidade">Especialidade</label>
+        <input type="text" id="especialidade" name="especialidade" value="{{ form.get('especialidade','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="registro_conselho">Registro (CRM/CRO/…)</label>
+        <input type="text" id="registro_conselho" name="registro_conselho" value="{{ form.get('registro_conselho','') }}">
+      </div>
+    </div>
+    <div class="flex-form">
+      <div class="form-group">
+        <label for="cor_agenda">Cor na agenda</label>
+        <input type="color" id="cor_agenda" name="cor_agenda" value="{{ form.get('cor_agenda','#2563eb') }}">
+      </div>
+      <div class="form-group">
+        <label for="duracao_padrao_min">Duração padrão (min)</label>
+        <input type="number" id="duracao_padrao_min" name="duracao_padrao_min" class="w-input-num" value="{{ form.get('duracao_padrao_min','30') }}" min="5" step="5">
+      </div>
+    </div>
+    <hr class="mt-4 mb-4">
+    <h3 class="mb-2">Acesso</h3>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="email">E-mail (login) *</label>
+        <input type="email" id="email" name="email" required value="{{ form.get('email','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="telefone">Telefone</label>
+        <input type="text" id="telefone" name="telefone" value="{{ form.get('telefone','') }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="senha">Senha provisória (mín. 8) *</label>
+      <input type="password" id="senha" name="senha" required minlength="8" autocomplete="new-password">
+    </div>
+    <button type="submit" class="btn btn-primary">Cadastrar</button>
+    <a href="{{ url_for('profissionais.listar') }}" class="btn btn-outline">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

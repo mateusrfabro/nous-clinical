@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Esqueci minha senha — medsaas{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header">
+    <h2>Recuperar acesso</h2>
+    <p class="muted">Informe seu e-mail. Se existir conta, enviamos um link de redefinição.</p>
+  </div>
+  <form method="POST" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" name="email" required autocomplete="email">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Enviar link</button>
+  </form>
+  <p class="form-footer"><a href="{{ url_for('auth.login') }}">Voltar para o login</a></p>
+</div>
+{% endblock %}

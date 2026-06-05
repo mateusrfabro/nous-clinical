@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}medsaas — gestão de clínica{% endblock %}
+{% block h1_oculto %}{% endblock %}
+{% block content %}
+<section class="hero">
+  <span class="hero-eyebrow">Plataforma para clínicas</span>
+  <h1 class="hero-titulo">A sua clínica organizada: <span class="accent">agenda, pacientes e prontuário</span>.</h1>
+  <p class="hero-sub">Recepção marca consultas, profissionais registram o atendimento, gestor acompanha tudo — com segurança de dados de saúde.</p>
+  <div class="hero-actions">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Entrar na plataforma</a>
+  </div>
+</section>
+
+<section class="card-grid mt-5">
+  <div class="card">
+    <h3>Agenda por profissional</h3>
+    <p class="muted">Visão do dia, status da consulta (confirmado, atendido, faltou) e troca rápida de data.</p>
+  </div>
+  <div class="card">
+    <h3>Cadastro de pacientes</h3>
+    <p class="muted">Dados, convênio e histórico de consultas centralizados e pesquisáveis.</p>
+  </div>
+  <div class="card">
+    <h3>Prontuário seguro</h3>
+    <p class="muted">Evolução e prescrição acessíveis só para profissional e admin — recepção não vê dado clínico.</p>
+  </div>
+</section>
+{% endblock %}

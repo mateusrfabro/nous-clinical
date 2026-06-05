@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if paciente else 'Novo' }} paciente — medsaas{% endblock %}
+{% block content %}
+{% set f = paciente if paciente else form %}
+<div class="w-narrow">
+  <div class="page-header"><h2>{{ 'Editar paciente' if paciente else 'Novo paciente' }}</h2></div>
+  <form method="POST" class="card"
+        action="{{ url_for('pacientes.editar', paciente_id=paciente.id) if paciente else url_for('pacientes.novo') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="nome_completo">Nome completo *</label>
+      <input type="text" id="nome_completo" name="nome_completo" required
+             value="{{ f.nome_completo if paciente else (form.get('nome_completo','')) }}">
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="cpf">CPF</label>
+        <input type="text" id="cpf" name="cpf" value="{{ (f.cpf or '') if paciente else form.get('cpf','') }}">
+      </div>
+      <div class="form-group">
+        <label for="data_nascimento">Nascimento</label>
+        <input type="date" id="data_nascimento" name="data_nascimento"
+               value="{{ (paciente.data_nascimento.isoformat() if paciente and paciente.data_nascimento else form.get('data_nascimento','')) }}">
+      </div>
+      <div class="form-group">
+        <label for="sexo">Sexo</label>
+        <select id="sexo" name="sexo">
+          {% set sx = (paciente.sexo if paciente else form.get('sexo','')) %}
+          <option value="">—</option>
+          <option value="F" {{ 'selected' if sx=='F' }}>Feminino</option>
+          <option value="M" {{ 'selected' if sx=='M' }}>Masculino</option>
+          <option value="O" {{ 'selected' if sx=='O' }}>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="telefone">Telefone / WhatsApp</label>
+        <input type="text" id="telefone" name="telefone" value="{{ (f.telefone or '') if paciente else form.get('telefone','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" value="{{ (f.email or '') if paciente else form.get('email','') }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="endereco">Endereço</label>
+      <input type="text" id="endereco" name="endereco" value="{{ (f.endereco or '') if paciente else form.get('endereco','') }}">
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="bairro">Bairro</label>
+        <input type="text" id="bairro" name="bairro" value="{{ (f.bairro or '') if paciente else form.get('bairro','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="cidade">Cidade</label>
+        <input type="text" id="cidade" name="cidade" value="{{ (f.cidade or '') if paciente else form.get('cidade','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="convenio">Convênio</label>
+        <input type="text" id="convenio" name="convenio" value="{{ (f.convenio or '') if paciente else form.get('convenio','') }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" name="observacoes" rows="3">{{ (f.observacoes or '') if paciente else form.get('observacoes','') }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('pacientes.listar') }}" class="btn btn-outline">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

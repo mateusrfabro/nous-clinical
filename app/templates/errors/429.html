@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Muitas tentativas — medsaas{% endblock %}
+{% block content %}
+<div class="error-page">
+    <span class="error-page-eyebrow">Erro 429</span>
+    <h1>429</h1>
+    <h2>Muitas tentativas</h2>
+    <p>Você fez requisições demais em pouco tempo. Aguarde um instante e tente de novo.</p>
+    <div class="error-page-actions">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">Ir para o início</a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline">Meu painel</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

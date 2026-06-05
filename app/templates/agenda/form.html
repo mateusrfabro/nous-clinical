@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Agendar consulta — medsaas{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>Agendar consulta</h2></div>
+  <form method="POST" action="{{ url_for('agenda.novo') }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="paciente_id">Paciente *</label>
+      <select id="paciente_id" name="paciente_id" required>
+        <option value="">Selecione…</option>
+        {% for p in pacientes %}<option value="{{ p.id }}" {{ 'selected' if form.get('paciente_id')|string==p.id|string }}>{{ p.nome_completo }}</option>{% endfor %}
+      </select>
+      <small class="muted">Não está na lista? <a href="{{ url_for('pacientes.novo') }}">Cadastre o paciente</a>.</small>
+    </div>
+    <div class="form-group">
+      <label for="profissional_id">Profissional *</label>
+      <select id="profissional_id" name="profissional_id" required>
+        <option value="">Selecione…</option>
+        {% for p in profissionais %}<option value="{{ p.id }}" {{ 'selected' if form.get('profissional_id')|string==p.id|string }}>{{ p.nome }}{% if p.especialidade %} — {{ p.especialidade }}{% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="dia">Dia *</label>
+        <input type="date" id="dia" name="dia" required value="{{ form.get('dia', dia) }}">
+      </div>
+      <div class="form-group">
+        <label for="hora">Hora *</label>
+        <input type="time" id="hora" name="hora" required value="{{ form.get('hora','') }}">
+      </div>
+      <div class="form-group">
+        <label for="duracao_min">Duração (min)</label>
+        <input type="number" id="duracao_min" name="duracao_min" class="w-input-num" value="{{ form.get('duracao_min','30') }}" min="5" step="5">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="convenio">Convênio</label>
+      <input type="text" id="convenio" name="convenio" value="{{ form.get('convenio','') }}">
+    </div>
+    <div class="form-group">
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" name="observacoes" rows="2">{{ form.get('observacoes','') }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Agendar</button>
+    <a href="{{ url_for('agenda.listar') }}" class="btn btn-outline">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Agenda — medsaas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Agenda — {{ dia|data_br }}</h2>
+  {% if current_user.is_admin or current_user.is_recepcao %}
+    <a href="{{ url_for('agenda.novo', dia=dia.isoformat()) }}" class="btn btn-primary">+ Agendar consulta</a>
+  {% endif %}
+</div>
+
+<form method="GET" class="flex-form no-loading mb-4">
+  <div class="form-group">
+    <label for="dia">Dia</label>
+    <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
+  </div>
+  {% if not current_user.is_profissional %}
+  <div class="form-group form-group-grow">
+    <label for="profissional_id">Profissional</label>
+    <select id="profissional_id" name="profissional_id">
+      <option value="">Todos</option>
+      {% for p in profissionais %}
+        <option value="{{ p.id }}" {{ 'selected' if filtro_prof==p.id }}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+  <a href="{{ url_for('agenda.listar', dia=dia_anterior) }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('agenda.listar', dia=dia_seguinte) }}" class="btn btn-outline">Próximo →</a>
+</form>
+
+{% if agendamentos %}
+<table class="table">
+  <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for ag in agendamentos %}
+    <tr>
+      <td>{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</td>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a></td>
+      <td>{{ ag.profissional.nome }}</td>
+      <td><span class="tag {{ ag.status|status_class }}">{{ ag.status|status_label }}</span></td>
+      <td>
+        <div class="flex-row-gap">
+          {% if current_user.is_admin or current_user.is_recepcao %}
+          <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="inline-form no-loading">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" class="text-sm">
+              {% for s in ['agendado','confirmado','atendido','cancelado','faltou'] %}
+                <option value="{{ s }}" {{ 'selected' if ag.status==s }}>{{ s|status_label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn-link">Salvar</button>
+          </form>
+          {% endif %}
+          {% if current_user.is_admin or current_user.is_profissional %}
+            <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">Atender</a>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhuma consulta neste dia.</p></div>
+{% endif %}
+{% endblock %}

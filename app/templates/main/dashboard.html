@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Painel — medsaas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Olá, {{ current_user.nome_responsavel }}</h2>
+  <p class="muted">Resumo de hoje.</p>
+</div>
+
+<section class="kpi-grid">
+  <div class="kpi-card">
+    <span class="kpi-label">Consultas hoje</span>
+    <span class="kpi-value">{{ agendamentos_hoje|length }}</span>
+  </div>
+  {% if current_user.is_admin or current_user.is_recepcao %}
+  <div class="kpi-card">
+    <span class="kpi-label">Pacientes ativos</span>
+    <span class="kpi-value">{{ total_pacientes }}</span>
+  </div>
+  {% endif %}
+  {% if current_user.is_admin %}
+  <div class="kpi-card">
+    <span class="kpi-label">Profissionais</span>
+    <span class="kpi-value">{{ total_profissionais }}</span>
+  </div>
+  {% endif %}
+</section>
+
+<div class="page-header section-title-mt">
+  <h3>Agenda de hoje</h3>
+  <a href="{{ url_for('agenda.listar') }}" class="btn btn-outline">Ver agenda completa</a>
+</div>
+
+{% if agendamentos_hoje %}
+<table class="table">
+  <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for ag in agendamentos_hoje %}
+    <tr>
+      <td>{{ ag.inicio|hora_br }}</td>
+      <td>{{ ag.paciente.nome_completo }}</td>
+      <td>{{ ag.profissional.nome }}</td>
+      <td><span class="tag {{ ag.status|status_class }}">{{ ag.status|status_label }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhuma consulta agendada para hoje.</p></div>
+{% endif %}
+{% endblock %}

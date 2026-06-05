@@ -1,0 +1,73 @@
+# medsaas — docker-compose (Postgres + Redis + app via gunicorn).
+# Cria a rede externa antes do primeiro up:  docker network create server_net
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: medsaas-db
+    restart: always
+    environment:
+      POSTGRES_DB: medsaas
+      POSTGRES_USER: medsaas
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medsaas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks: [internal_net]
+
+  redis:
+    image: redis:7-alpine
+    container_name: medsaas-redis
+    restart: always
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks: [internal_net]
+
+  app:
+    build: .
+    container_name: medsaas-app
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://medsaas:${DB_PASSWORD}@db:5432/medsaas
+      SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY no .env}
+      FLASK_ENV: ${FLASK_ENV:-production}
+      FLASK_APP: run.py
+      RUN_SEED: ${RUN_SEED:-false}
+      PORT: ${PORT:-5050}
+      WEB_WORKERS: ${WEB_WORKERS:-4}
+      RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-redis://redis:6379/0}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-medsaasbot}
+    volumes:
+      - uploads:/app/instance/uploads
+      - logs:/var/log
+    expose:
+      - "${PORT:-5050}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(5); exit(0 if s.connect_ex(('127.0.0.1',5050)) == 0 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [internal_net, server_net]
+
+volumes:
+  pgdata:
+  uploads:
+  logs:
+
+networks:
+  internal_net:
+    driver: bridge
+  server_net:
+    external: true

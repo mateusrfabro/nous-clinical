@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Atendimento — medsaas{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header">
+    <h2>Atendimento</h2>
+    <p class="muted">{{ ag.paciente.nome_completo }} · {{ ag.inicio|datetime_br }} · {{ ag.profissional.nome }}</p>
+  </div>
+  <div class="alert alert-info">Prontuário é dado sensível (LGPD). Registre só o necessário.</div>
+  <form method="POST" action="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="queixa">Queixa principal / anamnese</label>
+      <textarea id="queixa" name="queixa" rows="3">{{ registro.queixa if registro else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="evolucao">Evolução / conduta</label>
+      <textarea id="evolucao" name="evolucao" rows="4">{{ registro.evolucao if registro else '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="prescricao">Prescrição / receituário</label>
+      <textarea id="prescricao" name="prescricao" rows="4">{{ registro.prescricao if registro else '' }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar atendimento</button>
+    <a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}" class="btn btn-outline">Voltar ao paciente</a>
+  </form>
+</div>
+{% endblock %}

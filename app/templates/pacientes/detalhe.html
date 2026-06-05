@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ paciente.nome_completo }} — medsaas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>{{ paciente.nome_completo }}</h2>
+  <a href="{{ url_for('pacientes.editar', paciente_id=paciente.id) }}" class="btn btn-outline">Editar</a>
+</div>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Dados</h3>
+    <p class="muted">CPF: {{ paciente.cpf or '—' }}</p>
+    <p class="muted">Nascimento: {{ paciente.data_nascimento|data_br }} ({{ paciente.data_nascimento|idade }})</p>
+    <p class="muted">Telefone: {{ paciente.telefone or '—' }}</p>
+    <p class="muted">E-mail: {{ paciente.email or '—' }}</p>
+    <p class="muted">Convênio: {{ paciente.convenio or '—' }}</p>
+    {% if paciente.observacoes %}<p class="mt-2">{{ paciente.observacoes }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="page-header section-title-mt"><h3>Histórico de consultas</h3></div>
+{% if paciente.agendamentos %}
+<table class="table">
+  <thead><tr><th>Data</th><th>Profissional</th><th>Status</th>{% if pode_ver_prontuario %}<th>Prontuário</th>{% endif %}</tr></thead>
+  <tbody>
+    {% for ag in paciente.agendamentos %}
+    <tr>
+      <td>{{ ag.inicio|datetime_br }}</td>
+      <td>{{ ag.profissional.nome }}</td>
+      <td><span class="tag {{ ag.status|status_class }}">{{ ag.status|status_label }}</span></td>
+      {% if pode_ver_prontuario %}
+      <td>
+        <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">
+          {{ 'Ver/editar' if ag.atendimento else 'Registrar' }}
+        </a>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhuma consulta registrada.</p></div>
+{% endif %}
+{% endblock %}

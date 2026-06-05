@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Entrar — medsaas{% endblock %}
+{% block h1_oculto %}{% endblock %}
+
+{% block content %}
+<section class="auth-split" aria-label="Entrar na sua conta">
+    <aside class="auth-brand" aria-label="medsaas">
+        <span class="auth-brand-eyebrow">Gestão de clínica sem fricção</span>
+        <h1 class="auth-brand-titulo">Agenda, pacientes e prontuário num só lugar.</h1>
+        <p class="auth-brand-sub">Marque consultas, organize a recepção e registre o atendimento com segurança de dados de saúde.</p>
+        <div class="auth-brand-stats">
+            <div class="auth-brand-stat">
+                <span class="auth-brand-stat-num">1 tela</span>
+                <span class="auth-brand-stat-label">Agenda do dia por profissional, em tempo real.</span>
+            </div>
+            <div class="auth-brand-stat">
+                <span class="auth-brand-stat-num">LGPD</span>
+                <span class="auth-brand-stat-label">Prontuário visível só para profissional e admin.</span>
+            </div>
+        </div>
+        <p class="auth-brand-foot">MEDSAAS · GESTÃO DE CLÍNICA</p>
+    </aside>
+
+    <div class="auth-form-side">
+        <div class="auth-form-wrapper">
+            <span class="auth-form-eyebrow">Acesso à plataforma</span>
+            <h2 class="auth-form-titulo" id="form-titulo-login">Entrar</h2>
+            <p class="auth-form-sub">Use o e-mail e a senha do seu cadastro.</p>
+
+            <form method="POST" aria-labelledby="form-titulo-login">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group {% if erro_login %}is-invalid{% endif %}">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" required
+                           value="{{ email_anterior or '' }}"
+                           autocomplete="email" placeholder="voce@clinica.com">
+                </div>
+                <div class="form-group {% if erro_login %}is-invalid{% endif %}">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" required
+                           autocomplete="current-password">
+                    {% if erro_login %}
+                    <small class="field-error">Verifique seu e-mail e senha.</small>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+            </form>
+            <p class="form-footer">
+                <a href="{{ url_for('auth.esqueci_senha') }}">Esqueci minha senha</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

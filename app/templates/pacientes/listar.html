@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Pacientes — medsaas{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Pacientes</h2>
+  <a href="{{ url_for('pacientes.novo') }}" class="btn btn-primary">+ Novo paciente</a>
+</div>
+
+<form method="GET" class="flex-form no-loading mb-4">
+  <div class="form-group form-group-flex-main">
+    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome, CPF ou telefone">
+  </div>
+  <button type="submit" class="btn btn-outline">Buscar</button>
+</form>
+
+{% if pacientes %}
+<table class="table">
+  <thead><tr><th>Nome</th><th>Telefone</th><th>Convênio</th><th>Idade</th><th></th></tr></thead>
+  <tbody>
+    {% for p in pacientes %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome_completo }}</a></td>
+      <td>{{ p.telefone or '—' }}</td>
+      <td>{{ p.convenio or '—' }}</td>
+      <td>{{ p.data_nascimento|idade }}</td>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}" class="btn-link">Abrir</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum paciente encontrado.</p></div>
+{% endif %}
+{% endblock %}
