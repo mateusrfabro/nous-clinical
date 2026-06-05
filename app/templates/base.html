@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}medsaas{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}medsaas — gestão de clínica: agenda, pacientes e prontuário em um só lugar.{% endblock %}">
-    <meta name="theme-color" content="#0d1b2a">
+    <title>{% block title %}Nous Clinical{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Nous Clinical — menos gestão, mais medicina. Agenda, pacientes, prontuário e financeiro com inteligência clínica.{% endblock %}">
+    <meta name="theme-color" content="#1E293B">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&family=Sora:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -17,10 +17,25 @@
         <div class="nav-brand">
             {% set brand_href = url_for('main.index') %}
             {% if current_user.is_authenticated %}{% set brand_href = url_for('main.dashboard') %}{% endif %}
-            <a href="{{ brand_href }}" aria-label="medsaas">
+            <a href="{{ brand_href }}" aria-label="Nous Clinical">
+                <svg class="logo-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+                    <defs>
+                        <linearGradient id="nous-mark" x1="6" y1="58" x2="58" y2="6" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#6FB59C"/>
+                            <stop offset="1" stop-color="#43B8A5"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M40 8 A26 26 0 1 0 56 32" stroke="url(#nous-mark)" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="url(#nous-mark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+                    <circle cx="31" cy="13" r="3.2" fill="#6FB59C"/>
+                    <circle cx="45" cy="20" r="4" fill="#43B8A5"/>
+                    <circle cx="52" cy="32" r="3.2" fill="#43B8A5"/>
+                    <circle cx="43" cy="34" r="3.6" fill="#6FB59C"/>
+                    <circle cx="39" cy="45" r="3" fill="#43B8A5"/>
+                </svg>
                 <span class="logo-text-group">
-                    <span class="logo-text">med<span class="accent">saas</span></span>
-                    <span class="logo-tagline">GESTÃO DE CLÍNICA</span>
+                    <span class="logo-text">Nous</span>
+                    <span class="logo-tagline">Clinical</span>
                 </span>
             </a>
         </div>
@@ -37,6 +52,7 @@
                 <a href="{{ url_for('agenda.listar') }}">Agenda</a>
                 {% if current_user.is_admin or current_user.is_recepcao %}
                     <a href="{{ url_for('pacientes.listar') }}">Pacientes</a>
+                    <a href="{{ url_for('financeiro.fluxo') }}">Financeiro</a>
                 {% endif %}
                 {% if current_user.is_admin %}
                     <a href="{{ url_for('profissionais.listar') }}">Profissionais</a>
@@ -72,12 +88,13 @@
 
     <footer class="footer">
         <div class="footer-bottom">
-            <p>&copy; 2026 medsaas &mdash; Gestão de Clínica</p>
+            <p>&copy; 2026 Nous Clinical &mdash; Inteligência para a medicina moderna.</p>
         </div>
     </footer>
 
     <script src="{{ url_for('static', filename='js/confirm-submit.js') }}"></script>
     <script src="{{ url_for('static', filename='js/form-submitting.js') }}"></script>
     <script src="{{ url_for('static', filename='js/data-bind.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/money-mask.js') }}"></script>
 </body>
 </html>

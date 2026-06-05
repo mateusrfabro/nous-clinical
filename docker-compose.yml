@@ -1,18 +1,18 @@
-# medsaas — docker-compose (Postgres + Redis + app via gunicorn).
+# Nous Clinical — docker-compose (Postgres + Redis + app via gunicorn).
 # Cria a rede externa antes do primeiro up:  docker network create server_net
 services:
   db:
     image: postgres:16-alpine
-    container_name: medsaas-db
+    container_name: nous-db
     restart: always
     environment:
-      POSTGRES_DB: medsaas
-      POSTGRES_USER: medsaas
+      POSTGRES_DB: nous
+      POSTGRES_USER: nous
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medsaas"]
+      test: ["CMD-SHELL", "pg_isready -U nous"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: medsaas-redis
+    container_name: nous-redis
     restart: always
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -32,10 +32,10 @@ services:
 
   app:
     build: .
-    container_name: medsaas-app
+    container_name: nous-app
     restart: always
     environment:
-      DATABASE_URL: postgresql://medsaas:${DB_PASSWORD}@db:5432/medsaas
+      DATABASE_URL: postgresql://nous:${DB_PASSWORD}@db:5432/nous
       SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY no .env}
       FLASK_ENV: ${FLASK_ENV:-production}
       FLASK_APP: run.py
@@ -44,7 +44,7 @@ services:
       WEB_WORKERS: ${WEB_WORKERS:-4}
       RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-redis://redis:6379/0}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-medsaasbot}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-nousclinicalbot}
     volumes:
       - uploads:/app/instance/uploads
       - logs:/var/log

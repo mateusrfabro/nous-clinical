@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}medsaas — gestão de clínica{% endblock %}
+{% block title %}Nous Clinical — menos gestão, mais medicina{% endblock %}
 {% block h1_oculto %}{% endblock %}
 {% block content %}
 <section class="hero">
-  <span class="hero-eyebrow">Plataforma para clínicas</span>
-  <h1 class="hero-titulo">A sua clínica organizada: <span class="accent">agenda, pacientes e prontuário</span>.</h1>
-  <p class="hero-sub">Recepção marca consultas, profissionais registram o atendimento, gestor acompanha tudo — com segurança de dados de saúde.</p>
+  <span class="hero-eyebrow">Inteligência para a medicina moderna</span>
+  <h1 class="hero-titulo">Menos gestão. <span class="accent">Mais medicina.</span></h1>
+  <p class="hero-sub">Agenda, pacientes, prontuário e financeiro em uma só plataforma — para a clínica cuidar da saúde do paciente e o Nous cuidar do resto, com segurança de dados de saúde.</p>
   <div class="hero-actions">
     <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Entrar na plataforma</a>
   </div>
@@ -18,11 +18,15 @@
   </div>
   <div class="card">
     <h3>Cadastro de pacientes</h3>
-    <p class="muted">Dados, convênio e histórico de consultas centralizados e pesquisáveis.</p>
+    <p class="muted">Dados, convênio e histórico clínico e financeiro centralizados e pesquisáveis.</p>
   </div>
   <div class="card">
     <h3>Prontuário seguro</h3>
     <p class="muted">Evolução e prescrição acessíveis só para profissional e admin — recepção não vê dado clínico.</p>
+  </div>
+  <div class="card">
+    <h3>Financeiro integrado</h3>
+    <p class="muted">Recebimento da consulta, contas a receber e pagar e fluxo de caixa — receita conectada à agenda.</p>
   </div>
 </section>
 {% endblock %}

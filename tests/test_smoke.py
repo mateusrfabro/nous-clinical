@@ -1,5 +1,5 @@
-"""Smoke + autorizacao basica do medsaas."""
-from app.models import Usuario, Paciente
+"""Smoke + autorizacao basica do Nous Clinical."""
+from app.models import Paciente
 from app.services.passwords import check_senha
 
 

@@ -1,4 +1,6 @@
-/* Aggron - Central de Compras Cooperativa */
+/* Nous Clinical - Inteligencia para a medicina moderna (design system dark).
+   Paleta oficial: teal + sage + lilas + navy ink + off-white.
+   Origem do scaffold: plataforma Aggron (central de compras). */
 
 /* Utilitario a11y: esconde visualmente mas mantem pra leitores de tela */
 .sr-only {
@@ -94,25 +96,27 @@
 
 :root {
     /* ============================================================
-       Paleta oficial Aggron (manual de identidade 2026 — dark premium).
+       Paleta oficial Nous Clinical (dark premium).
        ------------------------------------------------------------
-       Verde Aggron (escuro) + Verde Claro + Ouro + Grafite.
-       Layout dark com glow verde discreto.
+       Teal (primaria/CTA) + Sage (simbolo/2a) + Lilas (accent) +
+       Navy ink (surface) + texto claro. Glow teal discreto.
        ============================================================ */
 
-    /* PLACEHOLDER medsaas — paleta clinica (dark clinical). Recolore os
-       tokens --brand-* (nomes mantidos pra compat com o resto do CSS).
-       Troque pela identidade real quando a marca existir. */
-    --brand-verde:        #0d1b2a;  /* navy escuro institucional */
-    --brand-verde-claro:  #2563eb;  /* azul medico — CTAs, links, glow */
-    --brand-ouro:         #38bdf8;  /* ciano — accent, badges, destaque */
-    --brand-grafite:      #0f1620;  /* fundo profundo azulado */
-    --brand-cinza-claro:  #E8ECF1;  /* texto principal sobre dark */
+    /* Nous Clinical — identidade oficial (manual de marca).
+       Sage + Teal (simbolo/CTA) + Lilas (accent) + Navy ink + off-white.
+       Nomes --brand-* mantidos pra compat; valores = paleta oficial. */
+    --brand-sage:         #6FB59C;  /* verde sage — simbolo, gradiente, secundaria */
+    --brand-verde:        #1E293B;  /* navy ink — institucional / surface escura */
+    --brand-verde-claro:  #43B8A5;  /* teal — PRIMARIA, CTAs, links, glow */
+    --brand-ouro:         #B7A7F5;  /* lilas — ACCENT, badges, destaque pontual */
+    --brand-grafite:      #1E293B;  /* surface/card/navbar (navy ink) */
+    --brand-cinza-claro:  #EEF2F1;  /* texto principal sobre dark */
+    --brand-paper:        #F8FAF8;  /* off-white (reservado p/ tema claro futuro) */
 
     /* Tokens semanticos (mapeiam pra brand mas com nomes que falam de uso). */
-    --bg-page:        #0a0c0e;            /* fundo geral, mais escuro que grafite */
-    --bg-elevated:    var(--brand-grafite); /* cards, navbar, surface */
-    --bg-elevated-2:  #1a1f24;            /* hover, accent secondary, badges */
+    --bg-page:        #131b28;            /* navy mais escuro que a surface */
+    --bg-elevated:    var(--brand-grafite); /* cards, navbar, surface (#1E293B) */
+    --bg-elevated-2:  #2a3a52;            /* hover, accent secondary, badges */
     --bg-deep-green:  var(--brand-verde); /* cards de destaque com fundo verde */
     --border:         rgba(255, 255, 255, 0.08);
     --border-strong:  rgba(255, 255, 255, 0.16);
@@ -125,11 +129,11 @@
 
     /* Compat: tokens antigos do projeto continuam mapeados pros novos. */
     --primary:        var(--brand-verde-claro);
-    --primary-dark:   #1d4ed8;
-    --primary-text:   #93c5fd;     /* azul claro pra texto sobre dark (WCAG AA) */
+    --primary-dark:   #348577;
+    --primary-text:   #7fd3c4;     /* teal claro pra texto/links sobre dark (WCAG AA) */
     --secondary:      var(--brand-verde);
     --accent:         var(--brand-ouro);
-    --info:           #4ea8de;
+    --info:           #6aa6c9;
 
     --bg:             var(--bg-page);
     --white:          var(--bg-elevated);   /* "white" agora eh surface dark */
@@ -147,12 +151,14 @@
     --warning:        #f59e0b;
     --radius:         8px;
 
-    /* Glow azul discreto — usado em hover de CTAs, focos, cards. */
-    --glow-verde:     0 0 24px rgba(37, 99, 235, 0.25);
+    /* Glow teal discreto — usado em hover de CTAs, focos, cards. */
+    --glow-verde:     0 0 24px rgba(67, 184, 165, 0.28);
 
-    /* Tipografia: Sora (titulos/branding) + Inter (corpo) — Google Fonts no base.html. */
+    /* Tipografia oficial: Sora/Poppins/Inter (family). Poppins no wordmark,
+       Sora em titulos, Inter no corpo. Google Fonts no base.html. */
     --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-heading: 'Sora', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-logo:    'Poppins', 'Sora', -apple-system, 'Segoe UI', Roboto, sans-serif;
 
     /* Spacing 8px grid — aplicar incrementalmente nos templates. */
     --space-1: 8px;
@@ -175,17 +181,17 @@ body {
     background: var(--bg-page);
     color: var(--text-primary);
     line-height: 1.6;
-    /* Glow verde radial sutil no topo — assina a presenca da marca sem
+    /* Glow teal radial sutil no topo — assina a presenca da marca sem
        distrair. Fica fixo enquanto rola pra dar sensacao de "iluminacao
        de cima". */
     background-image:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37, 99, 235, 0.12), transparent 70%);
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(67, 184, 165, 0.12), transparent 70%);
     background-attachment: fixed;
 }
 
-/* Links default em dark — ciano pra acento. */
-a { color: var(--brand-ouro); }
-a:hover { color: #7dd3fc; }
+/* Links default em dark — teal claro (cor primaria da marca). */
+a { color: var(--primary-text); }
+a:hover { color: #a7e8dc; }
 
 /* Form controls nativos em dark. Browser ja respeita color-scheme: dark
    acima, mas reforca pra consistencia entre engines. */
@@ -219,23 +225,23 @@ h1, h2, h3, h4, h5, h6 {
 /* Texto auxiliar — usado em centenas de templates. */
 .muted { color: var(--text-muted); }
 
-/* Accent — destaca palavra ou numero em ouro Aggron. Usar em "AGGRON" no
-   wordmark, valores de KPI, palavras-chave de hero. */
+/* Accent — destaca palavra/numero em lilas Nous (pop pontual sobre o teal).
+   Usar em palavra-chave de hero, valores de KPI, badges. */
 .accent { color: var(--brand-ouro); }
-.accent-soft { color: #c89c2a; }  /* ouro mais sutil, pra subtitulos */
+.accent-soft { color: #cdbffb; }  /* lilas mais sutil, pra subtitulos */
 
 /* btn-link — link estilizado como botao baixo-perfil em listas/timelines. */
 .btn-link {
     background: none;
     border: none;
-    color: var(--brand-ouro);
+    color: var(--primary-text);
     cursor: pointer;
     padding: 0;
     font: inherit;
     text-decoration: underline;
     text-underline-offset: 2px;
 }
-.btn-link:hover { color: #e6c356; }
+.btn-link:hover { color: #a7e8dc; }
 
 /* Navbar — dark premium com borda inferior sutil. */
 .navbar {
@@ -268,42 +274,38 @@ h1, h2, h3, h4, h5, h6 {
     width: auto;
     display: block;
 }
+/* Símbolo Nous (círculo + nós conectados) — SVG inline, gradiente sage→teal. */
+.nav-brand .logo-mark {
+    height: 34px;
+    width: 34px;
+    flex: none;
+    display: block;
+}
 .nav-brand .logo-text-group {
     display: flex;
     flex-direction: column;
     line-height: 1;
 }
+/* Wordmark "Nous" — Poppins, leve, off-white (igual ao manual de marca). */
 .nav-brand .logo-text {
     color: var(--brand-cinza-claro);
-    font-family: var(--font-heading);
-    font-weight: 700;
-    letter-spacing: 4px;
-    font-size: 1.25rem;
+    font-family: var(--font-logo);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    font-size: 1.35rem;
     line-height: 1;
 }
-/* Tagline dourada com traços laterais — assinatura visual do briefing
-   "INTELIGÊNCIA QUE GERA VALOR" em Inter regular, ouro Aggron. */
+/* "CLINICAL" — teal, espaçado, sob o wordmark (assinatura do manual). */
 .nav-brand .logo-tagline {
-    color: var(--brand-ouro);
+    color: var(--brand-verde-claro);
     font-family: var(--font-body);
     font-weight: 500;
-    letter-spacing: 1.5px;
-    font-size: 0.5rem;
+    letter-spacing: 4px;
+    font-size: 0.56rem;
     line-height: 1;
-    margin-top: 0.35rem;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
+    margin-top: 0.3rem;
     text-transform: uppercase;
     white-space: nowrap;
-}
-.nav-brand .logo-tagline::before,
-.nav-brand .logo-tagline::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--brand-ouro);
-    min-width: 0.5rem;
 }
 @media (max-width: 768px) {
     /* Mobile: tagline some pra navbar nao ficar apertada */

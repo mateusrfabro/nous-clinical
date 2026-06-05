@@ -1,4 +1,4 @@
-"""Fixtures pytest do medsaas.
+"""Fixtures pytest do Nous Clinical.
 
 SQLite em arquivo temporario por sessao de teste (isolado do DB de dev),
 schema via db.create_all(), seed minimo com 1 usuario de cada papel.
@@ -18,14 +18,14 @@ from app.services.passwords import hash_senha
 
 @pytest.fixture
 def app():
-    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="medsaas-test-")
+    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="nous-test-")
     os.close(fd)
     os.environ["TEST_DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["SECRET_KEY"] = "test-secret"
 
     app = create_app("testing")
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    assert "medsaas.db" not in uri, f"SEGURANCA: teste nao toca DB real. URI={uri}"
+    assert "nous.db" not in uri, f"SEGURANCA: teste nao toca DB real. URI={uri}"
 
     limiter.enabled = False
     with app.app_context():

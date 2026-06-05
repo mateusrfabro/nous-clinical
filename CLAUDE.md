@@ -1,11 +1,14 @@
-# medsaas — guia do Claude Code
+# Nous Clinical — guia do Claude Code
 
 ## O que é o projeto
-SaaS de **gestão de clínica**: recepção marca consultas, profissionais de saúde
-registram o atendimento (prontuário), gestor acompanha a operação. Nicho médico.
+**Nous Clinical** — *"Menos gestão. Mais medicina."* SaaS de **gestão de clínica** com
+inteligência clínica: recepção marca consultas, profissionais de saúde registram o
+atendimento (prontuário), gestor acompanha a operação e o financeiro. Nicho médico.
+*Nous* (grego: inteligência/razão) — "a inteligência que auxilia a prática clínica".
 
-> **Nome `medsaas` é placeholder.** Trocar pela marca real depois (bindings em
-> `config.py`, `docker-compose.yml`, `entrypoint.sh`, templates, CSS tokens).
+> **Marca definida: Nous Clinical** (identidade dark indigo/teal). O scaffold nasceu
+> como `medsaas` (placeholder) e foi rebatizado; bindings em `config.py`,
+> `docker-compose.yml`, `entrypoint.sh`, templates e tokens CSS (`--brand-*`).
 
 **Origem:** scaffold de plataforma copiado do projeto Aggron (central de compras),
 com o domínio de compras removido e substituído pelo domínio clínica/agenda.
@@ -24,6 +27,8 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 - **Paciente** — cadastro (nome, CPF, nascimento, contato, convênio, observações).
 - **Agendamento** — paciente + profissional + início/fim + status + valor/convênio.
 - **Atendimento** — prontuário (queixa/evolução/prescrição). **Dado sensível LGPD.**
+- **LancamentoFinanceiro** — receita/despesa (categoria, valor, status pendente/pago/cancelado,
+  forma de pagamento, vencimento, pago_em). Liga opcional a paciente e a agendamento (1:1).
 - **AuditLog** — trilha de auditoria (constantes `ACAO_*`).
 
 ## Fluxo principal
@@ -34,13 +39,17 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 4. No dia: recepção muda status (confirmado/faltou)         /agenda/<id>/status
 5. Profissional registra atendimento (prontuário)           /agenda/<id>/atendimento
    -> consulta vira status=atendido automaticamente
+6. Recepção/admin registra recebimento da consulta          /financeiro (botão "Receber" na agenda)
+   -> cria LancamentoFinanceiro receita ligado ao agendamento
 ```
 Status do agendamento: `agendado → confirmado → atendido` (ou `cancelado` / `faltou`).
+Financeiro: fluxo de caixa (`/financeiro`), contas a receber/pagar (`/financeiro/contas`),
+histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissional não vê).
 
 ## Ambiente
 - **Python 3.12:** `C:/Users/NITRO/AppData/Local/Programs/Python/Python312/python.exe`
 - **Rodar Flask:** `python run.py` (porta 5050; setar `PORT` se ocupada)
-- **DB dev:** SQLite em `instance/medsaas.db`
+- **DB dev:** SQLite em `instance/nous.db`
 - **Testes:** `python -m pytest tests/ -q`
 - **Migration:** `flask db migrate -m "..."` + `flask db upgrade` (precisa `FLASK_APP=run.py`)
 - **Seed:** `python scripts/seed.py`
@@ -48,9 +57,9 @@ Status do agendamento: `agendado → confirmado → atendido` (ou `cancelado` / 
 ## Logins de teste (após seed — senha `demo123`)
 | Papel | Email |
 |---|---|
-| Admin | admin@medsaas.com |
-| Recepção | recepcao@medsaas.com |
-| Profissional | dra.ana@medsaas.com / dr.bruno@medsaas.com |
+| Admin | admin@nous.com |
+| Recepção | recepcao@nous.com |
+| Profissional | dra.ana@nous.com / dr.bruno@nous.com |
 
 ## Plataforma herdada (reaproveitada do Aggron)
 - App factory + Talisman (CSP sem unsafe-inline) + CSRF + Flask-Limiter + Cache.
@@ -59,8 +68,11 @@ Status do agendamento: `agendado → confirmado → atendido` (ou `cancelado` / 
 - Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
   `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health).
 - Error handlers 400/403/404/429/500 com template próprio.
-- Design system CSS dark (tokens `--brand-*`, utilitários, componentes) — **paleta
-  recolorida pra clínica (azul/teal); é placeholder, re-skin quando houver marca.**
+- Design system CSS dark (tokens `--brand-*`, utilitários, componentes) — **identidade
+  oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C` (símbolo/2ª) +
+  lilás `#B7A7F5` (accent) + navy `#1E293B` (ink) + off-white `#F8FAF8`. Fonts Sora/
+  Poppins/Inter. Logo = símbolo de rede (círculo + nós) + wordmark "Nous / CLINICAL".
+  Tema claro (base `--brand-paper`) seria sprint à parte.**
 - JS CSP-safe: `confirm-submit`, `form-submitting`, `data-bind`, `money-mask`.
 - CI (`.github/workflows/ci.yml`): pytest+coverage 70% + ruff + bandit + pip-audit.
 - Docker: `Dockerfile` + `docker-compose.yml` (Postgres + Redis + gunicorn) + `entrypoint.sh`.
@@ -81,11 +93,19 @@ Status do agendamento: `agendado → confirmado → atendido` (ou `cancelado` / 
 4. Escrever/atualizar teste → `pytest tests/ -q` 100%.
 5. Commit granular: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
 
-## Backlog sugerido (próximos passos)
+## Roadmap (doc de visão: Fase 1 MVP → Fase 2 CRM/IA → Fase 3 Concierge)
+**Fase 1 (MVP) — feito:** Agenda, Pacientes, Atendimento, **Financeiro** (fluxo de caixa,
+contas a receber/pagar, recebimento integrado, histórico financeiro do paciente).
+
+Próximos passos sugeridos:
+- **CRM Retorno (Fase 2, diferencial):** campo "retorno recomendado" (30/90/180/anual) no
+  Atendimento + painel de retornos pendentes + lembretes automáticos.
+- **Concierge IA (Fase 3):** geração de mensagens de acompanhamento (Claude API), busca de
+  laboratórios/farmácias por convênio, sugestão de horários.
 - Bloquear conflito de horário (mesmo profissional, mesmo slot).
 - Visão de agenda semanal/calendário (hoje é lista por dia).
 - Lembrete de consulta automático (Telegram/e-mail/WhatsApp).
 - Registro de cadastro público de paciente (auto-agendamento online).
-- Relatórios: faturamento por convênio, taxa de faltas, ocupação por profissional.
+- Relatórios/BI: faturamento por convênio, taxa de faltas, ocupação por profissional.
 - Anexos de exames no Atendimento (storage já suporta upload).
-- Re-skin com identidade visual real (criar skill de brand como no Aggron).
+- Tema claro (re-theme do design system dark atual).

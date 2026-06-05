@@ -1,9 +1,10 @@
-# medsaas
+# Nous Clinical
 
-SaaS de **gestão de clínica** — agenda, pacientes e prontuário. Flask + SQLAlchemy +
-PostgreSQL, com plataforma de segurança/auth/CI reaproveitada de um projeto irmão.
+**Menos gestão. Mais medicina.** SaaS de **gestão de clínica** com inteligência clínica —
+agenda, pacientes, prontuário e financeiro. Flask + SQLAlchemy + PostgreSQL, com plataforma
+de segurança/auth/CI reaproveitada de um projeto irmão (Aggron).
 
-> `medsaas` é um nome placeholder — troque pela marca real quando definir.
+> *Nous* (grego: inteligência/razão) — "a inteligência que auxilia a prática clínica".
 
 ## Rodar localmente (dev)
 
@@ -24,8 +25,8 @@ python scripts/seed.py
 python run.py            # http://127.0.0.1:5050
 ```
 
-Logins de teste (senha `demo123`): `admin@medsaas.com`, `recepcao@medsaas.com`,
-`dra.ana@medsaas.com`, `dr.bruno@medsaas.com`.
+Logins de teste (senha `demo123`): `admin@nous.com`, `recepcao@nous.com`,
+`dra.ana@nous.com`, `dr.bruno@nous.com`.
 
 ## Testes
 
@@ -49,9 +50,9 @@ Postgres + Redis + gunicorn. Migrations e seed (se `RUN_SEED=true`) rodam no
 ```
 app/
   __init__.py        # app factory, segurança (Talisman/CSP/CSRF/limiter), filtros Jinja
-  models.py          # Usuario, Profissional, Paciente, Agendamento, Atendimento, AuditLog
+  models.py          # Usuario, Profissional, Paciente, Agendamento, Atendimento, LancamentoFinanceiro, AuditLog
   auth_decorators.py # role_required (admin / profissional / recepcao)
-  routes/            # auth, main, pacientes, agenda, profissionais, perfil
+  routes/            # auth, main, pacientes, agenda, profissionais, financeiro, perfil
   services/          # passwords (Argon2), storage, email, audit, pii, notificacoes, app_info
   static/css|js      # design system + JS CSP-safe
   templates/         # Jinja2 por domínio

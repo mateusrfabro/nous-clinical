@@ -10,7 +10,7 @@ class Config:
     """Base. SECRET_KEY tem fallback aleatorio aqui (overridable por subclasses)."""
     SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_hex(32)
     SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL", "sqlite:///medsaas.db"
+        "DATABASE_URL", "sqlite:///nous.db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Limite de upload (exames, documentos do paciente).
@@ -18,7 +18,7 @@ class Config:
 
     # Username do bot Telegram (deep link t.me/<username>?start=...).
     # Canal opcional pra lembrete de consulta + reset de senha.
-    TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "medsaasbot")
+    TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "nousclinicalbot")
     TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
     # Numero WhatsApp publico pra contato pre-cadastro. So digitos com codigo
     # pais (ex: 5543999999999). Vazio = botao flutuante nao aparece.
