@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Painel — medsaas{% endblock %}
+{% block title %}Painel — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header">
   <h2>Olá, {{ current_user.nome_responsavel }}</h2>
@@ -22,6 +22,16 @@
     <span class="kpi-label">Profissionais</span>
     <span class="kpi-value">{{ total_profissionais }}</span>
   </div>
+  {% endif %}
+  {% if entradas_mes is not none %}
+  <a class="kpi-card card-hl-success" href="{{ url_for('financeiro.fluxo') }}">
+    <span class="kpi-label">Entradas do mês</span>
+    <span class="kpi-value economia-pos">{{ entradas_mes|brl }}</span>
+  </a>
+  <a class="kpi-card card-hl-primary" href="{{ url_for('financeiro.contas') }}">
+    <span class="kpi-label">A receber</span>
+    <span class="kpi-value">{{ a_receber|brl }}</span>
+  </a>
   {% endif %}
 </section>
 

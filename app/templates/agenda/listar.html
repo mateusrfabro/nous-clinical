@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Agenda — medsaas{% endblock %}
+{% block title %}Agenda — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header">
   <h2>Agenda — {{ dia|data_br }}</h2>
@@ -54,6 +54,14 @@
           {% endif %}
           {% if current_user.is_admin or current_user.is_profissional %}
             <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">Atender</a>
+          {% endif %}
+          {% if (current_user.is_admin or current_user.is_recepcao) and ag.valor and not ag.lancamento and ag.status in ['confirmado','atendido'] %}
+          <form method="POST" action="{{ url_for('financeiro.receber', agendamento_id=ag.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-link" data-confirm="Registrar recebimento de {{ ag.valor|brl }} desta consulta?">Receber</button>
+          </form>
+          {% elif (current_user.is_admin or current_user.is_recepcao) and ag.lancamento %}
+            <span class="tag tag-success">Recebido</span>
           {% endif %}
         </div>
       </td>

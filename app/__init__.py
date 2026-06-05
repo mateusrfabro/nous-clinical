@@ -105,7 +105,7 @@ def create_app(config_name="default"):
             except Exception:
                 head, dialect = "unknown", "unknown"
             app.logger.info(
-                "[medsaas] BOOT version=%s migration_head=%s db=%s env=%s",
+                "[nous] BOOT version=%s migration_head=%s db=%s env=%s",
                 app_version(), head, dialect, config_name,
             )
 
@@ -124,6 +124,7 @@ def create_app(config_name="default"):
     from app.routes.pacientes import pacientes_bp
     from app.routes.agenda import agenda_bp
     from app.routes.profissionais import profissionais_bp
+    from app.routes.financeiro import financeiro_bp
     from app.routes.perfil import perfil_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
@@ -196,6 +197,7 @@ def create_app(config_name="default"):
     app.register_blueprint(pacientes_bp)
     app.register_blueprint(agenda_bp)
     app.register_blueprint(profissionais_bp)
+    app.register_blueprint(financeiro_bp)
     app.register_blueprint(perfil_bp)
 
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----
@@ -225,6 +227,52 @@ def create_app(config_name="default"):
     def status_class(status):
         _, cls = STATUS_AGENDAMENTO.get((status or "").lower(), ("", "tag-info"))
         return cls
+
+    # ---- Financeiro: labels PT-BR + classe de tag por status ----
+    FIN_STATUS = {
+        "pendente":  ("Pendente", "tag-info"),
+        "pago":      ("Pago", "tag-success"),
+        "cancelado": ("Cancelado", "tag-danger"),
+    }
+    FORMA_PGTO = {
+        "dinheiro":       "Dinheiro",
+        "pix":            "Pix",
+        "cartao_credito": "Cartão de crédito",
+        "cartao_debito":  "Cartão de débito",
+        "convenio":       "Convênio",
+        "boleto":         "Boleto",
+        "transferencia":  "Transferência",
+    }
+    CATEGORIA_FIN = {
+        "consulta":    "Consulta",
+        "procedimento": "Procedimento",
+        "convenio":    "Convênio",
+        "aluguel":     "Aluguel",
+        "salario":     "Salário",
+        "insumo":      "Insumo",
+        "imposto":     "Imposto",
+        "outro":       "Outro",
+    }
+
+    @app.template_filter("fin_status_label")
+    def fin_status_label(status):
+        return FIN_STATUS.get((status or "").lower(), (status or "—", ""))[0]
+
+    @app.template_filter("fin_status_class")
+    def fin_status_class(status):
+        return FIN_STATUS.get((status or "").lower(), ("", "tag-info"))[1]
+
+    @app.template_filter("forma_pgto_label")
+    def forma_pgto_label(forma):
+        if not forma:
+            return "—"
+        return FORMA_PGTO.get(forma.lower(), forma)
+
+    @app.template_filter("categoria_label")
+    def categoria_label(categoria):
+        if not categoria:
+            return "—"
+        return CATEGORIA_FIN.get(categoria.lower(), categoria.capitalize())
 
     @app.template_filter("brl")
     def format_brl(valor):

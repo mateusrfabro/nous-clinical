@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ paciente.nome_completo }} — medsaas{% endblock %}
+{% block title %}{{ paciente.nome_completo }} — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header">
   <h2>{{ paciente.nome_completo }}</h2>
@@ -41,5 +41,28 @@
 </table>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta registrada.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Histórico financeiro</h3></div>
+{% if paciente.lancamentos %}
+{% set total_pago = paciente.lancamentos|selectattr('status','equalto','pago')|map(attribute='valor')|sum %}
+{% set total_pendente = paciente.lancamentos|selectattr('status','equalto','pendente')|map(attribute='valor')|sum %}
+<p class="muted">Pago: <span class="economia-pos">{{ total_pago|brl }}</span> &middot; Em aberto: {{ total_pendente|brl }}</p>
+<table class="table">
+  <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th></tr></thead>
+  <tbody>
+    {% for l in paciente.lancamentos %}
+    <tr>
+      <td>{{ (l.pago_em or l.criado_em)|data_br }}</td>
+      <td>{{ l.descricao or '—' }}</td>
+      <td>{{ l.categoria|categoria_label }}</td>
+      <td>{{ l.valor|brl }}</td>
+      <td><span class="tag {{ l.status|fin_status_class }}">{{ l.status|fin_status_label }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum lançamento financeiro.</p></div>
 {% endif %}
 {% endblock %}

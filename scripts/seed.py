@@ -1,4 +1,4 @@
-"""Seed inicial / de demonstracao do medsaas.
+"""Seed inicial / de demonstracao do Nous Clinical.
 
 Cria: 1 admin, 1 recepcao, 2 profissionais (com login), pacientes e alguns
 agendamentos pro dia de hoje. Idempotente por e-mail — rodar 2x nao duplica.
@@ -7,14 +7,15 @@ Uso:  python scripts/seed.py
 """
 import os
 import sys
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal
 
 # Permite rodar de qualquer cwd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db  # noqa: E402
 from app.models import (  # noqa: E402
-    Usuario, Profissional, Paciente, Agendamento,
+    Usuario, Profissional, Paciente, Agendamento, LancamentoFinanceiro,
 )
 from app.services.passwords import hash_senha  # noqa: E402
 
@@ -50,14 +51,14 @@ def seed():
                      and "production" or "development")
     with app.app_context():
         # Admin + recepcao
-        _get_or_create_usuario("admin@medsaas.com", "Administrador", "admin")
-        _get_or_create_usuario("recepcao@medsaas.com", "Recepção", "recepcao")
+        _get_or_create_usuario("admin@nous.com", "Administrador", "admin")
+        _get_or_create_usuario("recepcao@nous.com", "Recepção", "recepcao")
 
         # Profissionais (com login proprio)
         profs = []
         for email, nome, esp, cor in [
-            ("dra.ana@medsaas.com", "Dra. Ana Souza", "Clínica Geral", "#2563eb"),
-            ("dr.bruno@medsaas.com", "Dr. Bruno Lima", "Pediatria", "#16a34a"),
+            ("dra.ana@nous.com", "Dra. Ana Souza", "Clínica Geral", "#43B8A5"),
+            ("dr.bruno@nous.com", "Dr. Bruno Lima", "Pediatria", "#6FB59C"),
         ]:
             u, _ = _get_or_create_usuario(email, nome, "profissional")
             prof = Profissional.query.filter_by(usuario_id=u.id).first()
@@ -91,13 +92,48 @@ def seed():
                     status=Agendamento.STATUS_AGENDADO,
                 ))
 
+        # Lancamentos financeiros de demonstracao (fluxo de caixa nao nasce vazio).
+        agora = datetime.now(timezone.utc)
+        if LancamentoFinanceiro.query.count() == 0:
+            db.session.add_all([
+                LancamentoFinanceiro(
+                    tipo="receita", categoria="consulta",
+                    descricao="Consulta - Maria Oliveira", valor=Decimal("250.00"),
+                    status="pago", pago_em=agora, forma_pagamento="pix",
+                    paciente_id=pacientes[0].id, convenio="Unimed",
+                ),
+                LancamentoFinanceiro(
+                    tipo="receita", categoria="consulta",
+                    descricao="Consulta - João Pereira", valor=Decimal("200.00"),
+                    status="pendente", vencimento=date.today() + timedelta(days=7),
+                    paciente_id=pacientes[1].id,
+                ),
+                LancamentoFinanceiro(
+                    tipo="receita", categoria="convenio",
+                    descricao="Repasse convênio Bradesco Saúde",
+                    valor=Decimal("180.00"), status="pendente",
+                    vencimento=date.today() + timedelta(days=20),
+                    paciente_id=pacientes[2].id, convenio="Bradesco Saúde",
+                ),
+                LancamentoFinanceiro(
+                    tipo="despesa", categoria="aluguel",
+                    descricao="Aluguel da clínica", valor=Decimal("3500.00"),
+                    status="pago", pago_em=agora, forma_pagamento="transferencia",
+                ),
+                LancamentoFinanceiro(
+                    tipo="despesa", categoria="insumo",
+                    descricao="Material de consumo", valor=Decimal("420.00"),
+                    status="pendente", vencimento=date.today() + timedelta(days=10),
+                ),
+            ])
+
         db.session.commit()
         print("Seed concluído.")
         print("Logins (senha: %s):" % SENHA_DEMO)
-        print("  admin@medsaas.com      (admin)")
-        print("  recepcao@medsaas.com   (recepção)")
-        print("  dra.ana@medsaas.com    (profissional)")
-        print("  dr.bruno@medsaas.com   (profissional)")
+        print("  admin@nous.com      (admin)")
+        print("  recepcao@nous.com   (recepção)")
+        print("  dra.ana@nous.com    (profissional)")
+        print("  dr.bruno@nous.com   (profissional)")
 
 
 if __name__ == "__main__":

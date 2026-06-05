@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Financeiro — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Financeiro</h2>
+  <div class="flex-row-gap">
+    <a href="{{ url_for('financeiro.contas') }}" class="btn btn-outline">Contas a receber / pagar</a>
+    <a href="{{ url_for('financeiro.novo') }}" class="btn btn-primary">+ Novo lançamento</a>
+  </div>
+</div>
+
+<form method="GET" class="flex-form no-loading mb-4">
+  <div class="form-group">
+    <label for="periodo">Período</label>
+    <select id="periodo" name="periodo">
+      <option value="dia" {{ 'selected' if periodo=='dia' }}>Dia</option>
+      <option value="semana" {{ 'selected' if periodo=='semana' }}>Semana</option>
+      <option value="mes" {{ 'selected' if periodo=='mes' }}>Mês</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="ref">Referência</label>
+    <input type="date" id="ref" name="ref" value="{{ ref }}">
+  </div>
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+  <a href="{{ url_for('financeiro.fluxo', periodo=periodo, ref=ref_ant) }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('financeiro.fluxo', periodo=periodo, ref=ref_seg) }}" class="btn btn-outline">Próximo →</a>
+</form>
+
+<p class="muted">Fluxo de caixa — {{ rotulo }}</p>
+
+<section class="kpi-grid">
+  <div class="kpi-card card-hl-success">
+    <span class="kpi-label">Entradas</span>
+    <span class="kpi-value economia-pos">{{ entradas|brl }}</span>
+  </div>
+  <div class="kpi-card card-hl-warning">
+    <span class="kpi-label">Saídas</span>
+    <span class="kpi-value economia-neg">{{ saidas|brl }}</span>
+  </div>
+  <div class="kpi-card card-hl-primary">
+    <span class="kpi-label">Saldo do período</span>
+    <span class="kpi-value {{ 'economia-pos' if saldo >= 0 else 'economia-neg' }}">{{ saldo|brl }}</span>
+  </div>
+</section>
+
+<section class="kpi-grid mt-4">
+  <div class="kpi-card">
+    <span class="kpi-label">A receber (pendente)</span>
+    <span class="kpi-value">{{ a_receber|brl }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">A pagar (pendente)</span>
+    <span class="kpi-value">{{ a_pagar|brl }}</span>
+  </div>
+</section>
+
+<div class="page-header section-title-mt"><h3>Movimentações pagas no período</h3></div>
+
+{% if lancamentos %}
+<table class="table">
+  <thead>
+    <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Paciente</th><th>Forma</th><th>Valor</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+    {% for l in lancamentos %}
+    <tr>
+      <td>{{ l.pago_em|data_br }}</td>
+      <td>{{ l.descricao or '—' }}</td>
+      <td>{{ l.categoria|categoria_label }}</td>
+      <td>
+        {% if l.paciente %}<a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente_id) }}">{{ l.paciente.nome_completo }}</a>{% else %}—{% endif %}
+      </td>
+      <td>{{ l.forma_pagamento|forma_pgto_label }}</td>
+      <td class="{{ 'economia-pos' if l.tipo=='receita' else 'economia-neg' }}">
+        {{ '+' if l.tipo=='receita' else '-' }} {{ l.valor|brl }}
+      </td>
+      <td>
+        <form method="POST" action="{{ url_for('financeiro.cancelar', lancamento_id=l.id) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link" data-confirm="Cancelar este lançamento? Ele sai do fluxo de caixa.">Cancelar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum lançamento pago neste período.</p></div>
+{% endif %}
+{% endblock %}

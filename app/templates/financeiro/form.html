@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Novo lançamento — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>Novo lançamento</h2></div>
+  <form method="POST" action="{{ url_for('financeiro.novo') }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="tipo">Tipo *</label>
+        <select id="tipo" name="tipo" required>
+          <option value="receita" {{ 'selected' if form.get('tipo','receita')=='receita' }}>Receita (entrada)</option>
+          <option value="despesa" {{ 'selected' if form.get('tipo')=='despesa' }}>Despesa (saída)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="valor">Valor *</label>
+        <input type="text" id="valor" name="valor" class="money-input w-input-money" inputmode="numeric" placeholder="R$ 0,00" value="{{ form.get('valor','') }}" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="descricao">Descrição</label>
+      <input type="text" id="descricao" name="descricao" maxlength="200" value="{{ form.get('descricao','') }}" placeholder="Ex: Consulta, Aluguel, Repasse convênio…">
+    </div>
+
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="categoria">Categoria</label>
+        <select id="categoria" name="categoria">
+          <option value="">Selecione…</option>
+          {% for c in ['consulta','procedimento','convenio','aluguel','salario','insumo','imposto','outro'] %}
+            <option value="{{ c }}" {{ 'selected' if form.get('categoria')==c }}>{{ c|categoria_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="status">Situação *</label>
+        <select id="status" name="status" required>
+          <option value="pago" {{ 'selected' if form.get('status','pago')=='pago' }}>Já pago / recebido</option>
+          <option value="pendente" {{ 'selected' if form.get('status')=='pendente' }}>Em aberto (a receber/pagar)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="forma_pagamento">Forma de pagamento</label>
+        <select id="forma_pagamento" name="forma_pagamento">
+          <option value="">—</option>
+          {% for f in ['dinheiro','pix','cartao_credito','cartao_debito','convenio','boleto','transferencia'] %}
+            <option value="{{ f }}" {{ 'selected' if form.get('forma_pagamento')==f }}>{{ f|forma_pgto_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="vencimento">Vencimento</label>
+        <input type="date" id="vencimento" name="vencimento" value="{{ form.get('vencimento','') }}">
+        <small class="muted">Para contas em aberto.</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="paciente_id">Paciente (opcional)</label>
+      <select id="paciente_id" name="paciente_id">
+        <option value="">Sem vínculo</option>
+        {% for p in pacientes %}<option value="{{ p.id }}" {{ 'selected' if form.get('paciente_id')|string==p.id|string }}>{{ p.nome_completo }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="convenio">Convênio (opcional)</label>
+      <input type="text" id="convenio" name="convenio" value="{{ form.get('convenio','') }}">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar lançamento</button>
+    <a href="{{ url_for('financeiro.fluxo') }}" class="btn btn-outline">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

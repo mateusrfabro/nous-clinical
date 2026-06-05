@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import select, func
 
 from app import db
-from app.models import Paciente, Profissional, Agendamento
+from app.models import Paciente, Profissional, Agendamento, LancamentoFinanceiro
 from app.services.app_info import app_version, migration_head
 
 main_bp = Blueprint("main", __name__)
@@ -51,11 +51,33 @@ def dashboard():
         select(func.count(Profissional.id)).where(Profissional.ativo.is_(True))
     ).scalar_one()
 
+    # KPIs financeiros do mes (so admin/recepcao acessam o financeiro).
+    entradas_mes = a_receber = None
+    if current_user.is_admin or current_user.is_recepcao:
+        L = LancamentoFinanceiro
+        mes_ini = hoje_ini.replace(day=1)
+        mes_fim = (mes_ini.replace(year=mes_ini.year + 1, month=1)
+                   if mes_ini.month == 12
+                   else mes_ini.replace(month=mes_ini.month + 1))
+        entradas_mes = db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0)).where(
+                L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
+                L.pago_em >= mes_ini, L.pago_em < mes_fim,
+            )
+        ).scalar_one()
+        a_receber = db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0)).where(
+                L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
+            )
+        ).scalar_one()
+
     return render_template(
         "main/dashboard.html",
         agendamentos_hoje=agendamentos_hoje,
         total_pacientes=total_pacientes,
         total_profissionais=total_profissionais,
+        entradas_mes=entradas_mes,
+        a_receber=a_receber,
     )
 
 
