@@ -1,30 +1,71 @@
 {% extends "base.html" %}
 {% block title %}Nous Clinical — menos gestão, mais medicina{% endblock %}
-{% block h1_oculto %}{% endblock %}
+{% block h1_oculto_pub %}{% endblock %}
 {% block content %}
 <section class="hero">
-  <span class="hero-eyebrow">Inteligência para a medicina moderna</span>
-  <h1 class="hero-titulo">Menos gestão. <span class="accent">Mais medicina.</span></h1>
-  <p class="hero-sub">Agenda, pacientes, prontuário e financeiro em uma só plataforma — para a clínica cuidar da saúde do paciente e o Nous cuidar do resto, com segurança de dados de saúde.</p>
-  <div class="hero-actions">
-    <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Entrar na plataforma</a>
+  <div class="hero-text">
+    <span class="hero-eyebrow">Inteligência para a medicina moderna</span>
+    <h1>Menos gestão. <span class="accent">Mais medicina.</span></h1>
+    <p class="hero-sub">Agenda, pacientes, prontuário e financeiro em uma só plataforma — a clínica cuida da saúde do paciente e o Nous cuida do resto, com segurança de dados de saúde.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Entrar na plataforma</a>
+    </div>
   </div>
+
+  <aside class="hero-visual" aria-hidden="true">
+    <div class="hero-visual-head">
+      <svg class="logo-mark" viewBox="0 0 64 64" fill="none">
+        <defs><linearGradient id="nous-hero" x1="6" y1="58" x2="58" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#6FB59C"/><stop offset="1" stop-color="#43B8A5"/></linearGradient></defs>
+        <path d="M40 8 A26 26 0 1 0 56 32" stroke="url(#nous-hero)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="url(#nous-hero)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+        <circle cx="31" cy="13" r="3.2" fill="#6FB59C"/><circle cx="45" cy="20" r="4" fill="#43B8A5"/>
+        <circle cx="52" cy="32" r="3.2" fill="#43B8A5"/><circle cx="43" cy="34" r="3.6" fill="#6FB59C"/><circle cx="39" cy="45" r="3" fill="#43B8A5"/>
+      </svg>
+      <div>
+        <div class="hero-visual-title">Agenda de hoje</div>
+        <div class="hero-visual-sub">Visão clara da operação do dia</div>
+      </div>
+    </div>
+    <div class="hero-mock-row">
+      <span class="hero-mock-dot" data-dot-teal></span>
+      <span class="hero-mock-main"><span class="hero-mock-name">Maria Oliveira</span><br><span class="hero-mock-meta">09:00 · Dra. Ana · Confirmado</span></span>
+    </div>
+    <div class="hero-mock-row">
+      <span class="hero-mock-dot" data-dot-sage></span>
+      <span class="hero-mock-main"><span class="hero-mock-name">João Pereira</span><br><span class="hero-mock-meta">09:30 · Dr. Bruno · Atendido</span></span>
+    </div>
+    <div class="hero-mock-row">
+      <span class="hero-mock-dot" data-dot-lilac></span>
+      <span class="hero-mock-main"><span class="hero-mock-name">Carla Mendes</span><br><span class="hero-mock-meta">10:00 · Dra. Ana · Agendado</span></span>
+    </div>
+  </aside>
 </section>
 
-<section class="card-grid mt-5">
+<section class="stat-band">
+  <div class="stat-band-item"><div class="stat-band-num">1 só</div><div class="stat-band-label">plataforma para toda a clínica</div></div>
+  <div class="stat-band-item"><div class="stat-band-num">LGPD</div><div class="stat-band-label">dados de saúde protegidos</div></div>
+  <div class="stat-band-item"><div class="stat-band-num">−faltas</div><div class="stat-band-label">confirmação e acompanhamento</div></div>
+  <div class="stat-band-item"><div class="stat-band-num">+receita</div><div class="stat-band-label">financeiro ligado à agenda</div></div>
+</section>
+
+<section class="card-grid">
   <div class="card">
+    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
     <h3>Agenda por profissional</h3>
     <p class="muted">Visão do dia, status da consulta (confirmado, atendido, faltou) e troca rápida de data.</p>
   </div>
   <div class="card">
+    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
     <h3>Cadastro de pacientes</h3>
     <p class="muted">Dados, convênio e histórico clínico e financeiro centralizados e pesquisáveis.</p>
   </div>
   <div class="card">
+    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 12h6M9 16h4"/></svg></span>
     <h3>Prontuário seguro</h3>
     <p class="muted">Evolução e prescrição acessíveis só para profissional e admin — recepção não vê dado clínico.</p>
   </div>
   <div class="card">
+    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="4" width="3" height="14"/></svg></span>
     <h3>Financeiro integrado</h3>
     <p class="muted">Recebimento da consulta, contas a receber e pagar e fluxo de caixa — receita conectada à agenda.</p>
   </div>
