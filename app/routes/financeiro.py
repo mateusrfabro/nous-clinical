@@ -263,6 +263,12 @@ def receber(agendamento_id):
         return redirect(url_for("agenda.listar"))
 
     dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
+    # Espelha no servidor a regra do template: so consulta confirmada/atendida
+    # gera receita (evita receber de cancelada/faltou via POST direto).
+    if ag.status not in (Agendamento.STATUS_CONFIRMADO, Agendamento.STATUS_ATENDIDO):
+        flash("Só é possível registrar recebimento de consulta confirmada ou atendida.",
+              "error")
+        return redirect(url_for("agenda.listar", dia=dia))
     if ag.lancamento is not None:
         flash("Esta consulta já tem recebimento registrado.", "error")
         return redirect(url_for("agenda.listar", dia=dia))
