@@ -68,11 +68,12 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
 - Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
   `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health).
 - Error handlers 400/403/404/429/500 com template próprio.
-- Design system CSS dark (tokens `--brand-*`, utilitários, componentes) — **identidade
-  oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C` (símbolo/2ª) +
-  lilás `#B7A7F5` (accent) + navy `#1E293B` (ink) + off-white `#F8FAF8`. Fonts Sora/
-  Poppins/Inter. Logo = símbolo de rede (círculo + nós) + wordmark "Nous / CLINICAL".
-  Tema claro (base `--brand-paper`) seria sprint à parte.**
+- Design system CSS **tema claro** (tokens `--brand-*`/semânticos, utilitários, componentes) —
+  **identidade oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C`
+  (símbolo/2ª) + lilás `#B7A7F5` (accent) + navy `#1E293B` (ink/blocos escuros: auth,
+  texto) + off-white `#F8FAF8`/`#EDF2F1` (fundo). Texto em fills de cor = navy
+  (`--text-on-ouro`); texto sobre navy = claro (`--text-on-brand`/`--brand-cinza-claro`).
+  Fonts Sora/Poppins/Inter. Logo = símbolo de rede (círculo + nós) + wordmark "Nous / CLINICAL".**
 - JS CSP-safe: `confirm-submit`, `form-submitting`, `data-bind`, `money-mask`.
 - CI (`.github/workflows/ci.yml`): pytest+coverage 70% + ruff + bandit + pip-audit.
 - Docker: `Dockerfile` + `docker-compose.yml` (Postgres + Redis + gunicorn) + `entrypoint.sh`.
