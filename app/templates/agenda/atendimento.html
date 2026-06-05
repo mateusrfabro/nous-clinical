@@ -21,6 +21,28 @@
       <label for="prescricao">Prescrição / receituário</label>
       <textarea id="prescricao" name="prescricao" rows="4">{{ registro.prescricao if registro else '' }}</textarea>
     </div>
+
+    <fieldset class="form-fieldset">
+      <legend>Retorno recomendado</legend>
+      <p class="muted text-sm mb-2">Alimenta o painel de retornos e o acompanhamento do paciente (CRM).</p>
+      <div class="form-group">
+        <label for="retorno_opcao">Quando</label>
+        <select id="retorno_opcao" name="retorno_opcao">
+          <option value="">Sem retorno previsto</option>
+          <option value="30">Em 30 dias</option>
+          <option value="90">Em 90 dias</option>
+          <option value="180">Em 180 dias</option>
+          <option value="365">Em 1 ano</option>
+          <option value="personalizado" {{ 'selected' if registro and registro.retorno_em }}>Data personalizada…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="retorno_data">Data personalizada</label>
+        <input type="date" id="retorno_data" name="retorno_data" value="{{ registro.retorno_em.isoformat() if registro and registro.retorno_em else '' }}">
+        {% if registro and registro.retorno_em %}<small class="muted">Retorno atual: {{ registro.retorno_em|data_br }}</small>{% endif %}
+      </div>
+    </fieldset>
+
     <button type="submit" class="btn btn-primary">Salvar atendimento</button>
     <a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}" class="btn btn-outline">Voltar ao paciente</a>
   </form>

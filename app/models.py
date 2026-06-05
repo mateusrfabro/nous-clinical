@@ -194,6 +194,10 @@ class Atendimento(db.Model):
     evolucao = db.Column(db.Text)     # evolucao / conduta
     prescricao = db.Column(db.Text)   # prescricao / receituario
 
+    # CRM Retorno (Fase 2): data de retorno recomendada pelo profissional.
+    # Alimenta o painel de retornos pendentes. Nullable = sem retorno previsto.
+    retorno_em = db.Column(db.Date)
+
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     agendamento = db.relationship("Agendamento", back_populates="atendimento")

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Retornos — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Retornos pendentes</h2>
+  <form method="GET" class="flex-form no-loading">
+    <div class="form-group">
+      <label for="dias">Janela</label>
+      <select id="dias" name="dias">
+        <option value="0"   {{ 'selected' if janela == 0 }}>Só vencidos</option>
+        <option value="7"   {{ 'selected' if janela == 7 }}>Próximos 7 dias</option>
+        <option value="30"  {{ 'selected' if janela == 30 }}>Próximos 30 dias</option>
+        <option value="90"  {{ 'selected' if janela == 90 }}>Próximos 90 dias</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline">Filtrar</button>
+  </form>
+</div>
+
+<p class="muted mb-4">Pacientes com retorno recomendado pelo profissional que ainda não reagendaram. {{ linhas|length }} pendente(s).</p>
+
+{% if linhas %}
+<table class="table">
+  <thead>
+    <tr><th>Paciente</th><th>Retorno</th><th>Profissional</th><th>Telefone</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+    {% for l in linhas %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente.id) }}">{{ l.paciente.nome_completo }}</a></td>
+      <td>
+        {{ l.atendimento.retorno_em|data_br }}
+        {% if l.vencido %}
+          <span class="tag tag-danger">Vencido há {{ -l.dias }}d</span>
+        {% elif l.dias == 0 %}
+          <span class="tag tag-create">Hoje</span>
+        {% else %}
+          <span class="tag tag-info">Em {{ l.dias }}d</span>
+        {% endif %}
+      </td>
+      <td>{{ l.profissional.nome if l.profissional else '—' }}</td>
+      <td>{{ l.paciente.telefone or '—' }}</td>
+      <td>
+        <div class="flex-row-gap">
+          <a href="{{ url_for('agenda.novo', paciente_id=l.paciente.id) }}" class="btn-link">Agendar retorno</a>
+          {% if l.whatsapp %}
+            <a href="{{ l.whatsapp }}" class="btn-link" target="_blank" rel="noopener">WhatsApp</a>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum retorno pendente nesta janela. 🎉</p></div>
+{% endif %}
+{% endblock %}

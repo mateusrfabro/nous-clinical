@@ -3666,3 +3666,19 @@ body.app {
 /* Legibilidade de corpo/badges */
 .empty-state { color: var(--gray-700); }
 .tag-info { background: var(--bg-elevated-2); border-color: var(--border-strong); }
+
+/* Fieldset (ex: "retorno recomendado" no atendimento) */
+.form-fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem 0.6rem;
+    margin: 1.2rem 0;
+    background: var(--bg-page);
+}
+.form-fieldset legend {
+    padding: 0 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+}

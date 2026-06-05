@@ -51,9 +51,11 @@ def dashboard():
         select(func.count(Profissional.id)).where(Profissional.ativo.is_(True))
     ).scalar_one()
 
-    # KPIs financeiros do mes (so admin/recepcao acessam o financeiro).
-    entradas_mes = a_receber = None
+    # KPIs financeiros do mes + retornos (so admin/recepcao).
+    entradas_mes = a_receber = retornos_pendentes = None
     if current_user.is_admin or current_user.is_recepcao:
+        from app.routes.crm import contar_retornos_pendentes
+        retornos_pendentes = contar_retornos_pendentes()
         L = LancamentoFinanceiro
         mes_ini = hoje_ini.replace(day=1)
         mes_fim = (mes_ini.replace(year=mes_ini.year + 1, month=1)
@@ -78,6 +80,7 @@ def dashboard():
         total_profissionais=total_profissionais,
         entradas_mes=entradas_mes,
         a_receber=a_receber,
+        retornos_pendentes=retornos_pendentes,
     )
 
 

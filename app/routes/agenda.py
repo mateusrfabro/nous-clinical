@@ -39,6 +39,22 @@ def _parse_dia(valor: str) -> date:
     return datetime.now(_BR_TZ).date()
 
 
+_RETORNO_DIAS = {"30": 30, "90": 90, "180": 180, "365": 365}
+
+
+def _calcular_retorno(opcao: str, data_str: str):
+    """Opcao 30/90/180/365 -> hoje+N dias; 'personalizado' -> data_str; senao None."""
+    opcao = (opcao or "").strip()
+    if opcao in _RETORNO_DIAS:
+        return date.today() + timedelta(days=_RETORNO_DIAS[opcao])
+    if opcao == "personalizado" and data_str:
+        try:
+            return datetime.strptime(data_str.strip(), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+    return None
+
+
 def _br_para_utc(dia: date, hora_str: str) -> datetime | None:
     """Combina dia + 'HH:MM' no fuso BR e converte pra UTC aware."""
     try:
@@ -134,8 +150,13 @@ def novo():
         return redirect(url_for("agenda.listar", dia=dia.isoformat()))
 
     dia_default = _parse_dia(request.args.get("dia", "")).isoformat()
+    # Pre-seleciona paciente quando vem do painel de retornos (CRM).
+    form_inicial = {}
+    pid = request.args.get("paciente_id", type=int)
+    if pid:
+        form_inicial["paciente_id"] = pid
     return render_template("agenda/form.html", profissionais=profissionais,
-                           pacientes=pacientes, form={}, dia=dia_default)
+                           pacientes=pacientes, form=form_inicial, dia=dia_default)
 
 
 @agenda_bp.route("/<int:agendamento_id>/status", methods=["POST"])
@@ -188,6 +209,12 @@ def atendimento(agendamento_id):
         registro.queixa = request.form.get("queixa", "").strip() or None
         registro.evolucao = request.form.get("evolucao", "").strip() or None
         registro.prescricao = request.form.get("prescricao", "").strip() or None
+        # CRM Retorno: data recomendada a partir da opcao (30/90/180/365) ou
+        # data personalizada. Vazio = sem retorno previsto.
+        registro.retorno_em = _calcular_retorno(
+            request.form.get("retorno_opcao", ""),
+            request.form.get("retorno_data", ""),
+        )
         # Marca a consulta como atendida ao registrar.
         ag.status = Agendamento.STATUS_ATENDIDO
         db.session.commit()

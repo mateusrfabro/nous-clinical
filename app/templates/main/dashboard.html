@@ -33,6 +33,12 @@
     <span class="kpi-value">{{ a_receber|brl }}</span>
   </a>
   {% endif %}
+  {% if retornos_pendentes is not none %}
+  <a class="kpi-card {{ 'card-hl-warning' if retornos_pendentes else '' }}" href="{{ url_for('crm.retornos') }}">
+    <span class="kpi-label">Retornos pendentes</span>
+    <span class="kpi-value">{{ retornos_pendentes }}</span>
+  </a>
+  {% endif %}
 </section>
 
 <div class="page-header section-title-mt">

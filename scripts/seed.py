@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import create_app, db  # noqa: E402
 from app.models import (  # noqa: E402
     Usuario, Profissional, Paciente, Agendamento, LancamentoFinanceiro,
+    Atendimento,
 )
 from app.services.passwords import hash_senha  # noqa: E402
 
@@ -126,6 +127,17 @@ def seed():
                     status="pendente", vencimento=date.today() + timedelta(days=10),
                 ),
             ])
+
+        # Atendimento com retorno recomendado vencido -> alimenta o painel CRM.
+        if Atendimento.query.count() == 0:
+            helena = _get_or_create_paciente(
+                "Helena Costa", cpf="444.444.444-44",
+                telefone="(43) 98888-0004", convenio="Unimed")
+            db.session.add(Atendimento(
+                paciente_id=helena.id, profissional_id=profs[0].id,
+                queixa="Acompanhamento — retorno anual recomendado.",
+                evolucao="Quadro estável. Orientado retorno.",
+                retorno_em=date.today() - timedelta(days=12)))
 
         db.session.commit()
         print("Seed concluído.")
