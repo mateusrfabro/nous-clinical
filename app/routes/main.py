@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, render_template, redirect, url_for, jsonify
+from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy import select, func
 
@@ -16,6 +16,40 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
     return render_template("main/index.html")
+
+
+@main_bp.route("/buscar")
+@login_required
+def buscar():
+    """Busca rápida de pacientes (paleta de comando Ctrl+K). Retorna JSON.
+
+    Escopo por papel: recepção/admin acham qualquer paciente; profissional só
+    os pacientes que atende (têm agendamento com ele).
+    """
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify({"pacientes": []})
+
+    sel = (select(Paciente)
+           .where(Paciente.ativo.is_(True),
+                  Paciente.nome_completo.ilike(f"%{q}%"))
+           .order_by(Paciente.nome_completo)
+           .limit(8))
+    if current_user.is_profissional and current_user.profissional:
+        sel = sel.where(Paciente.id.in_(
+            select(Agendamento.paciente_id).where(
+                Agendamento.profissional_id == current_user.profissional.id)
+        ))
+    elif current_user.is_profissional:
+        return jsonify({"pacientes": []})
+
+    pacientes = db.session.execute(sel).scalars().all()
+    return jsonify({"pacientes": [
+        {"id": p.id, "nome": p.nome_completo,
+         "sub": p.convenio or p.telefone or "",
+         "url": url_for("pacientes.detalhe", paciente_id=p.id)}
+        for p in pacientes
+    ]})
 
 
 @main_bp.route("/health")

@@ -3928,3 +3928,88 @@ textarea:focus-visible {
 .ag-event.tag-danger,
 .ag-event.tag-edit { opacity: 0.6; }
 .ag-event.tag-danger .ag-ev-pac { text-decoration: line-through; }
+
+/* ===================== Busca rápida / paleta (Ctrl+K) ===================== */
+.topbar-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.topbar-search:hover { border-color: var(--brand-verde-claro); color: var(--text-primary); }
+.topbar-search svg { width: 16px; height: 16px; }
+.topbar-search-kbd {
+    font-size: 0.68rem;
+    padding: 1px 5px;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    color: var(--text-muted);
+    background: var(--bg-page);
+}
+@media (max-width: 640px) {
+    .topbar-search-label, .topbar-search-kbd { display: none; }
+}
+
+.cmdk-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12vh 1rem 1rem;
+}
+.cmdk-overlay[hidden] { display: none; }
+.cmdk-panel {
+    width: min(560px, 100%);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+    overflow: hidden;
+    animation: cmdk-in 0.14s ease-out;
+}
+@keyframes cmdk-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.cmdk-input {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0.95rem 1.1rem;
+    font-size: 1rem;
+    outline: none;
+    color: var(--text-primary);
+    background: var(--white);
+}
+.cmdk-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.3rem;
+    max-height: 52vh;
+    overflow-y: auto;
+}
+.cmdk-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.cmdk-item.is-sel { background: rgba(67, 184, 165, 0.14); }
+.cmdk-label { font-weight: 600; color: var(--text-primary); }
+.cmdk-sub { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+.cmdk-empty { padding: 0.9rem 0.8rem; color: var(--text-muted); font-size: 0.9rem; }
+@media (prefers-reduced-motion: reduce) {
+    .cmdk-panel { animation: none; }
+}
