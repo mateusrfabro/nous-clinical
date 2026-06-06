@@ -132,11 +132,33 @@ def novo():
                                    pacientes=pacientes, form=request.form,
                                    dia=dia.isoformat())
 
+        fim = inicio + timedelta(minutes=duracao)
+        # Conflito de horario: mesmo profissional com intervalo sobreposto
+        # (ignora canceladas). Sobreposicao: inicio_existente < fim_novo E
+        # fim_existente > inicio_novo.
+        conflito = db.session.execute(
+            select(Agendamento).where(
+                Agendamento.profissional_id == profissional.id,
+                Agendamento.status != Agendamento.STATUS_CANCELADO,
+                Agendamento.inicio < fim,
+                Agendamento.fim > inicio,
+            )
+        ).scalars().first()
+        if conflito:
+            ini_br = conflito.inicio.astimezone(_BR_TZ).strftime("%H:%M")
+            fim_br = conflito.fim.astimezone(_BR_TZ).strftime("%H:%M")
+            flash(f"Conflito de horário: {profissional.nome} já tem consulta "
+                  f"das {ini_br} às {fim_br}.", "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
+
         ag = Agendamento(
             paciente_id=paciente.id,
             profissional_id=profissional.id,
             inicio=inicio,
-            fim=inicio + timedelta(minutes=duracao),
+            fim=fim,
             status=Agendamento.STATUS_AGENDADO,
             convenio=request.form.get("convenio", "").strip() or None,
             observacoes=request.form.get("observacoes", "").strip() or None,
