@@ -208,6 +208,10 @@ class Atendimento(db.Model):
         "ItemAtendimento", back_populates="atendimento",
         cascade="all, delete-orphan",
     )
+    exames = db.relationship(
+        "Exame", back_populates="atendimento",
+        order_by="Exame.criado_em.desc()",
+    )
 
     @property
     def total_itens(self):
@@ -323,6 +327,35 @@ class LancamentoFinanceiro(db.Model):
         return f"<LancamentoFinanceiro {self.id} {self.tipo} {self.status} {self.valor}>"
 
 
+class Exame(db.Model):
+    """Anexo (exame/documento) de um atendimento. DADO SENSÍVEL (LGPD).
+
+    O arquivo vive no storage (fora de static/); só a `arquivo_key` opaca fica
+    no DB. Download por rota autenticada com checagem de papel (clínico).
+    """
+    __tablename__ = "exames"
+
+    id = db.Column(db.Integer, primary_key=True)
+    atendimento_id = db.Column(
+        db.Integer, db.ForeignKey("atendimentos.id"), nullable=False, index=True
+    )
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), nullable=False, index=True
+    )
+    nome_original = db.Column(db.String(200))
+    arquivo_key = db.Column(db.String(255), nullable=False)
+    content_type = db.Column(db.String(100))
+    tamanho = db.Column(db.Integer)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    atendimento = db.relationship("Atendimento", back_populates="exames")
+    paciente = db.relationship("Paciente")
+
+    def __repr__(self):
+        return f"<Exame {self.id} {self.nome_original}>"
+
+
 class AuditLog(db.Model):
     """Trilha de auditoria. NUNCA gravar PII em `detalhes`."""
     __tablename__ = "audit_logs"
@@ -343,6 +376,8 @@ class AuditLog(db.Model):
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"
     ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
+    ACAO_EXAME_ANEXADO = "exame_anexado"
+    ACAO_EXAME_REMOVIDO = "exame_removido"
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

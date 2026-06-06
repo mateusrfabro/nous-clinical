@@ -128,6 +128,7 @@ def create_app(config_name="default"):
     from app.routes.crm import crm_bp
     from app.routes.procedimentos import procedimentos_bp
     from app.routes.relatorios import relatorios_bp
+    from app.routes.exames import exames_bp
     from app.routes.perfil import perfil_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
@@ -204,6 +205,7 @@ def create_app(config_name="default"):
     app.register_blueprint(crm_bp)
     app.register_blueprint(procedimentos_bp)
     app.register_blueprint(relatorios_bp)
+    app.register_blueprint(exames_bp)
     app.register_blueprint(perfil_bp)
 
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----

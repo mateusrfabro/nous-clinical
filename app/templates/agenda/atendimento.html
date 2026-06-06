@@ -62,6 +62,37 @@
     <a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}" class="btn btn-outline">Voltar ao paciente</a>
   </form>
 
+  <div class="page-header section-title-mt"><h3>Exames e documentos</h3></div>
+  <form method="POST" action="{{ url_for('exames.upload', agendamento_id=ag.id) }}" enctype="multipart/form-data" class="card flex-form mb-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group form-group-flex-main">
+      <label for="arquivo">Anexar exame (PDF, JPG, PNG ou WEBP — até 5MB)</label>
+      <input type="file" id="arquivo" name="arquivo" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+    </div>
+    <button type="submit" class="btn btn-outline">Anexar</button>
+  </form>
+  {% if registro and registro.exames %}
+  <table class="table">
+    <thead><tr><th>Arquivo</th><th>Data</th><th>Ações</th></tr></thead>
+    <tbody>
+      {% for ex in registro.exames %}
+      <tr>
+        <td><a href="{{ url_for('exames.download', exame_id=ex.id) }}" target="_blank" rel="noopener">{{ ex.nome_original }}</a></td>
+        <td>{{ ex.criado_em|data_br }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('exames.excluir', exame_id=ex.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-link" data-confirm="Remover este exame?">Remover</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted text-sm mb-4">Nenhum exame anexado.</p>
+  {% endif %}
+
   <div class="page-header section-title-mt"><h3>Histórico do paciente</h3></div>
   {% if historico %}
   <p class="muted text-sm mb-2">{{ historico|length }} consulta(s) anterior(es). Clique para ver os detalhes.</p>

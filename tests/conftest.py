@@ -27,6 +27,13 @@ def app():
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
     assert "nous.db" not in uri, f"SEGURANCA: teste nao toca DB real. URI={uri}"
 
+    # Uploads isolados num temp (nao polui instance/uploads do dev).
+    import shutil
+    from app.services.storage import init_storage
+    updir = tempfile.mkdtemp(prefix="nous-uploads-")
+    app.config["UPLOAD_FOLDER"] = updir
+    init_storage(app)
+
     limiter.enabled = False
     with app.app_context():
         db.create_all()
@@ -36,6 +43,7 @@ def app():
         db.drop_all()
     limiter.enabled = True
     os.environ.pop("TEST_DATABASE_URL", None)
+    shutil.rmtree(updir, ignore_errors=True)
     try:
         os.unlink(db_path)
     except OSError:
