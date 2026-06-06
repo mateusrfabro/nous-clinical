@@ -139,7 +139,7 @@ def _agrega(ini, fim):
         .join(A, L.agendamento_id == A.id)
         .join(Profissional, A.profissional_id == Profissional.id)
         .where(*pago_periodo, L.tipo == L.TIPO_RECEITA)
-        .group_by(Profissional.nome)
+        .group_by(Profissional.id, Profissional.nome)  # id evita colapsar homônimos
         .order_by(func.coalesce(func.sum(L.valor), 0).desc())
     ).all()
     por_medico = [{"nome": n, "total": t, "qtd": q} for n, t, q in med_rows]
@@ -259,6 +259,15 @@ def export_csv():
         .order_by(L.pago_em)
     ).all()
 
+    def _safe(v):
+        """Neutraliza CSV/formula injection: célula de texto iniciada por
+        = + - @ (ou TAB/CR) é prefixada com aspa simples — assim o Excel/Calc
+        não interpreta como fórmula ao abrir o arquivo."""
+        s = "" if v is None else str(v)
+        if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + s
+        return s
+
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(["Data", "Categoria", "Descrição", "Convênio",
@@ -269,8 +278,8 @@ def export_csv():
             dt = dt.replace(tzinfo=timezone.utc)
         data_br = dt.astimezone(_BR).strftime("%d/%m/%Y") if dt else ""
         valor_br = f"{float(valor or 0):.2f}".replace(".", ",")
-        w.writerow([data_br, categoria or "", descricao or "",
-                    convenio or "", forma or "", valor_br])
+        w.writerow([data_br, _safe(categoria), _safe(descricao),
+                    _safe(convenio), _safe(forma), valor_br])
 
     audit(AuditLog.ACAO_RELATORIO_EXPORTADO,
           detalhes=f"faturamento {ini_d}..{fim_d} ({len(rows)} linhas)")

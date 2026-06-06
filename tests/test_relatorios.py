@@ -106,3 +106,17 @@ def test_export_csv(client_admin):
 
 def test_export_csv_gating(client_prof):
     assert client_prof.get("/relatorios/export.csv").status_code in (301, 302)
+
+
+def test_export_csv_neutraliza_formula(client_admin):
+    # Descrição é texto livre -> não pode virar fórmula no Excel/Calc.
+    db.session.add(LancamentoFinanceiro(
+        tipo="receita", categoria="consulta", valor=Decimal("10.00"),
+        status="pago", pago_em=datetime.now(timezone.utc),
+        descricao="=HYPERLINK(\"http://evil\")"))
+    db.session.commit()
+    r = client_admin.get("/relatorios/export.csv")
+    assert r.status_code == 200
+    # célula perigosa prefixada com aspa simples (sem '=' iniciando a célula).
+    assert b"'=HYPERLINK" in r.data
+    assert b";=HYPERLINK" not in r.data

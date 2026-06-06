@@ -3,11 +3,11 @@
 
 {% macro delta(v) %}
   {%- if v is none -%}
-    <span class="muted text-sm">sem base</span>
+    <span class="muted">sem base</span>
   {%- elif v >= 0 -%}
-    <span class="economia-pos text-sm">▲ {{ '%.1f'|format(v) }}%</span>
+    <span class="economia-pos">▲ {{ '%.1f'|format(v) }}%</span>
   {%- else -%}
-    <span class="economia-neg text-sm">▼ {{ '%.1f'|format(v|abs) }}%</span>
+    <span class="economia-neg">▼ {{ '%.1f'|format(v|abs) }}%</span>
   {%- endif -%}
 {% endmacro %}
 
