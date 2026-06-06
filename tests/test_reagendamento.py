@@ -26,6 +26,14 @@ def test_editar_gating(client_prof):
     assert client_prof.get(f"/agenda/{ag.id}/editar").status_code in (301, 302)
 
 
+def test_nao_reagenda_consulta_atendida(client_recepcao):
+    ag = Agendamento.query.first()
+    ag.status = Agendamento.STATUS_ATENDIDO
+    db.session.commit()
+    r = client_recepcao.get(f"/agenda/{ag.id}/editar")
+    assert r.status_code in (301, 302)  # bloqueado (redireciona)
+
+
 def test_reagenda_para_horario_livre(client_recepcao):
     ag = Agendamento.query.first()
     dia, hora = _ag_br(ag)

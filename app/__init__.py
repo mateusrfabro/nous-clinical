@@ -180,6 +180,12 @@ def create_app(config_name="default"):
             return jsonify({"erro": "requisicao_invalida"}), 400
         return render_template("errors/400.html"), 400
 
+    @app.errorhandler(413)
+    def erro_413(e):
+        if _wants_json():
+            return jsonify({"erro": "arquivo_muito_grande"}), 413
+        return render_template("errors/413.html"), 413
+
     @app.errorhandler(429)
     def erro_429(e):
         if _wants_json():

@@ -3701,3 +3701,8 @@ body.app {
     font-size: 0.9rem;
 }
 .check-item input { width: auto; }
+
+/* Tabelas largas no mobile: rolagem horizontal só na tabela (nao no body). */
+@media (max-width: 600px) {
+    .table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

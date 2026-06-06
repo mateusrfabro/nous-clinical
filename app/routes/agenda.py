@@ -224,6 +224,10 @@ def editar(agendamento_id):
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
+    if ag.status == Agendamento.STATUS_ATENDIDO:
+        flash("Consulta já atendida não pode ser reagendada.", "error")
+        dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
+        return redirect(url_for("agenda.listar", dia=dia))
 
     profissionais = db.session.execute(
         select(Profissional).where(Profissional.ativo.is_(True))
@@ -312,7 +316,8 @@ def atendimento(agendamento_id):
         # com snapshot de nome+valor do catalogo (cascade remove os antigos).
         registro.itens.clear()
         # Convênio da consulta -> preço da tabela por convênio (ou padrão).
-        conv = ag.convenio or (ag.paciente.convenio if ag.paciente else None)
+        # Fonte única: o convênio do agendamento (igual ao lançamento financeiro).
+        conv = ag.convenio
         for sid in request.form.getlist("procedimentos"):
             try:
                 proc = db.session.get(Procedimento, int(sid))

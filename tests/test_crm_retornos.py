@@ -81,14 +81,36 @@ def test_perde_flag_ao_se_consultar(client_admin, app):
     a1 = Atendimento(paciente_id=pac.id, profissional_id=prof.id,
                      retorno_em=date.today() - timedelta(days=10))
     a1.criado_em = datetime.now(timezone.utc) - timedelta(days=1)
-    # ...e um mais recente SEM retorno (consultou de novo, médico não marcou).
-    a2 = Atendimento(paciente_id=pac.id, profissional_id=prof.id, retorno_em=None)
+    # ...e uma nova CONSULTA (com evolução) SEM novo retorno marcado.
+    a2 = Atendimento(paciente_id=pac.id, profissional_id=prof.id,
+                     evolucao="Acompanhamento ok", retorno_em=None)
     a2.criado_em = datetime.now(timezone.utc)
     db.session.add_all([a1, a2])
     db.session.commit()
 
     r = client_admin.get("/crm/retornos?dias=0")
-    assert b"Voltou Sem Flag" not in r.data  # último atendimento não tem flag
+    assert b"Voltou Sem Flag" not in r.data  # consulta nova sem flag -> fora
+
+
+def test_exame_vazio_nao_limpa_retorno(client_admin, app):
+    """Atendimento 'fantasma' (só anexo de exame, sem conteúdo) não conta como
+    consulta — não deve remover um retorno legítimo anterior do CRM."""
+    from datetime import datetime, timezone
+    pac = Paciente(nome_completo="Tem Retorno", telefone="(43) 90000-1111")
+    db.session.add(pac)
+    prof = db.session.execute(db.select(Profissional)).scalars().first()
+    db.session.flush()
+    a1 = Atendimento(paciente_id=pac.id, profissional_id=prof.id,
+                     queixa="x", retorno_em=date.today() - timedelta(days=5))
+    a1.criado_em = datetime.now(timezone.utc) - timedelta(days=1)
+    # fantasma: tudo None (criado só pra pendurar exame), mais recente
+    a2 = Atendimento(paciente_id=pac.id, profissional_id=prof.id)
+    a2.criado_em = datetime.now(timezone.utc)
+    db.session.add_all([a1, a2])
+    db.session.commit()
+
+    r = client_admin.get("/crm/retornos?dias=0")
+    assert b"Tem Retorno" in r.data  # retorno legítimo permanece
 
 
 def test_crm_no_menu_lateral(client_admin):

@@ -174,7 +174,17 @@ def novo():
         ag_id = request.form.get("agendamento_id", type=int)
         if ag_id:
             ag = db.session.get(Agendamento, ag_id)
-            if ag and ag.lancamento is None:
+            if ag:
+                if ag.status not in (Agendamento.STATUS_CONFIRMADO,
+                                     Agendamento.STATUS_ATENDIDO):
+                    flash("Só registra pagamento de consulta confirmada ou "
+                          "atendida.", "error")
+                    return render_template("financeiro/form.html",
+                                           pacientes=pacientes, form=request.form)
+                if ag.lancamento is not None:
+                    flash("Esta consulta já tem pagamento registrado.", "error")
+                    return render_template("financeiro/form.html",
+                                           pacientes=pacientes, form=request.form)
                 lanc.agendamento_id = ag.id
                 if not lanc.paciente_id:
                     lanc.paciente_id = ag.paciente_id
@@ -291,60 +301,3 @@ def contas():
         a_receber=a_receber, a_pagar=a_pagar,
         total_receber=total_receber, total_pagar=total_pagar,
     )
-
-
-@financeiro_bp.route("/consulta/<int:agendamento_id>/receber", methods=["POST"])
-@login_required
-@recepcao_ou_admin
-def receber(agendamento_id):
-    """Recebimento integrado: gera a receita (paga) ligada a consulta.
-
-    Idempotente — a relacao 1:1 (unique em agendamento_id) impede duplicar.
-    """
-    ag = db.session.get(Agendamento, agendamento_id)
-    if not ag:
-        flash("Agendamento não encontrado.", "error")
-        return redirect(url_for("agenda.listar"))
-
-    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
-    # Espelha no servidor a regra do template: so consulta confirmada/atendida
-    # gera receita (evita receber de cancelada/faltou via POST direto).
-    if ag.status not in (Agendamento.STATUS_CONFIRMADO, Agendamento.STATUS_ATENDIDO):
-        flash("Só é possível registrar recebimento de consulta confirmada ou atendida.",
-              "error")
-        return redirect(url_for("agenda.listar", dia=dia))
-    if ag.lancamento is not None:
-        flash("Esta consulta já tem recebimento registrado.", "error")
-        return redirect(url_for("agenda.listar", dia=dia))
-
-    valor = _parse_valor(request.form.get("valor", "")) or ag.valor
-    if not valor or valor <= 0:
-        flash("Informe o valor da consulta para registrar o recebimento.",
-              "error")
-        return redirect(url_for("agenda.listar", dia=dia))
-
-    lanc = LancamentoFinanceiro(
-        tipo=LancamentoFinanceiro.TIPO_RECEITA,
-        categoria="consulta",
-        descricao=f"Consulta - {ag.paciente.nome_completo}",
-        valor=valor,
-        status=LancamentoFinanceiro.STATUS_PAGO,
-        pago_em=datetime.now(timezone.utc),
-        forma_pagamento=request.form.get("forma_pagamento", "").strip() or None,
-        paciente_id=ag.paciente_id,
-        agendamento_id=ag.id,
-        convenio=ag.convenio,
-        criado_por_id=current_user.id,
-    )
-    db.session.add(lanc)
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-        flash("Esta consulta já tem recebimento registrado.", "error")
-        return redirect(url_for("agenda.listar", dia=dia))
-
-    audit(AuditLog.ACAO_LANCAMENTO_PAGO, recurso_tipo="lancamento",
-          recurso_id=lanc.id, detalhes="recebimento_consulta")
-    flash("Recebimento da consulta registrado.", "success")
-    return redirect(url_for("agenda.listar", dia=dia))

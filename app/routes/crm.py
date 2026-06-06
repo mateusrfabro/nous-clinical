@@ -53,12 +53,17 @@ def _retornos_pendentes(janela_dias: int):
     hoje = date.today()
     limite = hoje + timedelta(days=janela_dias)
 
-    # Último atendimento por paciente (mais recente por criado_em).
+    # Último atendimento por paciente (mais recente; id desempata de forma
+    # determinística). Ignora atendimento "vazio" (ex: registro criado só pra
+    # anexar exame) — não conta como consulta nem limpa um retorno legítimo.
     todos = db.session.execute(
-        select(Atendimento).order_by(Atendimento.criado_em.desc())
+        select(Atendimento).order_by(
+            Atendimento.criado_em.desc(), Atendimento.id.desc())
     ).scalars().all()
     ultimo_por_paciente = {}
     for a in todos:
+        if not (a.queixa or a.evolucao or a.prescricao or a.retorno_em):
+            continue
         ultimo_por_paciente.setdefault(a.paciente_id, a)
 
     com_futuro = _pacientes_com_consulta_futura()

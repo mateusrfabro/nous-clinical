@@ -62,24 +62,37 @@ def test_pagar_lancamento_pendente(client_admin):
     assert pago.forma_pagamento == "dinheiro"
 
 
-def test_receber_consulta_idempotente(client_admin):
+def test_pagamento_consulta_idempotente(client_admin):
+    # Pagamento via /financeiro/novo (botao Pagamento da agenda) é idempotente:
+    # a 2ª tentativa de pagar a mesma consulta é bloqueada (sem 2ª receita).
     ag = Agendamento.query.first()
-    ag.valor = Decimal("300.00")
     ag.status = Agendamento.STATUS_ATENDIDO
     db.session.commit()
     ag_id = ag.id
+    dados = {"tipo": "receita", "categoria": "consulta", "valor": "300,00",
+             "status": "pago", "paciente_id": ag.paciente_id,
+             "agendamento_id": ag_id, "descricao": "Consulta - teste"}
 
-    # Dois POSTs: o segundo nao deve duplicar (unique em agendamento_id).
-    client_admin.post(f"/financeiro/consulta/{ag_id}/receber",
-                      data={"forma_pagamento": "pix"}, follow_redirects=True)
-    client_admin.post(f"/financeiro/consulta/{ag_id}/receber",
-                      data={"forma_pagamento": "pix"}, follow_redirects=True)
+    client_admin.post("/financeiro/novo", data=dados, follow_redirects=True)
+    client_admin.post("/financeiro/novo", data=dados, follow_redirects=True)
 
     lancs = LancamentoFinanceiro.query.filter_by(agendamento_id=ag_id).all()
     assert len(lancs) == 1
     assert lancs[0].status == "pago"
     assert lancs[0].valor == Decimal("300.00")
-    assert lancs[0].paciente_id == ag.paciente_id
+    # Não criou receita "solta" (sem vínculo) na 2ª tentativa.
+    assert LancamentoFinanceiro.query.count() == 1
+
+
+def test_pagamento_bloqueado_para_consulta_agendada(client_admin):
+    # Consulta ainda 'agendada' (não confirmada/atendida) não gera pagamento.
+    ag = Agendamento.query.first()
+    r = client_admin.post("/financeiro/novo", data={
+        "tipo": "receita", "categoria": "consulta", "valor": "100,00",
+        "status": "pago", "agendamento_id": ag.id, "descricao": "x",
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    assert LancamentoFinanceiro.query.count() == 0
 
 
 def test_valor_aceita_formato_br(client_admin):

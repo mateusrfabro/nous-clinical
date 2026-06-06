@@ -53,6 +53,16 @@ def test_excluir_exame(client_prof):
     assert Exame.query.count() == 0
 
 
+def test_content_type_derivado_da_extensao(client_prof):
+    ag = Agendamento.query.first()
+    # mimetype mentiroso (text/html) com extensão .png -> deve virar image/png
+    data = {"arquivo": (io.BytesIO(b"\x89PNG"), "foto.png", "text/html")}
+    client_prof.post(f"/exames/atendimento/{ag.id}", data=data,
+                     content_type="multipart/form-data")
+    ex = Exame.query.first()
+    assert ex.content_type == "image/png"
+
+
 def test_download_exige_clinico(client_recepcao, client_prof):
     ag = Agendamento.query.first()
     client_prof.post(f"/exames/atendimento/{ag.id}", data=_pdf(),

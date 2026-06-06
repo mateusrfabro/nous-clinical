@@ -20,7 +20,16 @@ from app.services.storage import get_storage
 
 exames_bp = Blueprint("exames", __name__, url_prefix="/exames")
 
-_EXT_OK = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
+# Extensão -> content-type confiável (derivado da extensão validada, NUNCA do
+# mimetype enviado pelo cliente, que poderia contrabandear HTML same-origin).
+_EXT_MIME = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+_EXT_OK = set(_EXT_MIME)
 
 
 def _pode(atendimento) -> bool:
@@ -72,7 +81,7 @@ def upload(agendamento_id):
     ex = Exame(
         atendimento_id=registro.id, paciente_id=ag.paciente_id,
         nome_original=(file.filename or "exame")[:200],
-        arquivo_key=key, content_type=file.mimetype, tamanho=tamanho,
+        arquivo_key=key, content_type=_EXT_MIME[ext], tamanho=tamanho,
         criado_por_id=current_user.id,
     )
     db.session.add(ex)
@@ -96,10 +105,11 @@ def download(exame_id):
     except FileNotFoundError:
         flash("Arquivo não encontrado no storage.", "error")
         return redirect(url_for("pacientes.detalhe", paciente_id=ex.paciente_id))
+    mime = ex.content_type or "application/octet-stream"
+    inline = mime in set(_EXT_MIME.values())  # só tipos confiáveis abrem inline
     return send_file(
-        io.BytesIO(dados),
-        mimetype=ex.content_type or "application/octet-stream",
-        as_attachment=False, download_name=ex.nome_original or "exame",
+        io.BytesIO(dados), mimetype=mime,
+        as_attachment=not inline, download_name=ex.nome_original or "exame",
     )
 
 

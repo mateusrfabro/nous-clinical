@@ -36,7 +36,7 @@ def dashboard():
     # Agendamentos de hoje (filtrados pelo profissional se for o caso).
     q = (
         select(Agendamento)
-        .where(Agendamento.inicio >= hoje_ini, Agendamento.inicio <= hoje_fim)
+        .where(Agendamento.inicio >= hoje_ini, Agendamento.inicio < hoje_fim)
         .order_by(Agendamento.inicio)
     )
     if current_user.is_profissional and current_user.profissional:
@@ -80,8 +80,15 @@ def dashboard():
 
 
 def _intervalo_hoje():
-    """Inicio e fim do dia de hoje em UTC (aproximacao — suficiente pro MVP)."""
-    agora = datetime.now(timezone.utc)
-    ini = agora.replace(hour=0, minute=0, second=0, microsecond=0)
-    fim = ini + timedelta(days=1) - timedelta(seconds=1)
+    """Inicio (incl.) e fim (excl.) do dia de hoje no fuso BR, em UTC aware.
+
+    Casa com a agenda (que calcula o dia em America/Sao_Paulo) — evita
+    divergencia de KPI nas primeiras horas do dia BR.
+    """
+    from zoneinfo import ZoneInfo
+    from datetime import time as _time
+    BR = ZoneInfo("America/Sao_Paulo")
+    hoje = datetime.now(BR).date()
+    ini = datetime.combine(hoje, _time.min, tzinfo=BR).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
     return ini, fim

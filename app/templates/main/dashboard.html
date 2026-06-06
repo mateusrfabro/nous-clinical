@@ -18,10 +18,17 @@
   </a>
   {% endif %}
   {% if current_user.is_admin or current_user.is_recepcao %}
-  <a class="kpi-card" href="{{ url_for('profissionais.listar') if current_user.is_admin else '#' }}">
+  {% if current_user.is_admin %}
+  <a class="kpi-card" href="{{ url_for('profissionais.listar') }}">
     <span class="kpi-label">Profissionais ativos</span>
     <span class="kpi-value">{{ total_profissionais }}</span>
   </a>
+  {% else %}
+  <div class="kpi-card">
+    <span class="kpi-label">Profissionais ativos</span>
+    <span class="kpi-value">{{ total_profissionais }}</span>
+  </div>
+  {% endif %}
   <a class="kpi-card" href="{{ url_for('pacientes.listar') }}">
     <span class="kpi-label">Pacientes ativos</span>
     <span class="kpi-value">{{ total_pacientes }}</span>

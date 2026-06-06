@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Arquivo muito grande — Nous Clinical{% endblock %}
+{% block content %}
+<div class="error-page">
+    <span class="error-page-eyebrow">Erro 413</span>
+    <h1>413</h1>
+    <h2>Arquivo muito grande</h2>
+    <p>O arquivo excede o limite de 5&nbsp;MB. Reduza o tamanho e tente novamente.</p>
+    <div class="error-page-actions">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">Ir para o início</a>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline">Meu painel</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
