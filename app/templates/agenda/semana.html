@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Agenda (semana) — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Agenda — semana de {{ dias[0]|data_br }}</h2>
+  {% if current_user.is_admin or current_user.is_recepcao %}
+    <a href="{{ url_for('agenda.novo', dia=semana_atual) }}" class="btn btn-primary">+ Agendar consulta</a>
+  {% endif %}
+</div>
+
+<form method="GET" class="flex-form no-loading mb-4">
+  <div class="view-switch" role="group" aria-label="Modo de visualização">
+    <a href="{{ url_for('agenda.listar') }}" class="btn btn-outline btn-sm">Dia</a>
+    <span class="btn btn-primary btn-sm is-active" aria-current="true">Semana</span>
+  </div>
+  {% if not current_user.is_profissional %}
+  <div class="form-group form-group-grow">
+    <label for="profissional_id">Profissional</label>
+    <select id="profissional_id" name="profissional_id">
+      <option value="">Todos</option>
+      {% for p in profissionais %}
+        <option value="{{ p.id }}" {{ 'selected' if filtro_prof==p.id }}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <input type="hidden" name="ref" value="{{ ref }}">
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+  <a href="{{ url_for('agenda.semana', ref=semana_anterior, profissional_id=filtro_prof or '') }}" class="btn btn-outline">← Semana anterior</a>
+  <a href="{{ url_for('agenda.semana', profissional_id=filtro_prof or '') }}" class="btn btn-outline">Hoje</a>
+  <a href="{{ url_for('agenda.semana', ref=semana_seguinte, profissional_id=filtro_prof or '') }}" class="btn btn-outline">Próxima semana →</a>
+</form>
+
+<div class="week-scroll">
+  <div class="week">
+    <div class="week-head">
+      <div class="week-corner"></div>
+      {% for d in range(7) %}
+      <div class="week-dayhead {{ 'is-today' if dias[d] == hoje }}">
+        <span class="wd-name">{{ dias_label[d] }}</span>
+        <span class="wd-date">{{ '%02d/%02d'|format(dias[d].day, dias[d].month) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="week-body">
+      <div class="week-hours" data-grid-height="{{ altura_grade }}">
+        {% for h in horas %}
+        <div class="week-hour"><span>{{ '%02d:00'|format(h) }}</span></div>
+        {% endfor %}
+      </div>
+      {% for d in range(7) %}
+      <div class="week-col {{ 'is-today' if dias[d] == hoje }}" data-grid-height="{{ altura_grade }}">
+        {% for ev in colunas[d] %}
+        <a class="ag-event {{ ev.ag.status|status_class }}"
+           href="{% if current_user.is_profissional %}{{ url_for('agenda.atendimento', agendamento_id=ev.ag.id) }}{% else %}{{ url_for('agenda.editar', agendamento_id=ev.ag.id) }}{% endif %}"
+           title="{{ ev.ini_br|hora_br }}–{{ ev.fim_br|hora_br }} · {{ ev.ag.paciente.nome_completo }} · {{ ev.ag.profissional.nome }} · {{ ev.ag.status|status_label }}"
+           data-top="{{ ev.top }}" data-height="{{ ev.height }}"
+           data-left="{{ ev.left }}" data-width="{{ ev.width }}"
+           data-accent="{{ ev.accent }}">
+          <span class="ag-ev-time">{{ ev.ini_br|hora_br }}</span>
+          <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
+          <span class="ag-ev-prof">{{ ev.ag.profissional.nome }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

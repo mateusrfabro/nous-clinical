@@ -9,6 +9,10 @@
 </div>
 
 <form method="GET" class="flex-form no-loading mb-4">
+  <div class="view-switch" role="group" aria-label="Modo de visualização">
+    <span class="btn btn-primary btn-sm is-active" aria-current="true">Dia</span>
+    <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
+  </div>
   <div class="form-group">
     <label for="dia">Dia</label>
     <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">

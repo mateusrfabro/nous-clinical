@@ -124,6 +124,120 @@ def listar():
     )
 
 
+_SEMANA_HORA_INI = 7      # janela visível da grade (07:00)
+_SEMANA_HORA_FIM = 21     # ...até 21:00
+_SEMANA_PX_HORA = 52      # altura de 1h na grade (px)
+_SEMANA_DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+
+
+def _aware(dt):
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+@agenda_bp.route("/semana")
+@login_required
+def semana():
+    """Agenda em grade semanal (Seg–Dom), com blocos posicionados por horário.
+
+    Posicionamento via data-* (CSP-safe, aplicado por agenda-week.js). Eventos
+    sobrepostos (ex.: profissionais diferentes na visão 'Todos') são divididos
+    em pistas lado a lado.
+    """
+    ref = _parse_dia(request.args.get("ref", ""))
+    seg = ref - timedelta(days=ref.weekday())          # segunda-feira
+    dias = [seg + timedelta(days=i) for i in range(7)]
+    ini = datetime.combine(seg, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = datetime.combine(seg + timedelta(days=7), time.min,
+                           tzinfo=_BR_TZ).astimezone(timezone.utc)
+
+    q = (select(Agendamento)
+         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
+         .order_by(Agendamento.inicio))
+    filtro_prof = request.args.get("profissional_id", type=int)
+    if current_user.is_profissional and current_user.profissional:
+        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    elif filtro_prof:
+        q = q.where(Agendamento.profissional_id == filtro_prof)
+    ags = db.session.execute(q).scalars().all()
+
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    janela_min = (_SEMANA_HORA_FIM - _SEMANA_HORA_INI) * 60
+
+    # Agrupa por dia da semana (0=Seg) com minutos relativos à janela.
+    por_dia = {i: [] for i in range(7)}
+    for ag in ags:
+        ini_br = _aware(ag.inicio).astimezone(_BR_TZ)
+        fim_br = _aware(ag.fim).astimezone(_BR_TZ)
+        di = ini_br.weekday()
+        s = (ini_br.hour - _SEMANA_HORA_INI) * 60 + ini_br.minute
+        e = (fim_br.hour - _SEMANA_HORA_INI) * 60 + fim_br.minute
+        s = max(0, min(s, janela_min))
+        e = max(0, min(e, janela_min))
+        if e <= s:
+            e = min(s + 20, janela_min)   # altura mínima visual
+        por_dia[di].append({"ag": ag, "s": s, "e": e,
+                            "ini_br": ini_br, "fim_br": fim_br})
+
+    # Lane-packing por dia: clusters de eventos sobrepostos -> pistas lado a lado.
+    colunas = []
+    for di in range(7):
+        evs = sorted(por_dia[di], key=lambda x: (x["s"], x["e"]))
+        i = 0
+        while i < len(evs):
+            cluster = [evs[i]]
+            max_e = evs[i]["e"]
+            j = i + 1
+            while j < len(evs) and evs[j]["s"] < max_e:
+                cluster.append(evs[j])
+                max_e = max(max_e, evs[j]["e"])
+                j += 1
+            lanes = []
+            for ev in cluster:
+                colocado = False
+                for li, last_e in enumerate(lanes):
+                    if ev["s"] >= last_e:
+                        ev["lane"], lanes[li], colocado = li, ev["e"], True
+                        break
+                if not colocado:
+                    ev["lane"] = len(lanes)
+                    lanes.append(ev["e"])
+            for ev in cluster:
+                ev["n"] = len(lanes)
+            i = j
+
+        coluna = []
+        for ev in evs:
+            n, lane = ev["n"], ev["lane"]
+            ag = ev["ag"]
+            cor = (ag.profissional.cor_agenda if ag.profissional else None) or "#43B8A5"
+            coluna.append({
+                "ag": ag, "ini_br": ev["ini_br"], "fim_br": ev["fim_br"],
+                "top": round(ev["s"] * _SEMANA_PX_HORA / 60),
+                "height": max(22, round((ev["e"] - ev["s"]) * _SEMANA_PX_HORA / 60) - 2),
+                "left": round(lane * 100 / n, 2),
+                "width": round(100 / n, 2),
+                "accent": cor,
+            })
+        colunas.append(coluna)
+
+    hoje_br = datetime.now(_BR_TZ).date()
+    return render_template(
+        "agenda/semana.html",
+        dias=dias, dias_label=_SEMANA_DIAS, colunas=colunas,
+        horas=list(range(_SEMANA_HORA_INI, _SEMANA_HORA_FIM)),
+        px_hora=_SEMANA_PX_HORA, altura_grade=janela_min * _SEMANA_PX_HORA // 60,
+        hoje=hoje_br, profissionais=profissionais, filtro_prof=filtro_prof,
+        ref=ref.isoformat(),
+        semana_anterior=(seg - timedelta(days=7)).isoformat(),
+        semana_seguinte=(seg + timedelta(days=7)).isoformat(),
+        semana_atual=datetime.now(_BR_TZ).date().isoformat(),
+    )
+
+
 @agenda_bp.route("/novo", methods=["GET", "POST"])
 @login_required
 @recepcao_ou_admin

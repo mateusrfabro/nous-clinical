@@ -3814,3 +3814,117 @@ textarea:focus-visible {
     outline: 2px solid var(--brand-verde-claro);
     outline-offset: 1px;
 }
+
+/* ===================== Agenda semanal (grade de horário) =====================
+   IMPORTANTE: 52px/hora deve casar com _SEMANA_PX_HORA em app/routes/agenda.py.
+   A altura total da grade vem do servidor via data-grid-height (agenda-week.js). */
+.view-switch { display: inline-flex; gap: 2px; }
+.view-switch .is-active { cursor: default; }
+
+.week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.week {
+    min-width: 720px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--white);
+}
+.week-head,
+.week-body {
+    display: grid;
+    grid-template-columns: 56px repeat(7, 1fr);
+}
+.week-head { border-bottom: 1px solid var(--gray-200); }
+.week-corner { border-right: 1px solid var(--gray-200); }
+.week-dayhead {
+    padding: 0.5rem 0.4rem;
+    text-align: center;
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.week-dayhead:last-child { border-right: 0; }
+.week-dayhead .wd-name {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.week-dayhead .wd-date { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+.week-dayhead.is-today { background: rgba(67, 184, 165, 0.10); }
+.week-dayhead.is-today .wd-date { color: var(--primary-text); }
+
+.week-hours {
+    position: relative;
+    border-right: 1px solid var(--gray-200);
+}
+.week-hour {
+    height: 52px;
+    position: relative;
+}
+.week-hour span {
+    position: absolute;
+    top: -0.55rem;
+    right: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--white);
+    padding: 0 2px;
+}
+.week-col {
+    position: relative;
+    border-right: 1px solid var(--gray-200);
+    /* linhas de hora a cada 52px */
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 51px,
+        var(--gray-200) 51px,
+        var(--gray-200) 52px
+    );
+}
+.week-col:last-child { border-right: 0; }
+.week-col.is-today { background-color: rgba(67, 184, 165, 0.04); }
+
+.ag-event {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    overflow: hidden;
+    border-radius: 5px;
+    border-left: 3px solid var(--brand-verde-claro);
+    background: rgba(67, 184, 165, 0.12);
+    padding: 2px 5px;
+    font-size: 0.72rem;
+    line-height: 1.15;
+    text-decoration: none;
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: box-shadow 0.12s, transform 0.12s;
+}
+.ag-event:hover {
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
+    transform: translateY(-1px);
+    z-index: 5;
+}
+.ag-event .ag-ev-time { font-weight: 700; }
+.ag-event .ag-ev-pac {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ag-event .ag-ev-prof {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* Consultas canceladas/faltou: esmaecidas e riscadas. */
+.ag-event.tag-danger,
+.ag-event.tag-edit { opacity: 0.6; }
+.ag-event.tag-danger .ag-ev-pac { text-decoration: line-through; }
