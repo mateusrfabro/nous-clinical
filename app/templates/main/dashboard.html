@@ -11,32 +11,20 @@
     <span class="kpi-label">Consultas hoje</span>
     <span class="kpi-value">{{ agendamentos_hoje|length }}</span>
   </div>
+  {% if entrada_semana is not none %}
+  <a class="kpi-card card-hl-success" href="{{ url_for('financeiro.fluxo', periodo='semana') }}">
+    <span class="kpi-label">Entrada semanal</span>
+    <span class="kpi-value economia-pos">{{ entrada_semana|brl }}</span>
+  </a>
+  {% endif %}
   {% if current_user.is_admin or current_user.is_recepcao %}
-  <div class="kpi-card">
+  <a class="kpi-card" href="{{ url_for('profissionais.listar') if current_user.is_admin else '#' }}">
+    <span class="kpi-label">Profissionais ativos</span>
+    <span class="kpi-value">{{ total_profissionais }}</span>
+  </a>
+  <a class="kpi-card" href="{{ url_for('pacientes.listar') }}">
     <span class="kpi-label">Pacientes ativos</span>
     <span class="kpi-value">{{ total_pacientes }}</span>
-  </div>
-  {% endif %}
-  {% if current_user.is_admin %}
-  <div class="kpi-card">
-    <span class="kpi-label">Profissionais</span>
-    <span class="kpi-value">{{ total_profissionais }}</span>
-  </div>
-  {% endif %}
-  {% if entradas_mes is not none %}
-  <a class="kpi-card card-hl-success" href="{{ url_for('financeiro.fluxo') }}">
-    <span class="kpi-label">Entradas do mês</span>
-    <span class="kpi-value economia-pos">{{ entradas_mes|brl }}</span>
-  </a>
-  <a class="kpi-card card-hl-primary" href="{{ url_for('financeiro.contas') }}">
-    <span class="kpi-label">A receber</span>
-    <span class="kpi-value">{{ a_receber|brl }}</span>
-  </a>
-  {% endif %}
-  {% if retornos_pendentes is not none %}
-  <a class="kpi-card {{ 'card-hl-warning' if retornos_pendentes else '' }}" href="{{ url_for('crm.retornos') }}">
-    <span class="kpi-label">Retornos pendentes</span>
-    <span class="kpi-value">{{ retornos_pendentes }}</span>
   </a>
   {% endif %}
 </section>

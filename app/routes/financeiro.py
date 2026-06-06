@@ -170,6 +170,15 @@ def novo():
         if paciente_id and db.session.get(Paciente, paciente_id):
             lanc.paciente_id = paciente_id
 
+        # Vindo da agenda (botao Pagamento): liga a consulta e herda o paciente.
+        ag_id = request.form.get("agendamento_id", type=int)
+        if ag_id:
+            ag = db.session.get(Agendamento, ag_id)
+            if ag and ag.lancamento is None:
+                lanc.agendamento_id = ag.id
+                if not lanc.paciente_id:
+                    lanc.paciente_id = ag.paciente_id
+
         if request.form.get("status") == L.STATUS_PAGO:
             lanc.status = L.STATUS_PAGO
             lanc.pago_em = datetime.now(timezone.utc)
@@ -177,13 +186,40 @@ def novo():
             lanc.status = L.STATUS_PENDENTE
 
         db.session.add(lanc)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Esta consulta já tem pagamento registrado.", "error")
+            return redirect(url_for("financeiro.fluxo"))
         audit(AuditLog.ACAO_LANCAMENTO_CRIADO, recurso_tipo="lancamento",
               recurso_id=lanc.id, detalhes=f"tipo={tipo} status={lanc.status}")
         flash("Lançamento registrado.", "success")
         return redirect(url_for("financeiro.fluxo"))
 
-    return render_template("financeiro/form.html", pacientes=pacientes, form={})
+    # GET: prefill quando vem da agenda (paciente/valor/consulta).
+    form_inicial = {"status": "pago"}
+    for k in ("tipo", "categoria", "valor", "descricao", "convenio"):
+        v = request.args.get(k)
+        if v:
+            form_inicial[k] = v
+    pid = request.args.get("paciente_id", type=int)
+    if pid:
+        form_inicial["paciente_id"] = pid
+    ag_id = request.args.get("agendamento_id", type=int)
+    if ag_id:
+        ag = db.session.get(Agendamento, ag_id)
+        if ag:
+            form_inicial["agendamento_id"] = ag.id
+            form_inicial.setdefault("paciente_id", ag.paciente_id)
+            form_inicial.setdefault("descricao",
+                                    f"Consulta - {ag.paciente.nome_completo}")
+            if ag.valor and "valor" not in form_inicial:
+                form_inicial["valor"] = f"{ag.valor:.2f}"
+            if ag.convenio:
+                form_inicial.setdefault("convenio", ag.convenio)
+    return render_template("financeiro/form.html", pacientes=pacientes,
+                           form=form_inicial)
 
 
 @financeiro_bp.route("/<int:lancamento_id>/pagar", methods=["POST"])

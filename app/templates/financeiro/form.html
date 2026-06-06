@@ -5,6 +5,7 @@
   <div class="page-header"><h2>Novo lançamento</h2></div>
   <form method="POST" action="{{ url_for('financeiro.novo') }}" class="card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if form.get('agendamento_id') %}<input type="hidden" name="agendamento_id" value="{{ form.get('agendamento_id') }}">{% endif %}
 
     <div class="flex-form">
       <div class="form-group form-group-grow">

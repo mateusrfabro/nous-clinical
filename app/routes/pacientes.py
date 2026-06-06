@@ -35,6 +35,7 @@ def _parse_data(valor: str):
 @recepcao_ou_admin
 def listar():
     busca = request.args.get("q", "").strip()
+    convenio = request.args.get("convenio", "").strip()
     q = select(Paciente).where(Paciente.ativo.is_(True))
     if busca:
         termo = f"%{busca}%"
@@ -43,10 +44,22 @@ def listar():
             Paciente.cpf.ilike(termo),
             Paciente.telefone.ilike(termo),
         ))
+    if convenio:
+        q = q.where(Paciente.convenio == convenio)
     q = q.order_by(Paciente.nome_completo)
     pacientes = db.session.execute(q).scalars().all()
+
+    # Convênios distintos (não nulos) para o filtro.
+    convenios = db.session.execute(
+        select(Paciente.convenio).where(
+            Paciente.ativo.is_(True), Paciente.convenio.is_not(None),
+            Paciente.convenio != "",
+        ).distinct().order_by(Paciente.convenio)
+    ).scalars().all()
+
     return render_template("pacientes/listar.html",
-                           pacientes=pacientes, busca=busca)
+                           pacientes=pacientes, busca=busca,
+                           convenios=convenios, convenio_sel=convenio)
 
 
 @pacientes_bp.route("/novo", methods=["GET", "POST"])
@@ -67,6 +80,7 @@ def novo():
             sexo=request.form.get("sexo", "").strip() or None,
             telefone=request.form.get("telefone", "").strip() or None,
             email=request.form.get("email", "").strip().lower() or None,
+            cep=request.form.get("cep", "").strip() or None,
             endereco=request.form.get("endereco", "").strip() or None,
             bairro=request.form.get("bairro", "").strip() or None,
             cidade=request.form.get("cidade", "").strip() or None,
@@ -120,6 +134,7 @@ def editar(paciente_id):
         paciente.sexo = request.form.get("sexo", "").strip() or None
         paciente.telefone = request.form.get("telefone", "").strip() or None
         paciente.email = request.form.get("email", "").strip().lower() or None
+        paciente.cep = request.form.get("cep", "").strip() or None
         paciente.endereco = request.form.get("endereco", "").strip() or None
         paciente.bairro = request.form.get("bairro", "").strip() or None
         paciente.cidade = request.form.get("cidade", "").strip() or None

@@ -8,9 +8,17 @@
 
 <form method="GET" class="flex-form no-loading mb-4">
   <div class="form-group form-group-flex-main">
-    <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome, CPF ou telefone">
+    <label for="q">Buscar</label>
+    <input type="search" id="q" name="q" value="{{ busca }}" placeholder="Nome, CPF ou telefone">
   </div>
-  <button type="submit" class="btn btn-outline">Buscar</button>
+  <div class="form-group">
+    <label for="convenio">Convênio</label>
+    <select id="convenio" name="convenio">
+      <option value="">Todos</option>
+      {% for c in convenios %}<option value="{{ c }}" {{ 'selected' if convenio_sel==c }}>{{ c }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-outline">Filtrar</button>
 </form>
 
 {% if pacientes %}

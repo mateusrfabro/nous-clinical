@@ -51,25 +51,22 @@ def dashboard():
         select(func.count(Profissional.id)).where(Profissional.ativo.is_(True))
     ).scalar_one()
 
-    # KPIs financeiros do mes + retornos (so admin/recepcao).
-    entradas_mes = a_receber = retornos_pendentes = None
+    # Entrada da semana (receitas pagas seg-dom, fuso BR) — admin/recepcao.
+    entrada_semana = None
     if current_user.is_admin or current_user.is_recepcao:
-        from app.routes.crm import contar_retornos_pendentes
-        retornos_pendentes = contar_retornos_pendentes()
+        from zoneinfo import ZoneInfo
+        from datetime import time as _time
+        BR = ZoneInfo("America/Sao_Paulo")
+        hoje_br = datetime.now(BR).date()
+        ini_sem = hoje_br - timedelta(days=hoje_br.weekday())   # segunda-feira
+        fim_sem = ini_sem + timedelta(days=7)
+        ini_utc = datetime.combine(ini_sem, _time.min, tzinfo=BR).astimezone(timezone.utc)
+        fim_utc = datetime.combine(fim_sem, _time.min, tzinfo=BR).astimezone(timezone.utc)
         L = LancamentoFinanceiro
-        mes_ini = hoje_ini.replace(day=1)
-        mes_fim = (mes_ini.replace(year=mes_ini.year + 1, month=1)
-                   if mes_ini.month == 12
-                   else mes_ini.replace(month=mes_ini.month + 1))
-        entradas_mes = db.session.execute(
+        entrada_semana = db.session.execute(
             select(func.coalesce(func.sum(L.valor), 0)).where(
                 L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
-                L.pago_em >= mes_ini, L.pago_em < mes_fim,
-            )
-        ).scalar_one()
-        a_receber = db.session.execute(
-            select(func.coalesce(func.sum(L.valor), 0)).where(
-                L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
+                L.pago_em >= ini_utc, L.pago_em < fim_utc,
             )
         ).scalar_one()
 
@@ -78,9 +75,7 @@ def dashboard():
         agendamentos_hoje=agendamentos_hoje,
         total_pacientes=total_pacientes,
         total_profissionais=total_profissionais,
-        entradas_mes=entradas_mes,
-        a_receber=a_receber,
-        retornos_pendentes=retornos_pendentes,
+        entrada_semana=entrada_semana,
     )
 
 

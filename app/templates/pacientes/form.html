@@ -43,9 +43,16 @@
         <input type="email" id="email" name="email" value="{{ (f.email or '') if paciente else form.get('email','') }}">
       </div>
     </div>
-    <div class="form-group">
-      <label for="endereco">Endereço</label>
-      <input type="text" id="endereco" name="endereco" value="{{ (f.endereco or '') if paciente else form.get('endereco','') }}">
+    <div class="flex-form">
+      <div class="form-group">
+        <label for="cep">CEP</label>
+        <input type="text" id="cep" name="cep" inputmode="numeric" placeholder="00000-000"
+               value="{{ (f.cep or '') if paciente else form.get('cep','') }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="endereco">Endereço</label>
+        <input type="text" id="endereco" name="endereco" value="{{ (f.endereco or '') if paciente else form.get('endereco','') }}">
+      </div>
     </div>
     <div class="flex-form">
       <div class="form-group form-group-grow">

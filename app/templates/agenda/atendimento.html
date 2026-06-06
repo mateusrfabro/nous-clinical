@@ -46,5 +46,27 @@
     <button type="submit" class="btn btn-primary">Salvar atendimento</button>
     <a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}" class="btn btn-outline">Voltar ao paciente</a>
   </form>
+
+  <div class="page-header section-title-mt"><h3>Histórico do paciente</h3></div>
+  {% if historico %}
+  <p class="muted text-sm mb-2">{{ historico|length }} consulta(s) anterior(es). Clique para ver os detalhes.</p>
+  {% for a in historico %}
+  <details class="card mb-2">
+    <summary>
+      <strong>{{ a.criado_em|data_br }}</strong>
+      {% if a.profissional %}· {{ a.profissional.nome }}{% endif %}
+      {% if a.queixa %}— {{ a.queixa[:80] }}{% endif %}
+    </summary>
+    <div class="mt-2">
+      {% if a.queixa %}<p class="mb-2"><strong>Queixa:</strong> {{ a.queixa }}</p>{% endif %}
+      {% if a.evolucao %}<p class="mb-2"><strong>Evolução:</strong> {{ a.evolucao }}</p>{% endif %}
+      {% if a.prescricao %}<p class="mb-2"><strong>Prescrição:</strong> {{ a.prescricao }}</p>{% endif %}
+      {% if a.retorno_em %}<p class="muted text-sm">Retorno recomendado: {{ a.retorno_em|data_br }}</p>{% endif %}
+    </div>
+  </details>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state"><p>Primeira consulta deste paciente.</p></div>
+  {% endif %}
 </div>
 {% endblock %}

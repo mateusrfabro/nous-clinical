@@ -118,7 +118,6 @@ def novo():
         profissional_id = request.form.get("profissional_id", type=int)
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
-        duracao = request.form.get("duracao_min", type=int) or 30
 
         paciente = db.session.get(Paciente, paciente_id) if paciente_id else None
         profissional = (db.session.get(Profissional, profissional_id)
@@ -132,6 +131,8 @@ def novo():
                                    pacientes=pacientes, form=request.form,
                                    dia=dia.isoformat())
 
+        # Duracao vem do cadastro do profissional (sem campo no agendamento).
+        duracao = profissional.duracao_padrao_min or 30
         fim = inicio + timedelta(minutes=duracao)
         # Conflito de horario: mesmo profissional com intervalo sobreposto
         # (ignora canceladas). Sobreposicao: inicio_existente < fim_novo E
@@ -245,4 +246,9 @@ def atendimento(agendamento_id):
         flash("Atendimento registrado.", "success")
         return redirect(url_for("pacientes.detalhe", paciente_id=ag.paciente_id))
 
-    return render_template("agenda/atendimento.html", ag=ag, registro=registro)
+    # Historico clinico do paciente (consultas anteriores) — acesso facil
+    # sem sair da tela. Exclui o registro atual.
+    atual_id = registro.id if registro else None
+    historico = [a for a in ag.paciente.atendimentos if a.id != atual_id]
+    return render_template("agenda/atendimento.html", ag=ag, registro=registro,
+                           historico=historico)

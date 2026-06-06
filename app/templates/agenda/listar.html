@@ -31,7 +31,7 @@
 
 {% if agendamentos %}
 <table class="table">
-  <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Financeiro</th><th>Ações</th></tr></thead>
   <tbody>
     {% for ag in agendamentos %}
     <tr>
@@ -39,6 +39,15 @@
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a></td>
       <td>{{ ag.profissional.nome }}</td>
       <td><span class="tag {{ ag.status|status_class }}">{{ ag.status|status_label }}</span></td>
+      <td>
+        {% if current_user.is_admin or current_user.is_recepcao %}
+          {% if ag.lancamento %}
+            <span class="tag tag-success">Recebido</span>
+          {% elif ag.status in ['confirmado','atendido'] %}
+            <a class="btn-link" href="{{ url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') }}">Pagamento</a>
+          {% else %}—{% endif %}
+        {% else %}—{% endif %}
+      </td>
       <td>
         <div class="flex-row-gap">
           {% if current_user.is_admin or current_user.is_recepcao %}
@@ -52,16 +61,8 @@
             <button type="submit" class="btn-link">Salvar</button>
           </form>
           {% endif %}
-          {% if current_user.is_admin or current_user.is_profissional %}
+          {% if current_user.is_profissional %}
             <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">Atender</a>
-          {% endif %}
-          {% if (current_user.is_admin or current_user.is_recepcao) and ag.valor and not ag.lancamento and ag.status in ['confirmado','atendido'] %}
-          <form method="POST" action="{{ url_for('financeiro.receber', agendamento_id=ag.id) }}" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn-link" data-confirm="Registrar recebimento de {{ ag.valor|brl }} desta consulta?">Receber</button>
-          </form>
-          {% elif (current_user.is_admin or current_user.is_recepcao) and ag.lancamento %}
-            <span class="tag tag-success">Recebido</span>
           {% endif %}
         </div>
       </td>

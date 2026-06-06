@@ -100,6 +100,7 @@ class Paciente(db.Model):
     telefone = db.Column(db.String(30))
     email = db.Column(db.String(255))
 
+    cep = db.Column(db.String(9))  # formato 00000-000
     endereco = db.Column(db.String(200))
     bairro = db.Column(db.String(80))
     cidade = db.Column(db.String(80))

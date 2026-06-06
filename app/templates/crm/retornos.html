@@ -1,20 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Retornos — Nous Clinical{% endblock %}
+{% block title %}CRM — Nous Clinical{% endblock %}
 {% block content %}
-<div class="page-header">
-  <h2>Retornos pendentes</h2>
-  <form method="GET" class="flex-form no-loading">
-    <div class="form-group">
-      <label for="dias">Janela</label>
-      <select id="dias" name="dias">
-        <option value="0"   {{ 'selected' if janela == 0 }}>Só vencidos</option>
-        <option value="7"   {{ 'selected' if janela == 7 }}>Próximos 7 dias</option>
-        <option value="30"  {{ 'selected' if janela == 30 }}>Próximos 30 dias</option>
-        <option value="90"  {{ 'selected' if janela == 90 }}>Próximos 90 dias</option>
-      </select>
-    </div>
-    <button type="submit" class="btn btn-outline">Filtrar</button>
-  </form>
+<div class="page-header"><h2>CRM — Retornos</h2></div>
+
+<div class="filter-chips mb-3" role="group" aria-label="Filtro de janela de retorno">
+  {% for d, rotulo in [(0,'Vencidos'),(30,'Até 30 dias'),(60,'Até 60 dias'),(90,'Até 90 dias'),(180,'Até 180 dias')] %}
+    <a class="chip {{ 'chip-active' if janela == d }}" href="{{ url_for('crm.retornos', dias=d) }}">{{ rotulo }}</a>
+  {% endfor %}
 </div>
 
 <p class="muted mb-4">Pacientes com retorno recomendado pelo profissional que ainda não reagendaram. {{ linhas|length }} pendente(s).</p>

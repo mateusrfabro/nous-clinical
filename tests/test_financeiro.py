@@ -113,7 +113,7 @@ def test_form_novo_renderiza(client_admin):
 def test_dashboard_mostra_kpi_financeiro(client_admin):
     r = client_admin.get("/painel")
     assert r.status_code == 200
-    assert "Entradas do m".encode() in r.data
+    assert "Entrada semanal".encode() in r.data
 
 
 def test_paciente_detalhe_tem_historico_financeiro(client_admin):
@@ -124,13 +124,15 @@ def test_paciente_detalhe_tem_historico_financeiro(client_admin):
     assert "financeiro".encode() in r.data.lower()
 
 
-def test_agenda_renderiza_com_receber(client_recepcao):
-    # Consulta com valor + status confirmado mostra a acao "Receber".
+def test_agenda_renderiza_com_pagamento(client_recepcao):
+    # Consulta confirmada mostra a ação "Pagamento" (vai pro financeiro).
+    from zoneinfo import ZoneInfo
+    from datetime import timezone
     ag = Agendamento.query.first()
-    ag.valor = Decimal("150.00")
     ag.status = Agendamento.STATUS_CONFIRMADO
     db.session.commit()
-    dia = ag.inicio.date().isoformat()
+    ini = ag.inicio if ag.inicio.tzinfo else ag.inicio.replace(tzinfo=timezone.utc)
+    dia = ini.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat()
     r = client_recepcao.get(f"/agenda/?dia={dia}")
     assert r.status_code == 200
-    assert b"Receber" in r.data
+    assert b"Pagamento" in r.data

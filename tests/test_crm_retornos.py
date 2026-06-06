@@ -71,7 +71,9 @@ def test_paciente_com_consulta_futura_sai_do_painel(client_admin, app):
     assert b"Ja Reagendou" not in r.data
 
 
-def test_dashboard_mostra_kpi_retornos(client_admin):
+def test_crm_no_menu_lateral(client_admin):
+    # KPI de retornos saiu do painel; CRM permanece no menu lateral.
     r = client_admin.get("/painel")
     assert r.status_code == 200
-    assert "Retornos pendentes".encode() in r.data
+    assert b'href="/crm/retornos"' in r.data
+    assert b">CRM<" in r.data
