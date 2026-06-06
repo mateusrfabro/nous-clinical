@@ -137,6 +137,7 @@
     else if (e.key === "ArrowUp") { e.preventDefault(); mover(sel - 1); }
     else if (e.key === "Enter") { e.preventDefault(); ir(sel); }
     else if (e.key === "Escape") { e.preventDefault(); fechar(); }
+    else if (e.key === "Tab") { e.preventDefault(); }  // foco preso no input
   });
   overlay.addEventListener("mousedown", function (e) {
     if (e.target === overlay) fechar();
