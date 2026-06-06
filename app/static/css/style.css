@@ -3791,3 +3791,26 @@ textarea.is-invalid:focus {
     outline-offset: 1px;
     border-color: var(--danger);
 }
+
+/* ===================== Densidade do app (ferramenta clínica) =====================
+   Escopado a body.app pra não afetar a landing pública. Linhas mais compactas,
+   zebra sutil, hover teal e números alinhados (tabular-nums) — cara de sistema
+   operacional, não de página de marketing. */
+body.app .table th { padding: 0.55rem 0.8rem; }
+body.app .table td { padding: 0.55rem 0.8rem; }
+body.app .table tbody tr:nth-child(even) { background: rgba(30, 41, 59, 0.018); }
+body.app .table tbody tr:hover { background: rgba(67, 184, 165, 0.09); }
+/* Números (dinheiro, contagens) alinhados em colunas. */
+body.app .table td,
+.kpi-value { font-variant-numeric: tabular-nums; }
+body.app .kpi-card { padding: 1rem 1.1rem; }
+/* Foco visível e consistente em toda a UI (acessibilidade + cara de pro). */
+body.app a:focus-visible,
+body.app button:focus-visible,
+body.app .nav-item:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--brand-verde-claro);
+    outline-offset: 1px;
+}
