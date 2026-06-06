@@ -311,6 +311,8 @@ def atendimento(agendamento_id):
         # Itens/procedimentos consumidos (flagbox do medico). Recria a lista
         # com snapshot de nome+valor do catalogo (cascade remove os antigos).
         registro.itens.clear()
+        # Convênio da consulta -> preço da tabela por convênio (ou padrão).
+        conv = ag.convenio or (ag.paciente.convenio if ag.paciente else None)
         for sid in request.form.getlist("procedimentos"):
             try:
                 proc = db.session.get(Procedimento, int(sid))
@@ -319,7 +321,7 @@ def atendimento(agendamento_id):
             if proc:
                 registro.itens.append(ItemAtendimento(
                     procedimento_id=proc.id, descricao=proc.nome,
-                    valor=proc.valor_padrao, quantidade=1,
+                    valor=proc.preco_para(conv), quantidade=1,
                 ))
         # Marca a consulta como atendida ao registrar.
         ag.status = Agendamento.STATUS_ATENDIDO

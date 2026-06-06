@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Preços por convênio — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Preços por convênio — {{ procedimento.nome }}</h2>
+  <a href="{{ url_for('procedimentos.listar') }}" class="btn btn-outline">Voltar</a>
+</div>
+<p class="muted mb-4">Valor padrão (sem convênio): <strong>{{ procedimento.valor_padrao|brl }}</strong>. No atendimento, o sistema usa o preço do convênio do paciente quando houver.</p>
+
+<form method="POST" action="{{ url_for('procedimentos.precos', procedimento_id=procedimento.id) }}" class="card flex-form mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-group form-group-flex-main">
+    <label for="convenio">Convênio</label>
+    <input type="text" id="convenio" name="convenio" required placeholder="Ex: Unimed">
+  </div>
+  <div class="form-group">
+    <label for="valor">Valor</label>
+    <input type="text" id="valor" name="valor" class="money-input w-input-money" inputmode="numeric" placeholder="R$ 0,00" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Salvar preço</button>
+</form>
+
+{% if procedimento.precos %}
+<table class="table">
+  <thead><tr><th>Convênio</th><th>Valor</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for pc in procedimento.precos %}
+    <tr>
+      <td>{{ pc.convenio }}</td>
+      <td>{{ pc.valor|brl }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('procedimentos.excluir_preco', preco_id=pc.id) }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link" data-confirm="Remover este preço?">Remover</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum preço por convênio. Usa-se o valor padrão.</p></div>
+{% endif %}
+{% endblock %}

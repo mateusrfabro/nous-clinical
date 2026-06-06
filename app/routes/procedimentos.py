@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app import db
 from app.auth_decorators import admin_required
-from app.models import Procedimento, AuditLog
+from app.models import Procedimento, PrecoConvenio, AuditLog
 from app.services.audit import audit
 
 procedimentos_bp = Blueprint("procedimentos", __name__,
@@ -86,3 +86,49 @@ def salvar(procedimento_id):
           recurso_id=p.id, detalhes="editado")
     flash("Procedimento atualizado.", "success")
     return redirect(url_for("procedimentos.listar"))
+
+
+@procedimentos_bp.route("/<int:procedimento_id>/precos", methods=["GET", "POST"])
+@login_required
+@admin_required
+def precos(procedimento_id):
+    """Tabela de preços por convênio de um procedimento (upsert por convênio)."""
+    p = db.session.get(Procedimento, procedimento_id)
+    if not p:
+        flash("Procedimento não encontrado.", "error")
+        return redirect(url_for("procedimentos.listar"))
+
+    if request.method == "POST":
+        convenio = request.form.get("convenio", "").strip()
+        valor = _parse_valor(request.form.get("valor", ""))
+        if not convenio or valor is None:
+            flash("Informe convênio e um valor válido.", "error")
+            return redirect(url_for("procedimentos.precos", procedimento_id=p.id))
+        existente = next((x for x in p.precos if x.convenio == convenio), None)
+        if existente:
+            existente.valor = valor
+        else:
+            db.session.add(PrecoConvenio(procedimento_id=p.id,
+                                         convenio=convenio, valor=valor))
+        db.session.commit()
+        audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
+              recurso_id=p.id, detalhes=f"preco_convenio={convenio}")
+        flash("Preço por convênio salvo.", "success")
+        return redirect(url_for("procedimentos.precos", procedimento_id=p.id))
+
+    return render_template("procedimentos/precos.html", procedimento=p)
+
+
+@procedimentos_bp.route("/precos/<int:preco_id>/excluir", methods=["POST"])
+@login_required
+@admin_required
+def excluir_preco(preco_id):
+    pc = db.session.get(PrecoConvenio, preco_id)
+    if not pc:
+        flash("Preço não encontrado.", "error")
+        return redirect(url_for("procedimentos.listar"))
+    proc_id = pc.procedimento_id
+    db.session.delete(pc)
+    db.session.commit()
+    flash("Preço removido.", "success")
+    return redirect(url_for("procedimentos.precos", procedimento_id=proc_id))

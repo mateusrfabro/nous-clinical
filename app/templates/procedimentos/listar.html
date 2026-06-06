@@ -33,6 +33,7 @@
     <label class="cursor-pointer"><input type="checkbox" name="ativo" {{ 'checked' if p.ativo }}> Ativo</label>
   </div>
   <button type="submit" class="btn btn-outline">Salvar</button>
+  <a class="btn-link" href="{{ url_for('procedimentos.precos', procedimento_id=p.id) }}">Preços por convênio{% if p.precos %} ({{ p.precos|length }}){% endif %}</a>
 </form>
 {% endfor %}
 {% else %}

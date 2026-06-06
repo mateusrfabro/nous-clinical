@@ -237,8 +237,42 @@ class Procedimento(db.Model):
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
+    precos = db.relationship(
+        "PrecoConvenio", back_populates="procedimento",
+        cascade="all, delete-orphan", order_by="PrecoConvenio.convenio",
+    )
+
+    def preco_para(self, convenio):
+        """Preço do procedimento p/ um convênio (ou valor_padrao se não houver)."""
+        if convenio:
+            for p in self.precos:
+                if p.convenio == convenio:
+                    return p.valor
+        return self.valor_padrao
+
     def __repr__(self):
         return f"<Procedimento {self.id} {self.nome}>"
+
+
+class PrecoConvenio(db.Model):
+    """Preço de um procedimento para um convênio específico (tabela de preços)."""
+    __tablename__ = "precos_convenio"
+    __table_args__ = (
+        db.UniqueConstraint("procedimento_id", "convenio",
+                            name="uq_preco_proc_conv"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    procedimento_id = db.Column(
+        db.Integer, db.ForeignKey("procedimentos.id"), nullable=False, index=True
+    )
+    convenio = db.Column(db.String(80), nullable=False)
+    valor = db.Column(Numeric(12, 2), nullable=False, default=0)
+
+    procedimento = db.relationship("Procedimento", back_populates="precos")
+
+    def __repr__(self):
+        return f"<PrecoConvenio proc={self.procedimento_id} {self.convenio} {self.valor}>"
 
 
 class ItemAtendimento(db.Model):
