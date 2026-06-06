@@ -336,6 +336,7 @@ class AuditLog(db.Model):
     ACAO_PACIENTE_EDITADO = "paciente_editado"
     ACAO_AGENDAMENTO_CRIADO = "agendamento_criado"
     ACAO_AGENDAMENTO_STATUS = "agendamento_status"
+    ACAO_AGENDAMENTO_EDITADO = "agendamento_editado"
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
     ACAO_LANCAMENTO_CRIADO = "lancamento_criado"

@@ -66,6 +66,29 @@ def _br_para_utc(dia: date, hora_str: str) -> datetime | None:
     return local.astimezone(timezone.utc)
 
 
+def _conflito_horario(profissional_id, inicio, fim, excluir_id=None):
+    """Agendamento sobreposto do mesmo profissional (ignora cancelados).
+
+    excluir_id permite ignorar o proprio agendamento ao reagendar.
+    """
+    q = select(Agendamento).where(
+        Agendamento.profissional_id == profissional_id,
+        Agendamento.status != Agendamento.STATUS_CANCELADO,
+        Agendamento.inicio < fim,
+        Agendamento.fim > inicio,
+    )
+    if excluir_id:
+        q = q.where(Agendamento.id != excluir_id)
+    return db.session.execute(q).scalars().first()
+
+
+def _msg_conflito(conflito):
+    ini_br = conflito.inicio.astimezone(_BR_TZ).strftime("%H:%M")
+    fim_br = conflito.fim.astimezone(_BR_TZ).strftime("%H:%M")
+    nome = conflito.profissional.nome if conflito.profissional else "O profissional"
+    return f"Conflito de horário: {nome} já tem consulta das {ini_br} às {fim_br}."
+
+
 @agenda_bp.route("/")
 @login_required
 def listar():
@@ -135,22 +158,9 @@ def novo():
         # Duracao vem do cadastro do profissional (sem campo no agendamento).
         duracao = profissional.duracao_padrao_min or 30
         fim = inicio + timedelta(minutes=duracao)
-        # Conflito de horario: mesmo profissional com intervalo sobreposto
-        # (ignora canceladas). Sobreposicao: inicio_existente < fim_novo E
-        # fim_existente > inicio_novo.
-        conflito = db.session.execute(
-            select(Agendamento).where(
-                Agendamento.profissional_id == profissional.id,
-                Agendamento.status != Agendamento.STATUS_CANCELADO,
-                Agendamento.inicio < fim,
-                Agendamento.fim > inicio,
-            )
-        ).scalars().first()
+        conflito = _conflito_horario(profissional.id, inicio, fim)
         if conflito:
-            ini_br = conflito.inicio.astimezone(_BR_TZ).strftime("%H:%M")
-            fim_br = conflito.fim.astimezone(_BR_TZ).strftime("%H:%M")
-            flash(f"Conflito de horário: {profissional.nome} já tem consulta "
-                  f"das {ini_br} às {fim_br}.", "error")
+            flash(_msg_conflito(conflito), "error")
             return render_template("agenda/form.html",
                                    profissionais=profissionais,
                                    pacientes=pacientes, form=request.form,
@@ -202,6 +212,65 @@ def mudar_status(agendamento_id):
     flash("Status atualizado.", "success")
     dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     return redirect(url_for("agenda.listar", dia=dia))
+
+
+@agenda_bp.route("/<int:agendamento_id>/editar", methods=["GET", "POST"])
+@login_required
+@recepcao_ou_admin
+def editar(agendamento_id):
+    """Reagenda a consulta (profissional/dia/hora/convênio/obs) com checagem
+    de conflito (ignorando o próprio agendamento)."""
+    ag = db.session.get(Agendamento, agendamento_id)
+    if not ag:
+        flash("Agendamento não encontrado.", "error")
+        return redirect(url_for("agenda.listar"))
+
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    if request.method == "POST":
+        profissional_id = request.form.get("profissional_id", type=int)
+        dia = _parse_dia(request.form.get("dia", ""))
+        hora = request.form.get("hora", "").strip()
+        profissional = (db.session.get(Profissional, profissional_id)
+                        if profissional_id else None)
+        inicio = _br_para_utc(dia, hora)
+
+        if not (profissional and inicio):
+            flash("Selecione profissional e horário válidos.", "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
+
+        duracao = profissional.duracao_padrao_min or 30
+        fim = inicio + timedelta(minutes=duracao)
+        conflito = _conflito_horario(profissional.id, inicio, fim, excluir_id=ag.id)
+        if conflito:
+            flash(_msg_conflito(conflito), "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
+
+        ag.profissional_id = profissional.id
+        ag.inicio = inicio
+        ag.fim = fim
+        ag.convenio = request.form.get("convenio", "").strip() or None
+        ag.observacoes = request.form.get("observacoes", "").strip() or None
+        db.session.commit()
+        audit(AuditLog.ACAO_AGENDAMENTO_EDITADO, recurso_tipo="agendamento",
+              recurso_id=ag.id)
+        flash("Consulta reagendada.", "success")
+        return redirect(url_for("agenda.listar", dia=dia.isoformat()))
+
+    form_inicial = {
+        "profissional_id": ag.profissional_id,
+        "dia": ag.inicio.astimezone(_BR_TZ).date().isoformat(),
+        "hora": ag.inicio.astimezone(_BR_TZ).strftime("%H:%M"),
+        "convenio": ag.convenio or "",
+        "observacoes": ag.observacoes or "",
+    }
+    return render_template("agenda/editar.html", ag=ag,
+                           profissionais=profissionais, form=form_inicial)
 
 
 @agenda_bp.route("/<int:agendamento_id>/atendimento", methods=["GET", "POST"])

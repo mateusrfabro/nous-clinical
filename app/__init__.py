@@ -280,6 +280,16 @@ def create_app(config_name="default"):
             return "—"
         return CATEGORIA_FIN.get(categoria.lower(), categoria.capitalize())
 
+    @app.template_filter("wa_numero")
+    def wa_numero(telefone):
+        """Telefone -> dígitos com código BR (55) para link wa.me. '' se vazio."""
+        if not telefone:
+            return ""
+        d = "".join(c for c in str(telefone) if c.isdigit())
+        if not d:
+            return ""
+        return d if len(d) > 11 else "55" + d
+
     @app.template_filter("brl")
     def format_brl(valor):
         if valor is None:
