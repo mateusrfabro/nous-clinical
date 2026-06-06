@@ -43,26 +43,31 @@ def _pacientes_com_consulta_futura():
 
 
 def _retornos_pendentes(janela_dias: int):
-    """Lista de retornos due (<= hoje+janela) de pacientes sem consulta futura.
+    """Retornos due (<= hoje+janela) considerando só o ÚLTIMO atendimento.
 
-    Dedup por paciente (mantém o retorno mais antigo). Retorna dicts prontos
-    pro template — sem lógica no Jinja.
+    Regra (sócio): o paciente perde a flag toda vez que se consulta — o médico
+    precisa marcar um novo retorno pra ele voltar ao CRM. Logo, olhamos apenas
+    o atendimento mais recente de cada paciente: se ele não tem retorno_em (ou
+    já está fora da janela, ou o paciente já reagendou), não aparece.
     """
     hoje = date.today()
     limite = hoje + timedelta(days=janela_dias)
-    atendimentos = db.session.execute(
-        select(Atendimento)
-        .where(Atendimento.retorno_em.is_not(None),
-               Atendimento.retorno_em <= limite)
-        .order_by(Atendimento.retorno_em)
+
+    # Último atendimento por paciente (mais recente por criado_em).
+    todos = db.session.execute(
+        select(Atendimento).order_by(Atendimento.criado_em.desc())
     ).scalars().all()
+    ultimo_por_paciente = {}
+    for a in todos:
+        ultimo_por_paciente.setdefault(a.paciente_id, a)
 
     com_futuro = _pacientes_com_consulta_futura()
-    linhas, vistos = [], set()
-    for a in atendimentos:
-        if a.paciente_id in com_futuro or a.paciente_id in vistos:
+    linhas = []
+    for a in ultimo_por_paciente.values():
+        if a.retorno_em is None or a.retorno_em > limite:
             continue
-        vistos.add(a.paciente_id)
+        if a.paciente_id in com_futuro:
+            continue
         dias = (a.retorno_em - hoje).days
         primeiro_nome = (a.paciente.nome_completo.split()[0]
                          if a.paciente and a.paciente.nome_completo else "")
@@ -78,6 +83,7 @@ def _retornos_pendentes(janela_dias: int):
                 f"Chegou a época do seu retorno — podemos agendar?",
             ),
         })
+    linhas.sort(key=lambda x: x["atendimento"].retorno_em)
     return linhas
 
 

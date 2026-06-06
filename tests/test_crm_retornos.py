@@ -71,6 +71,26 @@ def test_paciente_com_consulta_futura_sai_do_painel(client_admin, app):
     assert b"Ja Reagendou" not in r.data
 
 
+def test_perde_flag_ao_se_consultar(client_admin, app):
+    from datetime import datetime, timezone
+    pac = Paciente(nome_completo="Voltou Sem Flag", telefone="(43) 90000-9999")
+    db.session.add(pac)
+    prof = db.session.execute(db.select(Profissional)).scalars().first()
+    db.session.flush()
+    # Atendimento antigo com retorno vencido...
+    a1 = Atendimento(paciente_id=pac.id, profissional_id=prof.id,
+                     retorno_em=date.today() - timedelta(days=10))
+    a1.criado_em = datetime.now(timezone.utc) - timedelta(days=1)
+    # ...e um mais recente SEM retorno (consultou de novo, médico não marcou).
+    a2 = Atendimento(paciente_id=pac.id, profissional_id=prof.id, retorno_em=None)
+    a2.criado_em = datetime.now(timezone.utc)
+    db.session.add_all([a1, a2])
+    db.session.commit()
+
+    r = client_admin.get("/crm/retornos?dias=0")
+    assert b"Voltou Sem Flag" not in r.data  # último atendimento não tem flag
+
+
 def test_crm_no_menu_lateral(client_admin):
     # KPI de retornos saiu do painel; CRM permanece no menu lateral.
     r = client_admin.get("/painel")
