@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Relatórios — Nous Clinical{% endblock %}
+
+{% macro delta(v) %}
+  {%- if v is none -%}
+    <span class="muted text-sm">sem base</span>
+  {%- elif v >= 0 -%}
+    <span class="economia-pos text-sm">▲ {{ '%.1f'|format(v) }}%</span>
+  {%- else -%}
+    <span class="economia-neg text-sm">▼ {{ '%.1f'|format(v|abs) }}%</span>
+  {%- endif -%}
+{% endmacro %}
+
 {% block content %}
-<div class="page-header"><h2>Relatórios</h2></div>
+<div class="page-header">
+  <h2>Relatórios</h2>
+  <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim) }}"
+     class="btn btn-outline">Exportar CSV</a>
+</div>
 
 <form method="GET" class="flex-form no-loading mb-4">
   <div class="form-group">
@@ -19,6 +34,7 @@
   <div class="kpi-card card-hl-success">
     <span class="kpi-label">Faturamento</span>
     <span class="kpi-value economia-pos">{{ receitas|brl }}</span>
+    <span class="kpi-delta">{{ delta(comparativo.d_receitas) }} vs. período anterior</span>
   </div>
   <div class="kpi-card card-hl-warning">
     <span class="kpi-label">Despesas</span>
@@ -35,14 +51,56 @@
   <div class="kpi-card">
     <span class="kpi-label">Atendidos</span>
     <span class="kpi-value">{{ atendidos }}</span>
+    <span class="kpi-delta">{{ delta(comparativo.d_atendidos) }} vs. período anterior</span>
   </div>
   <div class="kpi-card {{ 'card-hl-warning' if faltas else '' }}">
     <span class="kpi-label">Taxa de faltas</span>
     <span class="kpi-value">{{ '%.1f'|format(taxa_faltas) }}%</span>
   </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Novos pacientes</span>
+    <span class="kpi-value">{{ novos_pacientes }}</span>
+    <span class="kpi-delta">{{ delta(comparativo.d_novos) }} vs. período anterior</span>
+  </div>
 </section>
 
 <p class="muted mb-4">{{ total_ags }} consulta(s) no período · {{ atendidos }} atendida(s) · {{ faltas }} falta(s) · {{ cancelados }} cancelada(s) · {{ n_receitas }} recebimento(s).</p>
+
+<div class="page-header section-title-mt"><h3>Receita por médico</h3></div>
+{% if por_medico %}
+<table class="table">
+  <thead><tr><th>Profissional</th><th>Consultas pagas</th><th>Total recebido</th></tr></thead>
+  <tbody>
+    {% for m in por_medico %}
+    <tr><td>{{ m.nome }}</td><td>{{ m.qtd }}</td><td>{{ m.total|brl }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum recebimento de consulta no período.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Produtividade por profissional</h3></div>
+<p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
+{% if produtividade %}
+<table class="table">
+  <thead><tr>
+    <th>Profissional</th><th>Agendadas</th><th>Atendidas</th>
+    <th>Faltas</th><th>Canceladas</th><th>Taxa de atend.</th>
+  </tr></thead>
+  <tbody>
+    {% for p in produtividade %}
+    <tr>
+      <td>{{ p.nome }}</td><td>{{ p.total }}</td><td>{{ p.atendidos }}</td>
+      <td>{{ p.faltas }}</td><td>{{ p.cancelados }}</td>
+      <td>{{ '%.0f'|format(p.taxa_atend) }}%</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhuma consulta na agenda do período.</p></div>
+{% endif %}
 
 <div class="page-header section-title-mt"><h3>Faturamento por convênio</h3></div>
 {% if por_convenio %}
@@ -71,5 +129,30 @@
 </table>
 {% else %}
 <div class="empty-state"><p>Nenhum procedimento registrado no período.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Pacientes em risco de evasão</h3></div>
+<p class="muted text-sm mb-2">Ativos sem atendimento há mais de 180 dias e sem consulta futura — candidatos a recall.</p>
+{% if evasao %}
+<table class="table">
+  <thead><tr><th>Paciente</th><th>Convênio</th><th>Último atendimento</th><th>Contato</th></tr></thead>
+  <tbody>
+    {% for p in evasao %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
+      <td>{{ p.convenio or '—' }}</td>
+      <td>{{ p.ultimo|data_br }}</td>
+      <td>
+        {% if p.telefone and p.telefone|wa_numero %}
+        <a href="https://wa.me/{{ p.telefone|wa_numero }}" target="_blank" rel="noopener"
+           class="btn btn-sm btn-outline">Lembrete</a>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum paciente em risco de evasão. 🎉</p></div>
 {% endif %}
 {% endblock %}
