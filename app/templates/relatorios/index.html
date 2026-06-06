@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Relatórios — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Relatórios</h2></div>
+
+<form method="GET" class="flex-form no-loading mb-4">
+  <div class="form-group">
+    <label for="ini">De</label>
+    <input type="date" id="ini" name="ini" value="{{ ini }}">
+  </div>
+  <div class="form-group">
+    <label for="fim">Até</label>
+    <input type="date" id="fim" name="fim" value="{{ fim }}">
+  </div>
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+</form>
+
+<section class="kpi-grid">
+  <div class="kpi-card card-hl-success">
+    <span class="kpi-label">Faturamento</span>
+    <span class="kpi-value economia-pos">{{ receitas|brl }}</span>
+  </div>
+  <div class="kpi-card card-hl-warning">
+    <span class="kpi-label">Despesas</span>
+    <span class="kpi-value economia-neg">{{ despesas|brl }}</span>
+  </div>
+  <div class="kpi-card card-hl-primary">
+    <span class="kpi-label">Saldo</span>
+    <span class="kpi-value {{ 'economia-pos' if saldo >= 0 else 'economia-neg' }}">{{ saldo|brl }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Ticket médio</span>
+    <span class="kpi-value">{{ ticket|brl }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Atendidos</span>
+    <span class="kpi-value">{{ atendidos }}</span>
+  </div>
+  <div class="kpi-card {{ 'card-hl-warning' if faltas else '' }}">
+    <span class="kpi-label">Taxa de faltas</span>
+    <span class="kpi-value">{{ '%.1f'|format(taxa_faltas) }}%</span>
+  </div>
+</section>
+
+<p class="muted mb-4">{{ total_ags }} consulta(s) no período · {{ atendidos }} atendida(s) · {{ faltas }} falta(s) · {{ cancelados }} cancelada(s) · {{ n_receitas }} recebimento(s).</p>
+
+<div class="page-header section-title-mt"><h3>Faturamento por convênio</h3></div>
+{% if por_convenio %}
+<table class="table">
+  <thead><tr><th>Convênio</th><th>Total recebido</th></tr></thead>
+  <tbody>
+    {% for c in por_convenio %}
+    <tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum recebimento no período.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Volume de procedimentos / exames</h3></div>
+{% if procedimentos %}
+<table class="table">
+  <thead><tr><th>Procedimento</th><th>Quantidade</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for p in procedimentos %}
+    <tr><td>{{ p.nome }}</td><td>{{ p.qtd }}</td><td>{{ p.total|brl }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum procedimento registrado no período.</p></div>
+{% endif %}
+{% endblock %}
