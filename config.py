@@ -24,9 +24,12 @@ class Config:
     # pais (ex: 5543999999999). Vazio = botao flutuante nao aparece.
     WHATSAPP_NUMERO = os.getenv("WHATSAPP_NUMERO", "")
 
-    # TTL da sessao logada. Dados de saude sao sensiveis (LGPD dados
-    # sensiveis) — 8h forca re-login no dia seguinte. Ajuste conforme risco.
+    # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
+    # 8h forca re-login no dia seguinte. Ajuste conforme risco.
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
+    # Timeout por INATIVIDADE (idle): desloga apos N segundos sem requisicao.
+    # Protege estacao compartilhada (recepcao) deixada aberta. 0/None desliga.
+    IDLE_SESSION_LIFETIME = int(os.getenv("IDLE_SESSION_LIFETIME", "1800"))  # 30 min
 
     # Flask-Caching: SimpleCache in-memory por processo. Redis em multi-worker.
     CACHE_TYPE = "SimpleCache"

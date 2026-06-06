@@ -412,6 +412,11 @@ class AuditLog(db.Model):
     ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
     ACAO_EXAME_ANEXADO = "exame_anexado"
     ACAO_EXAME_REMOVIDO = "exame_removido"
+    # Acesso a dado sensivel (LGPD art. 37 — registro de operacoes de
+    # tratamento). Le/visualiza/exporta — nao so altera.
+    ACAO_PRONTUARIO_VISUALIZADO = "prontuario_visualizado"
+    ACAO_EXAME_BAIXADO = "exame_baixado"
+    ACAO_RELATORIO_EXPORTADO = "relatorio_exportado"
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

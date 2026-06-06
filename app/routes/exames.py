@@ -105,6 +105,7 @@ def download(exame_id):
     except FileNotFoundError:
         flash("Arquivo não encontrado no storage.", "error")
         return redirect(url_for("pacientes.detalhe", paciente_id=ex.paciente_id))
+    audit(AuditLog.ACAO_EXAME_BAIXADO, recurso_tipo="exame", recurso_id=ex.id)
     mime = ex.content_type or "application/octet-stream"
     inline = mime in set(_EXT_MIME.values())  # só tipos confiáveis abrem inline
     return send_file(

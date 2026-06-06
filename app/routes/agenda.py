@@ -345,6 +345,10 @@ def atendimento(agendamento_id):
         .order_by(Procedimento.nome)
     ).scalars().all()
     selecionados = {i.procedimento_id for i in registro.itens} if registro else set()
+    # Abrir o prontuario (com historico clinico) e' acesso a dado sensivel —
+    # registra a leitura na trilha de auditoria (LGPD art. 37).
+    audit(AuditLog.ACAO_PRONTUARIO_VISUALIZADO, recurso_tipo="paciente",
+          recurso_id=ag.paciente_id)
     return render_template("agenda/atendimento.html", ag=ag, registro=registro,
                            historico=historico, procedimentos=procedimentos,
                            selecionados=selecionados)

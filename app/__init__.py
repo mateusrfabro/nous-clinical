@@ -119,6 +119,29 @@ def create_app(config_name="default"):
             if hasattr(_g, "_login_user"):
                 delattr(_g, "_login_user")
 
+    # ---- Timeout de sessao por inatividade (LGPD: estacao compartilhada) ----
+    @app.before_request
+    def _idle_timeout():
+        import time as _time
+        from flask import session, flash, redirect, url_for
+        from flask_login import current_user, logout_user
+
+        if request.endpoint in (None, "static"):
+            return
+        if not current_user.is_authenticated:
+            return
+        idle = app.config.get("IDLE_SESSION_LIFETIME")
+        agora = _time.time()
+        ultima = session.get("_ultima_atividade")
+        if idle and ultima and (agora - ultima) > idle:
+            logout_user()
+            session.clear()
+            flash("Sessão expirada por inatividade. Faça login novamente.", "info")
+            return redirect(url_for("auth.login"))
+        # Renova a janela de inatividade e mantem o TTL absoluto valido.
+        session.permanent = True
+        session["_ultima_atividade"] = agora
+
     from app.routes.auth import auth_bp
     from app.routes.main import main_bp
     from app.routes.pacientes import pacientes_bp
@@ -220,7 +243,13 @@ def create_app(config_name="default"):
     def _inject_globals():
         numero = app.config.get("WHATSAPP_NUMERO") or ""
         url = f"https://wa.me/{numero}" if numero else ""
-        return {"whatsapp_url": url}
+        from app.permissions import tem_permissao
+        from flask_login import current_user as _cu
+        return {
+            "whatsapp_url": url,
+            # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
+            "pode": lambda permissao: tem_permissao(_cu, permissao),
+        }
 
     # Status de agendamento -> label PT-BR + classe de cor.
     STATUS_AGENDAMENTO = {
