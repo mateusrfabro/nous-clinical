@@ -3682,3 +3682,22 @@ body.app {
     color: var(--text-primary);
     font-family: var(--font-heading);
 }
+
+/* Grade de checkboxes (procedimentos consumidos no atendimento) */
+.check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.5rem;
+}
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--white);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.check-item input { width: auto; }

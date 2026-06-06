@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import create_app, db  # noqa: E402
 from app.models import (  # noqa: E402
     Usuario, Profissional, Paciente, Agendamento, LancamentoFinanceiro,
-    Atendimento,
+    Atendimento, Procedimento,
 )
 from app.services.passwords import hash_senha  # noqa: E402
 
@@ -138,6 +138,15 @@ def seed():
                 queixa="Acompanhamento — retorno anual recomendado.",
                 evolucao="Quadro estável. Orientado retorno.",
                 retorno_em=date.today() - timedelta(days=12)))
+
+        # Catálogo de procedimentos (preços) pro flagbox do atendimento.
+        if Procedimento.query.count() == 0:
+            db.session.add_all([
+                Procedimento(nome="Consulta", valor_padrao=Decimal("250.00")),
+                Procedimento(nome="Exame Papanicolau", valor_padrao=Decimal("120.00")),
+                Procedimento(nome="Ultrassonografia", valor_padrao=Decimal("180.00")),
+                Procedimento(nome="Retorno", valor_padrao=Decimal("0.00")),
+            ])
 
         db.session.commit()
         print("Seed concluído.")

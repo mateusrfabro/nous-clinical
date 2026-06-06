@@ -212,10 +212,18 @@ def novo():
         if ag:
             form_inicial["agendamento_id"] = ag.id
             form_inicial.setdefault("paciente_id", ag.paciente_id)
-            form_inicial.setdefault("descricao",
-                                    f"Consulta - {ag.paciente.nome_completo}")
-            if ag.valor and "valor" not in form_inicial:
-                form_inicial["valor"] = f"{ag.valor:.2f}"
+            at = ag.atendimento
+            if at and at.itens:
+                # Puxa itens marcados pelo medico (total + descricao) — evita
+                # a recepcao lancar manualmente/errado.
+                form_inicial["descricao"] = " + ".join(
+                    i.descricao or "Item" for i in at.itens)
+                form_inicial.setdefault("valor", f"{at.total_itens:.2f}")
+            else:
+                form_inicial.setdefault(
+                    "descricao", f"Consulta - {ag.paciente.nome_completo}")
+                if ag.valor and "valor" not in form_inicial:
+                    form_inicial["valor"] = f"{ag.valor:.2f}"
             if ag.convenio:
                 form_inicial.setdefault("convenio", ag.convenio)
     return render_template("financeiro/form.html", pacientes=pacientes,

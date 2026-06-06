@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Procedimentos — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Procedimentos e preços</h2></div>
+<p class="muted mb-4">Itens faturáveis que o médico marca no atendimento. O pagamento puxa o total automaticamente.</p>
+
+<form method="POST" action="{{ url_for('procedimentos.novo') }}" class="card flex-form mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-group form-group-flex-main">
+    <label for="nome">Novo procedimento</label>
+    <input type="text" id="nome" name="nome" required placeholder="Ex: Ultrassonografia">
+  </div>
+  <div class="form-group">
+    <label for="valor">Valor</label>
+    <input type="text" id="valor" name="valor" class="money-input w-input-money" inputmode="numeric" placeholder="R$ 0,00" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Adicionar</button>
+</form>
+
+{% if procedimentos %}
+{% for p in procedimentos %}
+<form method="POST" action="{{ url_for('procedimentos.salvar', procedimento_id=p.id) }}" class="card flex-form no-loading mb-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-group form-group-flex-main">
+    <label for="nome-{{ p.id }}">Nome</label>
+    <input type="text" id="nome-{{ p.id }}" name="nome" value="{{ p.nome }}" required>
+  </div>
+  <div class="form-group">
+    <label for="valor-{{ p.id }}">Valor</label>
+    <input type="text" id="valor-{{ p.id }}" name="valor" class="money-input w-input-money" value="{{ '%.2f'|format(p.valor_padrao) }}" required>
+  </div>
+  <div class="form-group">
+    <label class="cursor-pointer"><input type="checkbox" name="ativo" {{ 'checked' if p.ativo }}> Ativo</label>
+  </div>
+  <button type="submit" class="btn btn-outline">Salvar</button>
+</form>
+{% endfor %}
+{% else %}
+<div class="empty-state"><p>Nenhum procedimento cadastrado ainda.</p></div>
+{% endif %}
+{% endblock %}

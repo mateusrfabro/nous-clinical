@@ -204,9 +204,57 @@ class Atendimento(db.Model):
     agendamento = db.relationship("Agendamento", back_populates="atendimento")
     paciente = db.relationship("Paciente", back_populates="atendimentos")
     profissional = db.relationship("Profissional")
+    itens = db.relationship(
+        "ItemAtendimento", back_populates="atendimento",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def total_itens(self):
+        """Soma dos itens/procedimentos consumidos (Decimal)."""
+        from decimal import Decimal
+        return sum((i.valor * i.quantidade for i in self.itens), Decimal("0.00"))
 
     def __repr__(self):
         return f"<Atendimento {self.id} pac={self.paciente_id}>"
+
+
+class Procedimento(db.Model):
+    """Catalogo de procedimentos/produtos faturaveis (consulta, exames...).
+
+    O preco vive aqui; ao marcar no atendimento, copia-se o valor pro
+    ItemAtendimento (snapshot) pra nao mudar historico se o preco subir.
+    """
+    __tablename__ = "procedimentos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    valor_padrao = db.Column(Numeric(12, 2), nullable=False, default=0)
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    def __repr__(self):
+        return f"<Procedimento {self.id} {self.nome}>"
+
+
+class ItemAtendimento(db.Model):
+    """Item consumido em um atendimento (flag do medico). Snapshot de valor."""
+    __tablename__ = "itens_atendimento"
+
+    id = db.Column(db.Integer, primary_key=True)
+    atendimento_id = db.Column(
+        db.Integer, db.ForeignKey("atendimentos.id"), nullable=False, index=True
+    )
+    procedimento_id = db.Column(db.Integer, db.ForeignKey("procedimentos.id"))
+    descricao = db.Column(db.String(120))     # snapshot do nome
+    valor = db.Column(Numeric(12, 2), nullable=False, default=0)
+    quantidade = db.Column(db.Integer, nullable=False, default=1)
+
+    atendimento = db.relationship("Atendimento", back_populates="itens")
+    procedimento = db.relationship("Procedimento")
+
+    def __repr__(self):
+        return f"<ItemAtendimento {self.id} {self.descricao} {self.valor}>"
 
 
 class LancamentoFinanceiro(db.Model):
@@ -293,6 +341,7 @@ class AuditLog(db.Model):
     ACAO_LANCAMENTO_CRIADO = "lancamento_criado"
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"
+    ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

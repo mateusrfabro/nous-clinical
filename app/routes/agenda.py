@@ -16,6 +16,7 @@ from app import db
 from app.auth_decorators import recepcao_ou_admin, clinico_required
 from app.models import (
     Agendamento, Atendimento, Paciente, Profissional, AuditLog,
+    Procedimento, ItemAtendimento,
 )
 from app.services.audit import audit
 
@@ -238,6 +239,19 @@ def atendimento(agendamento_id):
             request.form.get("retorno_opcao", ""),
             request.form.get("retorno_data", ""),
         )
+        # Itens/procedimentos consumidos (flagbox do medico). Recria a lista
+        # com snapshot de nome+valor do catalogo (cascade remove os antigos).
+        registro.itens.clear()
+        for sid in request.form.getlist("procedimentos"):
+            try:
+                proc = db.session.get(Procedimento, int(sid))
+            except (TypeError, ValueError):
+                proc = None
+            if proc:
+                registro.itens.append(ItemAtendimento(
+                    procedimento_id=proc.id, descricao=proc.nome,
+                    valor=proc.valor_padrao, quantidade=1,
+                ))
         # Marca a consulta como atendida ao registrar.
         ag.status = Agendamento.STATUS_ATENDIDO
         db.session.commit()
@@ -250,5 +264,11 @@ def atendimento(agendamento_id):
     # sem sair da tela. Exclui o registro atual.
     atual_id = registro.id if registro else None
     historico = [a for a in ag.paciente.atendimentos if a.id != atual_id]
+    procedimentos = db.session.execute(
+        select(Procedimento).where(Procedimento.ativo.is_(True))
+        .order_by(Procedimento.nome)
+    ).scalars().all()
+    selecionados = {i.procedimento_id for i in registro.itens} if registro else set()
     return render_template("agenda/atendimento.html", ag=ag, registro=registro,
-                           historico=historico)
+                           historico=historico, procedimentos=procedimentos,
+                           selecionados=selecionados)

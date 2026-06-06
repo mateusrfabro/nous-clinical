@@ -22,6 +22,21 @@
       <textarea id="prescricao" name="prescricao" rows="4">{{ registro.prescricao if registro else '' }}</textarea>
     </div>
 
+    {% if procedimentos %}
+    <fieldset class="form-fieldset">
+      <legend>Itens / procedimentos consumidos</legend>
+      <p class="muted text-sm mb-2">Marque o que foi feito — o pagamento puxa o total automaticamente.</p>
+      <div class="check-grid">
+        {% for proc in procedimentos %}
+        <label class="check-item">
+          <input type="checkbox" name="procedimentos" value="{{ proc.id }}" {{ 'checked' if proc.id in selecionados }}>
+          <span>{{ proc.nome }} <span class="muted">· {{ proc.valor_padrao|brl }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endif %}
+
     <fieldset class="form-fieldset">
       <legend>Retorno recomendado</legend>
       <p class="muted text-sm mb-2">Alimenta o painel de retornos e o acompanhamento do paciente (CRM).</p>
