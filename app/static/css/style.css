@@ -3710,3 +3710,84 @@ body.app {
 @media (max-width: 600px) {
     .table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* ===================== Toasts (flash -> toast) =====================
+   O servidor renderiza .flash-container > .alert; o toast.js promove isso a
+   uma pilha flutuante (canto superior direito) com auto-dismiss e botao
+   fechar. Progressive enhancement: sem JS, vira um alerta empilhado normal. */
+.flash-container.is-toast {
+    position: fixed;
+    top: var(--space-2);
+    right: var(--space-2);
+    left: auto;
+    z-index: 1000;
+    width: min(380px, calc(100vw - 2 * var(--space-2)));
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    pointer-events: none;          /* a pilha não bloqueia clique; o toast sim */
+}
+.flash-container.is-toast .alert {
+    position: relative;
+    margin: 0;
+    padding: 0.8rem 2.4rem 0.8rem 1rem;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14);
+    pointer-events: auto;
+    animation: toast-in 0.22s ease-out;
+}
+.flash-container.is-toast .alert.toast-out {
+    animation: toast-out 0.2s ease-in forwards;
+}
+.toast-close {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.4rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.toast-close:hover { opacity: 1; background: rgba(15, 23, 42, 0.08); }
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(16px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .flash-container.is-toast .alert,
+    .flash-container.is-toast .alert.toast-out { animation: none; }
+}
+
+/* ===================== Validação inline de formulários ===================== */
+.field-error {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--danger);
+    font-weight: 500;
+}
+input.is-invalid,
+select.is-invalid,
+textarea.is-invalid {
+    border-color: var(--danger);
+}
+input.is-invalid:focus,
+select.is-invalid:focus,
+textarea.is-invalid:focus {
+    outline: 2px solid rgba(220, 38, 38, 0.35);
+    outline-offset: 1px;
+    border-color: var(--danger);
+}

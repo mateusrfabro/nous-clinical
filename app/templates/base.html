@@ -151,9 +151,13 @@
     </footer>
 {% endif %}
 
+    {# form-validate ANTES de confirm-submit/form-submitting: registra o submit
+       em capture primeiro e barra o loading quando ha campo invalido. #}
+    <script src="{{ url_for('static', filename='js/form-validate.js') }}"></script>
     <script src="{{ url_for('static', filename='js/confirm-submit.js') }}"></script>
     <script src="{{ url_for('static', filename='js/form-submitting.js') }}"></script>
     <script src="{{ url_for('static', filename='js/data-bind.js') }}"></script>
     <script src="{{ url_for('static', filename='js/money-mask.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 </body>
 </html>
