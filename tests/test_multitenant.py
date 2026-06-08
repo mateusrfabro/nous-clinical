@@ -43,7 +43,9 @@ def test_isolamento_lista_e_busca(client_admin):
 def test_criacao_herda_clinica_do_usuario(client_admin):
     # Paciente criado por admin (clínica T) nasce com a clínica dele.
     client_admin.post("/pacientes/novo",
-                      data={"nome_completo": "Novo Da T"}, follow_redirects=True)
+                      data={"nome_completo": "Novo Da T", "cpf": "529.982.247-25",
+                            "data_nascimento": "1990-05-10"},
+                      follow_redirects=True)
     p = Paciente.query.filter_by(nome_completo="Novo Da T").first()
     c = Clinica.query.filter_by(slug="teste").first()
     assert p is not None and p.clinica_id == c.id

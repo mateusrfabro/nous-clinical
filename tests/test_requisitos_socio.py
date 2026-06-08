@@ -116,6 +116,20 @@ def test_recepcao_nao_lanca_categoria_restrita(client_recepcao):
     assert LancamentoFinanceiro.query.count() == antes  # não criou
 
 
+# ---- Cadastro de paciente: obrigatórios + CEP ----
+
+def test_paciente_exige_cpf_e_data(client_recepcao):
+    antes = Paciente.query.count()
+    client_recepcao.post("/pacientes/novo",
+                         data={"nome_completo": "So Nome"}, follow_redirects=True)
+    assert Paciente.query.count() == antes      # sem CPF/Data não cria
+
+
+def test_cep_endpoint_valida_formato(client_recepcao):
+    # CEP malformado responde 400 sem tocar a rede (não chama o ViaCEP).
+    assert client_recepcao.get("/pacientes/cep/123").status_code == 400
+
+
 # ---- Médico só vê os próprios pacientes ----
 
 def test_medico_ve_so_seus_pacientes(client_prof):

@@ -50,11 +50,13 @@ def test_admin_ve_historico_completo(client_admin):
 
 def test_cpf_duplicado_nao_quebra(client_admin):
     client_admin.post("/pacientes/novo",
-                      data={"nome_completo": "Primeiro", "cpf": CPF_VALIDO},
+                      data={"nome_completo": "Primeiro", "cpf": CPF_VALIDO,
+                            "data_nascimento": "1990-05-10"},
                       follow_redirects=True)
     antes = Paciente.query.count()
     r = client_admin.post("/pacientes/novo",
-                          data={"nome_completo": "Segundo", "cpf": CPF_VALIDO},
+                          data={"nome_completo": "Segundo", "cpf": CPF_VALIDO,
+                                "data_nascimento": "1990-05-10"},
                           follow_redirects=True)
     assert r.status_code == 200               # não vira 500
     assert "Já existe".encode() in r.data
@@ -71,12 +73,16 @@ def test_cpf_invalido_rejeitado(client_admin):
     assert Paciente.query.count() == antes
 
 
-def test_cpf_vazio_aceito(client_admin):
-    # CPF é opcional — cadastro sem CPF deve funcionar.
+def test_cpf_obrigatorio(client_admin):
+    # CPF agora é OBRIGATÓRIO no cadastro (req. do sócio).
     antes = Paciente.query.count()
-    client_admin.post("/pacientes/novo",
-                      data={"nome_completo": "Sem CPF"}, follow_redirects=True)
-    assert Paciente.query.count() == antes + 1
+    r = client_admin.post("/pacientes/novo",
+                          data={"nome_completo": "Sem CPF",
+                                "data_nascimento": "1990-05-10"},
+                          follow_redirects=True)
+    assert r.status_code == 200
+    assert Paciente.query.count() == antes      # não criou sem CPF
+    assert b"CPF" in r.data
 
 
 # ---- Agenda: não aceita data passada ----

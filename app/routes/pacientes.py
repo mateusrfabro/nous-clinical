@@ -65,6 +65,25 @@ def _valida_cpf(raw: str):
     return f"{d[:3]}.{d[3:6]}.{d[6:9]}-{d[9:]}", True
 
 
+def _valida_obrigatorios(form):
+    """Nome, CPF e Data de nascimento são obrigatórios (req. do sócio).
+
+    Retorna (nome, cpf_formatado, data, erro|None)."""
+    nome = form.get("nome_completo", "").strip()
+    cpf_raw = (form.get("cpf", "") or "").strip()
+    data = _parse_data(form.get("data_nascimento", ""))
+    if not nome:
+        return nome, None, data, "Nome do paciente é obrigatório."
+    if not cpf_raw:
+        return nome, None, data, "CPF é obrigatório."
+    cpf, ok = _valida_cpf(cpf_raw)
+    if not ok:
+        return nome, None, data, "CPF inválido."
+    if not data:
+        return nome, cpf, None, "Data de nascimento é obrigatória."
+    return nome, cpf, data, None
+
+
 @pacientes_bp.route("/")
 @login_required
 @equipe_required
@@ -105,21 +124,16 @@ def listar():
 @recepcao_ou_admin
 def novo():
     if request.method == "POST":
-        nome = request.form.get("nome_completo", "").strip()
-        if not nome:
-            flash("Nome do paciente é obrigatório.", "error")
-            return render_template("pacientes/form.html", paciente=None,
-                                   form=request.form)
-        cpf, cpf_ok = _valida_cpf(request.form.get("cpf", ""))
-        if not cpf_ok:
-            flash("CPF inválido.", "error")
+        nome, cpf, data_nasc, erro = _valida_obrigatorios(request.form)
+        if erro:
+            flash(erro, "error")
             return render_template("pacientes/form.html", paciente=None,
                                    form=request.form)
 
         paciente = Paciente(
             nome_completo=nome,
             cpf=cpf,
-            data_nascimento=_parse_data(request.form.get("data_nascimento", "")),
+            data_nascimento=data_nasc,
             sexo=request.form.get("sexo", "").strip() or None,
             telefone=request.form.get("telefone", "").strip() or None,
             email=request.form.get("email", "").strip().lower() or None,
@@ -166,6 +180,37 @@ def detalhe(paciente_id):
                            pode_ver_prontuario=pode_ver_prontuario)
 
 
+@pacientes_bp.route("/cep/<cep>")
+@login_required
+@recepcao_ou_admin
+def buscar_cep(cep):
+    """Proxy ViaCEP (server-side) p/ autopreenchimento de endereço.
+
+    Feito no backend (não no browser) pra manter a CSP estrita — o JS chama
+    nosso próprio endpoint ('self'). Sem SSRF: host fixo, só dígitos do CEP."""
+    import json
+    import urllib.request
+    from flask import jsonify
+
+    d = "".join(c for c in (cep or "") if c.isdigit())
+    if len(d) != 8:
+        return jsonify({"erro": "cep_invalido"}), 400
+    try:
+        url = f"https://viacep.com.br/ws/{d}/json/"
+        with urllib.request.urlopen(url, timeout=4) as resp:
+            dados = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return jsonify({"erro": "falha_consulta"}), 502
+    if dados.get("erro"):
+        return jsonify({"erro": "nao_encontrado"}), 404
+    return jsonify({
+        "endereco": dados.get("logradouro", ""),
+        "bairro": dados.get("bairro", ""),
+        "cidade": dados.get("localidade", ""),
+        "uf": dados.get("uf", ""),
+    })
+
+
 @pacientes_bp.route("/<int:paciente_id>/editar", methods=["GET", "POST"])
 @login_required
 @recepcao_ou_admin
@@ -176,20 +221,14 @@ def editar(paciente_id):
         return redirect(url_for("pacientes.listar"))
 
     if request.method == "POST":
-        nome = request.form.get("nome_completo", "").strip()
-        if not nome:
-            flash("Nome do paciente é obrigatório.", "error")
-            return render_template("pacientes/form.html", paciente=paciente,
-                                   form=request.form)
-        cpf, cpf_ok = _valida_cpf(request.form.get("cpf", ""))
-        if not cpf_ok:
-            flash("CPF inválido.", "error")
+        nome, cpf, data_nasc, erro = _valida_obrigatorios(request.form)
+        if erro:
+            flash(erro, "error")
             return render_template("pacientes/form.html", paciente=paciente,
                                    form=request.form)
         paciente.nome_completo = nome
         paciente.cpf = cpf
-        paciente.data_nascimento = _parse_data(
-            request.form.get("data_nascimento", ""))
+        paciente.data_nascimento = data_nasc
         paciente.sexo = request.form.get("sexo", "").strip() or None
         paciente.telefone = request.form.get("telefone", "").strip() or None
         paciente.email = request.form.get("email", "").strip().lower() or None

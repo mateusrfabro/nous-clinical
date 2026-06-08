@@ -75,6 +75,7 @@ def test_financeiro_novo_vincula_consulta(client_recepcao):
 def test_cep_salva(client_recepcao):
     client_recepcao.post("/pacientes/novo", data={
         "nome_completo": "Paciente CEP", "cep": "86010-000",
+        "cpf": "529.982.247-25", "data_nascimento": "1990-05-10",
         "convenio": "Unimed",
     }, follow_redirects=True)
     p = Paciente.query.filter_by(nome_completo="Paciente CEP").first()
