@@ -52,7 +52,7 @@ def test_export_relatorio_audita(client_admin):
 def test_permissoes_recepcao():
     perms = permissoes_de("recepcao")
     assert FINANCEIRO_VER in perms
-    assert RELATORIO_EXPORTAR in perms
+    assert RELATORIO_EXPORTAR not in perms  # recepção não vê mais relatórios
     assert PRONTUARIO_VER not in perms     # recepção não vê prontuário (LGPD)
     assert PROFISSIONAL_GERIR not in perms
 

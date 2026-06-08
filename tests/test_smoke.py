@@ -36,10 +36,10 @@ def test_pacientes_acesso_recepcao(client_recepcao):
     assert client_recepcao.get("/pacientes/").status_code == 200
 
 
-def test_pacientes_bloqueia_profissional(client_prof):
-    # Profissional nao gerencia cadastro de pacientes (so recepcao/admin).
+def test_pacientes_acesso_profissional(client_prof):
+    # Profissional agora ACESSA a tela de pacientes (limitada aos seus).
     r = client_prof.get("/pacientes/", follow_redirects=False)
-    assert r.status_code in (301, 302)
+    assert r.status_code == 200
 
 
 def test_profissionais_so_admin(client_recepcao):

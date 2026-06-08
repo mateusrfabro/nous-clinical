@@ -55,17 +55,20 @@ def test_sidebar_recepcao_sem_profissionais(client_recepcao):
 def test_sidebar_profissional_minimo(client_prof):
     h = client_prof.get("/painel").data
     assert b'href="/agenda/"' in h
-    assert b'href="/pacientes/"' not in h
+    assert b'href="/pacientes/"' in h          # médico agora vê seus pacientes
     assert b'href="/financeiro/"' not in h
     assert b'href="/profissionais/"' not in h
+    assert b'href="/relatorios/"' not in h     # relatórios = admin
 
 
 # ---- Gating real das rotas (profissional bloqueado) ----
 
 def test_profissional_bloqueado_em_areas_restritas(client_prof):
-    assert client_prof.get("/pacientes/").status_code in (301, 302)
+    # Pacientes agora é liberado (limitado aos seus); o resto continua bloqueado.
+    assert client_prof.get("/pacientes/").status_code == 200
     assert client_prof.get("/financeiro/").status_code in (301, 302)
     assert client_prof.get("/profissionais/").status_code in (301, 302)
+    assert client_prof.get("/relatorios/").status_code in (301, 302)
 
 
 # ---- Perfil ----

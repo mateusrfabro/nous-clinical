@@ -51,3 +51,6 @@ profissional_required = role_required("profissional", check_cadastro=True)
 recepcao_ou_admin     = role_required("recepcao", "admin")
 # Quem pode ver/editar prontuario: profissional (o seu) ou admin.
 clinico_required      = role_required("profissional", "admin")
+# Toda a equipe da clinica (recepcao + admin + profissional). Usado na tela de
+# pacientes, que o medico tambem acessa (limitado aos pacientes que ele atende).
+equipe_required       = role_required("recepcao", "admin", "profissional")

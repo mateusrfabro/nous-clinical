@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Auditoria — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Auditoria</h2>
+  <span class="muted">{{ total }} registro(s)</span>
+</div>
+<p class="muted mb-4">Trilha de ações dos usuários da clínica (LGPD art. 37). Somente leitura.</p>
+
+<form method="GET" class="toolbar no-loading mb-4">
+  <div class="form-group">
+    <label for="acao">Ação</label>
+    <select id="acao" name="acao">
+      <option value="">Todas</option>
+      {% for valor, rotulo in acoes %}
+        <option value="{{ valor }}" {{ 'selected' if acao_sel==valor }}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="ini">De</label>
+    <input type="date" id="ini" name="ini" value="{{ ini }}">
+  </div>
+  <div class="form-group">
+    <label for="fim">Até</label>
+    <input type="date" id="fim" name="fim" value="{{ fim }}">
+  </div>
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+</form>
+
+{% if logs %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Quando</th><th>Usuário</th><th>Ação</th><th>Recurso</th><th>Detalhes</th><th>IP</th></tr></thead>
+  <tbody>
+    {% for l in logs %}
+    <tr>
+      <td>{{ l.criado_em|datetime_br }}</td>
+      <td>
+        {% set u = usuarios.get(l.usuario_id) %}
+        {% if u %}{{ u.nome_responsavel }}<br><span class="muted text-sm">{{ u.email }}</span>{% else %}—{% endif %}
+      </td>
+      <td><span class="tag tag-info">{{ acao_label.get(l.acao, l.acao) }}</span></td>
+      <td>{% if l.recurso_tipo %}{{ l.recurso_tipo }}{% if l.recurso_id %} #{{ l.recurso_id }}{% endif %}{% else %}—{% endif %}</td>
+      <td class="text-sm">{{ l.detalhes or '—' }}</td>
+      <td class="text-sm muted">{{ l.ip or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if paginas > 1 %}
+<div class="toolbar mt-4" aria-label="Paginação">
+  {% if pagina > 1 %}
+  <a class="btn btn-outline btn-sm" href="{{ url_for('auditoria.listar', pagina=pagina-1, acao=acao_sel, ini=ini, fim=fim) }}">← Anterior</a>
+  {% endif %}
+  <span class="muted">Página {{ pagina }} de {{ paginas }}</span>
+  {% if pagina < paginas %}
+  <a class="btn btn-outline btn-sm" href="{{ url_for('auditoria.listar', pagina=pagina+1, acao=acao_sel, ini=ini, fim=fim) }}">Próxima →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% else %}
+<div class="empty-state"><p>Nenhum registro de auditoria no filtro atual.</p></div>
+{% endif %}
+{% endblock %}

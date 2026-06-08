@@ -27,17 +27,21 @@ RELATORIO_EXPORTAR = "relatorio:exportar"
 PROFISSIONAL_GERIR = "profissional:gerir"
 PROCEDIMENTO_GERIR = "procedimento:gerir"
 
-# Recepção: cadastro/agenda/financeiro/relatórios — NUNCA prontuário (LGPD).
+# Recepção: cadastro/agenda/financeiro + cadastro de itens — NUNCA prontuário
+# (LGPD) e, por decisão de negócio, SEM relatórios (gestão é do admin).
 _RECEPCAO = {
     PACIENTE_VER, PACIENTE_EDITAR, AGENDA_VER, AGENDA_EDITAR,
-    FINANCEIRO_VER, RELATORIO_VER, RELATORIO_EXPORTAR,
+    FINANCEIRO_VER, PROCEDIMENTO_GERIR,
 }
 # Profissional: a própria agenda + prontuário/exames dos seus pacientes.
 _PROFISSIONAL = {
     PACIENTE_VER, AGENDA_VER, PRONTUARIO_VER, EXAME_GERIR,
 }
-# Admin: tudo.
-_ADMIN = _RECEPCAO | _PROFISSIONAL | {PROFISSIONAL_GERIR, PROCEDIMENTO_GERIR}
+# Admin: tudo (inclui relatórios, que a recepção não tem mais).
+_ADMIN = _RECEPCAO | _PROFISSIONAL | {
+    PROFISSIONAL_GERIR, PROCEDIMENTO_GERIR,
+    RELATORIO_VER, RELATORIO_EXPORTAR,
+}
 
 PERMISSOES_POR_PAPEL = {
     "admin": _ADMIN,

@@ -14,11 +14,23 @@ from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.auth_decorators import recepcao_ou_admin
-from app.models import Paciente, AuditLog
+from app.auth_decorators import recepcao_ou_admin, equipe_required
+from app.models import Paciente, Agendamento, AuditLog
 from app.services.audit import audit
 
 pacientes_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
+
+
+def _ids_pacientes_do_profissional():
+    """IDs dos pacientes que o profissional logado atende (tem agendamento com
+    ele). Usado pra limitar a visão do médico aos seus próprios pacientes."""
+    prof = current_user.profissional
+    if not prof:
+        return []
+    return db.session.execute(
+        select(Agendamento.paciente_id)
+        .where(Agendamento.profissional_id == prof.id).distinct()
+    ).scalars().all()
 
 
 def _parse_data(valor: str):
@@ -55,11 +67,14 @@ def _valida_cpf(raw: str):
 
 @pacientes_bp.route("/")
 @login_required
-@recepcao_ou_admin
+@equipe_required
 def listar():
     busca = request.args.get("q", "").strip()
     convenio = request.args.get("convenio", "").strip()
     q = select(Paciente).where(Paciente.ativo.is_(True))
+    # Médico só enxerga os pacientes que ele atende (req. do sócio).
+    if current_user.is_profissional:
+        q = q.where(Paciente.id.in_(_ids_pacientes_do_profissional()))
     if busca:
         termo = f"%{busca}%"
         q = q.where(or_(
@@ -134,11 +149,16 @@ def novo():
 
 @pacientes_bp.route("/<int:paciente_id>")
 @login_required
-@recepcao_ou_admin
+@equipe_required
 def detalhe(paciente_id):
     paciente = db.session.get(Paciente, paciente_id)
     if not paciente:
         flash("Paciente não encontrado.", "error")
+        return redirect(url_for("pacientes.listar"))
+    # Médico só abre o paciente se for um dos seus (atende/agenda com ele).
+    if current_user.is_profissional and \
+            paciente_id not in _ids_pacientes_do_profissional():
+        flash("Você só tem acesso aos seus próprios pacientes.", "error")
         return redirect(url_for("pacientes.listar"))
     # Prontuario so aparece pra clinico (profissional/admin).
     pode_ver_prontuario = current_user.is_profissional or current_user.is_admin

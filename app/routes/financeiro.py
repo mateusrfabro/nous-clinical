@@ -12,8 +12,9 @@ from zoneinfo import ZoneInfo
 from flask import (
     Blueprint, render_template, redirect, url_for, flash, request,
 )
+from flask import abort
 from flask_login import login_required, current_user
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.exc import IntegrityError
 
 from app import db
@@ -27,6 +28,20 @@ financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
 _BR_TZ = ZoneInfo("America/Sao_Paulo")
 _PERIODOS = ("dia", "semana", "mes")
+# Despesas sensíveis que a recepção NÃO vê nem lança (decisão de negócio).
+_CATEGORIAS_RESTRITAS = ("aluguel", "salario", "imposto")
+
+
+def _filtro_categoria():
+    """Clausula(s) que escondem as categorias sensíveis da recepção.
+
+    Admin: lista vazia (vê tudo). Recepção: oculta aluguel/salário/imposto
+    (tratando categoria NULL como visível — NOT IN é NULL-inseguro)."""
+    if current_user.is_recepcao:
+        L = LancamentoFinanceiro
+        return [or_(L.categoria.is_(None),
+                    L.categoria.notin_(_CATEGORIAS_RESTRITAS))]
+    return []
 
 
 def _parse_ref(valor: str):
@@ -104,7 +119,9 @@ def fluxo():
     ini, fim, ref_ant, ref_seg, rotulo = _intervalo(periodo, ref)
 
     L = LancamentoFinanceiro
-    pagos_periodo = (L.status == L.STATUS_PAGO, L.pago_em >= ini, L.pago_em < fim)
+    cat = _filtro_categoria()
+    pagos_periodo = (L.status == L.STATUS_PAGO, L.pago_em >= ini,
+                     L.pago_em < fim, *cat)
 
     lancamentos = db.session.execute(
         select(L).where(*pagos_periodo).order_by(L.pago_em.desc())
@@ -115,8 +132,8 @@ def fluxo():
     saldo = entradas - saidas
 
     # Pendentes (todo o periodo) pros cards secundarios "a receber / a pagar".
-    a_receber = _soma((L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA))
-    a_pagar = _soma((L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_DESPESA))
+    a_receber = _soma((L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA, *cat))
+    a_pagar = _soma((L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_DESPESA, *cat))
 
     return render_template(
         "financeiro/fluxo.html",
@@ -142,9 +159,15 @@ def novo():
         if tipo not in (L.TIPO_RECEITA, L.TIPO_DESPESA):
             tipo = L.TIPO_RECEITA
         valor = _parse_valor(request.form.get("valor", ""))
+        categoria = request.form.get("categoria", "").strip() or None
 
         if not valor:
             flash("Informe um valor válido (maior que zero).", "error")
+            return render_template("financeiro/form.html",
+                                   pacientes=pacientes, form=request.form)
+        if current_user.is_recepcao and categoria in _CATEGORIAS_RESTRITAS:
+            flash("Sem permissão para lançar despesas de aluguel, salário ou "
+                  "imposto. Fale com o administrador.", "error")
             return render_template("financeiro/form.html",
                                    pacientes=pacientes, form=request.form)
 
@@ -158,7 +181,7 @@ def novo():
 
         lanc = L(
             tipo=tipo,
-            categoria=request.form.get("categoria", "").strip() or None,
+            categoria=categoria,
             descricao=request.form.get("descricao", "").strip() or None,
             valor=valor,
             forma_pagamento=request.form.get("forma_pagamento", "").strip() or None,
@@ -248,6 +271,8 @@ def pagar(lancamento_id):
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
+    if current_user.is_recepcao and lanc.categoria in _CATEGORIAS_RESTRITAS:
+        abort(403)
     if lanc.status == LancamentoFinanceiro.STATUS_PENDENTE:
         lanc.status = LancamentoFinanceiro.STATUS_PAGO
         lanc.pago_em = datetime.now(timezone.utc)
@@ -269,6 +294,8 @@ def cancelar(lancamento_id):
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
+    if current_user.is_recepcao and lanc.categoria in _CATEGORIAS_RESTRITAS:
+        abort(403)
     if lanc.status != LancamentoFinanceiro.STATUS_CANCELADO:
         lanc.status = LancamentoFinanceiro.STATUS_CANCELADO
         db.session.commit()
@@ -285,9 +312,11 @@ def contas():
     """Contas a receber / a pagar — pendentes, vencidas primeiro por data."""
     L = LancamentoFinanceiro
 
+    cat = _filtro_categoria()
+
     def _pendentes(tipo):
         return db.session.execute(
-            select(L).where(L.status == L.STATUS_PENDENTE, L.tipo == tipo)
+            select(L).where(L.status == L.STATUS_PENDENTE, L.tipo == tipo, *cat)
             .order_by(L.vencimento.is_(None), L.vencimento)
         ).scalars().all()
 

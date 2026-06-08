@@ -31,7 +31,9 @@
         <label for="categoria">Categoria</label>
         <select id="categoria" name="categoria">
           <option value="">Selecione…</option>
-          {% for c in ['consulta','procedimento','convenio','aluguel','salario','insumo','imposto','outro'] %}
+          {# Recepção não lança aluguel/salário/imposto (decisão de negócio). #}
+          {% set cats = ['consulta','procedimento','convenio','insumo','outro'] if current_user.is_recepcao else ['consulta','procedimento','convenio','aluguel','salario','insumo','imposto','outro'] %}
+          {% for c in cats %}
             <option value="{{ c }}" {{ 'selected' if form.get('categoria')==c }}>{{ c|categoria_label }}</option>
           {% endfor %}
         </select>

@@ -17,7 +17,7 @@ from flask_login import login_required
 from sqlalchemy import select, func
 
 from app import db
-from app.auth_decorators import recepcao_ou_admin
+from app.auth_decorators import admin_required
 from app.models import (
     LancamentoFinanceiro, Agendamento, Atendimento, ItemAtendimento,
     Profissional, Paciente, AuditLog,
@@ -250,7 +250,7 @@ def _risco_evasao(limite_dias=180, maximo=50):
 
 @relatorios_bp.route("/")
 @login_required
-@recepcao_ou_admin
+@admin_required
 def index():
     ini_d, fim_d, ini, fim = _periodo(request.args)
     dados = _agrega(ini, fim)
@@ -264,7 +264,7 @@ def index():
 
 @relatorios_bp.route("/export.csv")
 @login_required
-@recepcao_ou_admin
+@admin_required
 def export_csv():
     """Exporta os recebimentos (receitas pagas) do período em CSV.
 

@@ -10,9 +10,11 @@ from app.models import (
 )
 
 
-def test_relatorios_gating(client_prof, client_recepcao):
+def test_relatorios_gating(client_prof, client_recepcao, client_admin):
     assert client_prof.get("/relatorios/").status_code in (301, 302)
-    assert client_recepcao.get("/relatorios/").status_code == 200
+    # Recepção não acessa mais relatórios (decisão de negócio: gestão = admin).
+    assert client_recepcao.get("/relatorios/").status_code in (301, 302)
+    assert client_admin.get("/relatorios/").status_code == 200
 
 
 def test_faturamento_e_convenio(client_admin):
