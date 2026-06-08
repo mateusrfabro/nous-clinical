@@ -28,6 +28,13 @@ _STATUS_VALIDOS = {
     Agendamento.STATUS_ATENDIDO, Agendamento.STATUS_CANCELADO,
     Agendamento.STATUS_FALTOU,
 }
+# Status que a recepção pode setar manualmente na agenda. 'atendido' NUNCA é
+# manual — vem só de agenda.atendimento (registro do prontuário), senão a
+# consulta ficaria "atendida" sem prontuário e burlaria a trava de edição.
+_STATUS_MANUAIS = {
+    Agendamento.STATUS_AGENDADO, Agendamento.STATUS_CONFIRMADO,
+    Agendamento.STATUS_CANCELADO, Agendamento.STATUS_FALTOU,
+}
 
 
 def _parse_dia(valor: str) -> date:
@@ -269,6 +276,13 @@ def novo():
                                    pacientes=pacientes, form=request.form,
                                    dia=dia.isoformat())
 
+        if dia < datetime.now(_BR_TZ).date():
+            flash("Não é possível agendar em data passada.", "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
+
         # Duracao vem do cadastro do profissional (sem campo no agendamento).
         duracao = profissional.duracao_padrao_min or 30
         fim = inicio + timedelta(minutes=duracao)
@@ -316,9 +330,14 @@ def mudar_status(agendamento_id):
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
     novo_status = request.form.get("status", "").strip()
-    if novo_status not in _STATUS_VALIDOS:
+    if novo_status not in _STATUS_MANUAIS:
         flash("Status inválido.", "error")
         return redirect(url_for("agenda.listar"))
+    # Consulta já atendida é imutável aqui (só o prontuário a tornou atendida).
+    if ag.status == Agendamento.STATUS_ATENDIDO:
+        flash("Consulta já atendida não pode mudar de status.", "error")
+        dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
+        return redirect(url_for("agenda.listar", dia=dia))
     ag.status = novo_status
     db.session.commit()
     audit(AuditLog.ACAO_AGENDAMENTO_STATUS, recurso_tipo="agendamento",
@@ -358,6 +377,11 @@ def editar(agendamento_id):
 
         if not (profissional and inicio):
             flash("Selecione profissional e horário válidos.", "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
+
+        if dia < datetime.now(_BR_TZ).date():
+            flash("Não é possível reagendar para data passada.", "error")
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)
 
@@ -453,7 +477,12 @@ def atendimento(agendamento_id):
     # Historico clinico do paciente (consultas anteriores) — acesso facil
     # sem sair da tela. Exclui o registro atual.
     atual_id = registro.id if registro else None
-    historico = [a for a in ag.paciente.atendimentos if a.id != atual_id]
+    # Histórico clínico: o profissional só vê os SEUS atendimentos do paciente
+    # (não a evolução escrita por outros médicos). Admin vê tudo. (LGPD)
+    hist = ag.paciente.atendimentos
+    if current_user.is_profissional and current_user.profissional:
+        hist = [a for a in hist if a.profissional_id == current_user.profissional.id]
+    historico = [a for a in hist if a.id != atual_id]
     procedimentos = db.session.execute(
         select(Procedimento).where(Procedimento.ativo.is_(True))
         .order_by(Procedimento.nome)
