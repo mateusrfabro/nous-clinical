@@ -21,6 +21,7 @@ def role_required(*roles: str, check_cadastro: bool = False):
             Profissional vinculado (cadastro completo).
     """
     mensagens = {
+        "superadmin":   "Acesso restrito ao administrador da plataforma.",
         "admin":        "Acesso restrito a administradores.",
         "profissional": "Esta área é apenas para profissionais.",
         "recepcao":     "Esta área é apenas para a recepção.",
@@ -43,6 +44,7 @@ def role_required(*roles: str, check_cadastro: bool = False):
 
 
 # Atalhos pros papeis mais comuns
+superadmin_required   = role_required("superadmin")
 admin_required        = role_required("admin")
 profissional_required = role_required("profissional", check_cadastro=True)
 # Recepcao OU admin gerenciam pacientes e agenda.

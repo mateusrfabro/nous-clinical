@@ -52,9 +52,12 @@ class Usuario(UserMixin, db.Model):
     nome_responsavel = db.Column(db.String(150), nullable=False)
     telefone = db.Column(db.String(30))
     # admin | profissional | recepcao
+    # superadmin (plataforma, cross-tenant) | admin | profissional | recepcao
     tipo = db.Column(db.String(20), nullable=False, default="recepcao")
     ativo = db.Column(db.Boolean, nullable=False, default=True)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
+    # Nullable: o superadmin não pertence a nenhuma clínica (gerencia todas).
+    # Usuários de clínica (admin/recepcao/profissional) sempre têm clinica_id.
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
 
     # Canal opcional de notificacao/reset de senha.
     telegram_chat_id = db.Column(db.String(40))
@@ -66,6 +69,10 @@ class Usuario(UserMixin, db.Model):
     profissional = db.relationship(
         "Profissional", back_populates="usuario", uselist=False
     )
+
+    @property
+    def is_superadmin(self):
+        return self.tipo == "superadmin"
 
     @property
     def is_admin(self):
@@ -441,6 +448,8 @@ class AuditLog(db.Model):
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
     ACAO_PROFISSIONAL_EDITADO = "profissional_editado"
+    ACAO_CLINICA_CRIADA = "clinica_criada"
+    ACAO_CLINICA_STATUS = "clinica_status"
     ACAO_LANCAMENTO_CRIADO = "lancamento_criado"
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"

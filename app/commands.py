@@ -19,3 +19,26 @@ def register_commands(app):
             f"{resumo['sem_canal']} sem canal, {resumo['falhas']} falha(s) "
             f"de {resumo['total']} consulta(s)."
         )
+
+    @app.cli.command("criar-superadmin")
+    @click.option("--email", required=True)
+    @click.option("--senha", required=True)
+    @click.option("--nome", default="Super Admin")
+    @with_appcontext
+    def criar_superadmin_cmd(email, senha, nome):
+        """Cria o superadmin da plataforma (cross-tenant, sem clínica)."""
+        from app import db
+        from app.models import Usuario
+        from app.services.passwords import hash_senha
+        email = email.strip().lower()
+        if Usuario.query.filter_by(email=email).first():
+            click.echo(f"Já existe usuário com e-mail {email}.")
+            return
+        if len(senha) < 8:
+            click.echo("Senha precisa de ao menos 8 caracteres.")
+            return
+        u = Usuario(email=email, senha_hash=hash_senha(senha),
+                    nome_responsavel=nome, tipo="superadmin", clinica_id=None)
+        db.session.add(u)
+        db.session.commit()
+        click.echo(f"Superadmin {email} criado.")

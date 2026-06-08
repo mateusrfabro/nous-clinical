@@ -149,8 +149,11 @@ def create_app(config_name="default"):
     def _set_clinica_atual():
         from flask import g
         from flask_login import current_user
-        g.clinica_id = (current_user.clinica_id
-                        if current_user.is_authenticated else None)
+        # Superadmin é cross-tenant (gerencia todas) -> sem escopo (None).
+        if current_user.is_authenticated and not current_user.is_superadmin:
+            g.clinica_id = current_user.clinica_id
+        else:
+            g.clinica_id = None
 
     from app.routes.auth import auth_bp
     from app.routes.main import main_bp
@@ -163,6 +166,7 @@ def create_app(config_name="default"):
     from app.routes.relatorios import relatorios_bp
     from app.routes.exames import exames_bp
     from app.routes.perfil import perfil_bp
+    from app.routes.clinicas import clinicas_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -246,6 +250,7 @@ def create_app(config_name="default"):
     app.register_blueprint(relatorios_bp)
     app.register_blueprint(exames_bp)
     app.register_blueprint(perfil_bp)
+    app.register_blueprint(clinicas_bp)
 
     from app.commands import register_commands
     register_commands(app)

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Clínicas — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Clínicas</h2>
+  <a href="{{ url_for('clinicas.nova') }}" class="btn btn-primary">+ Nova clínica</a>
+</div>
+{% if clinicas %}
+<table class="table">
+  <thead><tr><th>Clínica</th><th>Slug</th><th>Usuários</th><th>Pacientes</th><th>Status</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for c in clinicas %}
+    <tr>
+      <td>{{ c.nome }}</td>
+      <td>{{ c.slug or '—' }}</td>
+      <td>{{ n_users.get(c.id, 0) }}</td>
+      <td>{{ n_pacientes.get(c.id, 0) }}</td>
+      <td><span class="tag {{ 'tag-success' if c.ativo else 'tag-danger' }}">{{ 'Ativa' if c.ativo else 'Inativa' }}</span></td>
+      <td>
+        <form method="POST" action="{{ url_for('clinicas.toggle', clinica_id=c.id) }}" class="inline-form no-loading">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhuma clínica cadastrada.</p></div>
+{% endif %}
+{% endblock %}
