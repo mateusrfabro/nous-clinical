@@ -1,17 +1,20 @@
-"""Catálogo de procedimentos/produtos faturáveis (config de preços).
+"""Cadastro de Itens — catálogo de itens faturáveis (procedimentos/produtos) E
+cadastro centralizado de convênios.
 
-Admin cadastra/edita nome + preço. O médico marca o que foi consumido no
-atendimento (flagbox) e o financeiro puxa o total automaticamente. Gate: admin.
+O médico marca o item consumido no atendimento; o financeiro puxa o total.
+Convênios viram lista controlada (master data) — evita duplicidade/erro de
+grafia no texto livre dos cadastros. Gate: recepção ou admin.
 """
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.auth_decorators import admin_required
-from app.models import Procedimento, PrecoConvenio, AuditLog
+from app.auth_decorators import recepcao_ou_admin
+from app.models import Procedimento, PrecoConvenio, Convenio, AuditLog
 from app.services.audit import audit
 from app.services.tenant import clinica_atual
 
@@ -39,19 +42,84 @@ def _parse_valor(bruto: str):
 
 @procedimentos_bp.route("/")
 @login_required
-@admin_required
+@recepcao_ou_admin
 def listar():
     procedimentos = db.session.execute(
         select(Procedimento).order_by(Procedimento.ativo.desc(), Procedimento.nome)
     ).scalars().all()
+    convenios = db.session.execute(
+        select(Convenio).order_by(Convenio.ativo.desc(), Convenio.nome)
+    ).scalars().all()
     return render_template("procedimentos/listar.html",
-                           procedimentos=procedimentos)
+                           procedimentos=procedimentos, convenios=convenios)
+
+
+@procedimentos_bp.route("/adicionar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def adicionar():
+    """Add unificado: cria um Item faturável OU um Convênio, conforme `tipo`."""
+    tipo = request.form.get("tipo", "item").strip()
+    nome = request.form.get("nome", "").strip()
+    if not nome:
+        flash("Informe o nome.", "error")
+        return redirect(url_for("procedimentos.listar"))
+
+    if tipo == "convenio":
+        existe = db.session.execute(
+            select(Convenio).where(Convenio.nome == nome)
+        ).scalar_one_or_none()
+        if existe:
+            flash("Este convênio já está cadastrado.", "error")
+            return redirect(url_for("procedimentos.listar"))
+        c = Convenio(nome=nome)
+        db.session.add(c)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Este convênio já está cadastrado.", "error")
+            return redirect(url_for("procedimentos.listar"))
+        audit(AuditLog.ACAO_CONVENIO_SALVO, recurso_tipo="convenio",
+              recurso_id=c.id, detalhes="criado")
+        flash("Convênio cadastrado.", "success")
+        return redirect(url_for("procedimentos.listar"))
+
+    # tipo == item (default)
+    valor = _parse_valor(request.form.get("valor", ""))
+    if valor is None:
+        flash("Informe um valor válido para o item.", "error")
+        return redirect(url_for("procedimentos.listar"))
+    p = Procedimento(nome=nome, valor_padrao=valor)
+    db.session.add(p)
+    db.session.commit()
+    audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
+          recurso_id=p.id, detalhes="criado")
+    flash("Item cadastrado.", "success")
+    return redirect(url_for("procedimentos.listar"))
+
+
+@procedimentos_bp.route("/convenios/<int:convenio_id>/toggle", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def convenio_toggle(convenio_id):
+    c = db.session.get(Convenio, convenio_id)
+    if not c:
+        flash("Convênio não encontrado.", "error")
+        return redirect(url_for("procedimentos.listar"))
+    c.ativo = not c.ativo
+    db.session.commit()
+    audit(AuditLog.ACAO_CONVENIO_SALVO, recurso_tipo="convenio",
+          recurso_id=c.id, detalhes=f"ativo={c.ativo}")
+    flash("Convênio atualizado.", "success")
+    return redirect(url_for("procedimentos.listar"))
 
 
 @procedimentos_bp.route("/novo", methods=["POST"])
 @login_required
-@admin_required
+@recepcao_ou_admin
 def novo():
+    """Compat: criação de item (mantida pra não quebrar links antigos)."""
     nome = request.form.get("nome", "").strip()
     valor = _parse_valor(request.form.get("valor", ""))
     if not nome or valor is None:
@@ -62,17 +130,17 @@ def novo():
     db.session.commit()
     audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
           recurso_id=p.id, detalhes="criado")
-    flash("Procedimento cadastrado.", "success")
+    flash("Item cadastrado.", "success")
     return redirect(url_for("procedimentos.listar"))
 
 
 @procedimentos_bp.route("/<int:procedimento_id>", methods=["POST"])
 @login_required
-@admin_required
+@recepcao_ou_admin
 def salvar(procedimento_id):
     p = db.session.get(Procedimento, procedimento_id)
     if not p:
-        flash("Procedimento não encontrado.", "error")
+        flash("Item não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
     nome = request.form.get("nome", "").strip()
     valor = _parse_valor(request.form.get("valor", ""))
@@ -85,18 +153,18 @@ def salvar(procedimento_id):
     db.session.commit()
     audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
           recurso_id=p.id, detalhes="editado")
-    flash("Procedimento atualizado.", "success")
+    flash("Item atualizado.", "success")
     return redirect(url_for("procedimentos.listar"))
 
 
 @procedimentos_bp.route("/<int:procedimento_id>/precos", methods=["GET", "POST"])
 @login_required
-@admin_required
+@recepcao_ou_admin
 def precos(procedimento_id):
-    """Tabela de preços por convênio de um procedimento (upsert por convênio)."""
+    """Tabela de preços por convênio de um item (upsert por convênio)."""
     p = db.session.get(Procedimento, procedimento_id)
     if not p:
-        flash("Procedimento não encontrado.", "error")
+        flash("Item não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
 
     if request.method == "POST":
@@ -117,17 +185,22 @@ def precos(procedimento_id):
         flash("Preço por convênio salvo.", "success")
         return redirect(url_for("procedimentos.precos", procedimento_id=p.id))
 
-    return render_template("procedimentos/precos.html", procedimento=p)
+    convenios = db.session.execute(
+        select(Convenio.nome).where(Convenio.ativo.is_(True))
+        .order_by(Convenio.nome)
+    ).scalars().all()
+    return render_template("procedimentos/precos.html", procedimento=p,
+                           convenios=convenios)
 
 
 @procedimentos_bp.route("/precos/<int:preco_id>/excluir", methods=["POST"])
 @login_required
-@admin_required
+@recepcao_ou_admin
 def excluir_preco(preco_id):
     pc = db.session.get(PrecoConvenio, preco_id)
-    # PrecoConvenio não tem clinica_id próprio: confirma a posse pelo pai
-    # comparando clinica_id explicitamente. Não dá pra confiar no escopo
-    # automático aqui — session.get() não reaplica with_loader_criteria.
+    # PrecoConvenio não tem clinica_id próprio: confirma a posse comparando
+    # clinica_id do Procedimento pai explicitamente. Não dá pra confiar no
+    # escopo automático aqui — session.get() não reaplica with_loader_criteria.
     proc = db.session.get(Procedimento, pc.procedimento_id) if pc else None
     cid = clinica_atual()
     if not pc or proc is None or (cid is not None and proc.clinica_id != cid):

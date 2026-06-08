@@ -147,6 +147,10 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+    {# Datalist global de convênios (master data) — sugestão nos forms. #}
+    <datalist id="convenios">
+      {% for c in convenios_ativos() %}<option value="{{ c }}">{% endfor %}
+    </datalist>
 
 {% else %}
 {# ===================== PÚBLICO (deslogado) ===================== #}
@@ -181,5 +185,8 @@
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='js/agenda-week.js') }}"></script>
     <script src="{{ url_for('static', filename='js/command-palette.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/item-tipo.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/agenda-prefill.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cep-lookup.js') }}"></script>
 </body>
 </html>

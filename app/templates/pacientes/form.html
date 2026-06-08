@@ -65,7 +65,7 @@
       </div>
       <div class="form-group form-group-grow">
         <label for="convenio">Convênio</label>
-        <input type="text" id="convenio" name="convenio" value="{{ (f.convenio or '') if paciente else form.get('convenio','') }}">
+        <input type="text" id="convenio" name="convenio" list="convenios" value="{{ (f.convenio or '') if paciente else form.get('convenio','') }}">
       </div>
     </div>
     <div class="form-group">

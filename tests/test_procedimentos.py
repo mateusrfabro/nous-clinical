@@ -15,8 +15,9 @@ def _dois_procedimentos():
 
 # ---- Catálogo (admin) ----
 
-def test_procedimentos_so_admin(client_recepcao, client_prof):
-    assert client_recepcao.get("/procedimentos/").status_code in (301, 302)
+def test_procedimentos_acesso(client_recepcao, client_prof):
+    # Recepção agora gerencia o Cadastro de Itens; médico continua bloqueado.
+    assert client_recepcao.get("/procedimentos/").status_code == 200
     assert client_prof.get("/procedimentos/").status_code in (301, 302)
 
 

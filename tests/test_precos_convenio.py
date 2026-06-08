@@ -5,11 +5,12 @@ from app import db
 from app.models import Procedimento, PrecoConvenio, Agendamento, Atendimento
 
 
-def test_precos_so_admin(client_recepcao):
+def test_precos_acesso_recepcao(client_recepcao):
+    # Preços por convênio fazem parte do Cadastro de Itens (recepção acessa).
     p = Procedimento(nome="Consulta", valor_padrao=Decimal("200.00"))
     db.session.add(p)
     db.session.commit()
-    assert client_recepcao.get(f"/procedimentos/{p.id}/precos").status_code in (301, 302)
+    assert client_recepcao.get(f"/procedimentos/{p.id}/precos").status_code == 200
 
 
 def test_upsert_e_excluir_preco(client_admin):

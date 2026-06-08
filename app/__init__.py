@@ -272,12 +272,29 @@ def create_app(config_name="default"):
             return _url_for("agenda.confirmar_publico",
                             token=gerar_token_confirmacao(ag.id), _external=True)
 
+        def _convenios_ativos():
+            """Lista de nomes de convênios ativos da clínica (master data).
+            Lazy: só consulta quando o template chama. [] se deslogado."""
+            from sqlalchemy import select as _select
+            from app.models import Convenio
+            if not getattr(_cu, "is_authenticated", False):
+                return []
+            try:
+                return db.session.execute(
+                    _select(Convenio.nome).where(Convenio.ativo.is_(True))
+                    .order_by(Convenio.nome)
+                ).scalars().all()
+            except Exception:
+                return []
+
         return {
             "whatsapp_url": url,
             # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
             "pode": lambda permissao: tem_permissao(_cu, permissao),
             # Link público de confirmação (WhatsApp) — token assinado.
             "url_confirmacao": _url_confirmacao,
+            # Convênios cadastrados (datalist de sugestão nos forms).
+            "convenios_ativos": _convenios_ativos,
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.

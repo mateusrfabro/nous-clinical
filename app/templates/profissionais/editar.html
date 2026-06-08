@@ -35,6 +35,10 @@
         <label for="comissao_percent">Comissão / repasse (%)</label>
         <input type="number" id="comissao_percent" name="comissao_percent" class="w-input-num" value="{{ '%.1f'|format(prof.comissao_percent or 0) }}" min="0" max="100" step="0.5">
       </div>
+      <div class="form-group form-group-grow">
+        <label for="sala">Sala / consultório</label>
+        <input type="text" id="sala" name="sala" value="{{ prof.sala or '' }}" placeholder="Ex: Sala 2">
+      </div>
     </div>
     <div class="form-checkbox">
       <label><input type="checkbox" name="ativo" {{ 'checked' if prof.ativo }}> Profissional ativo</label>

@@ -15,9 +15,9 @@
     </div>
     <div class="form-group">
       <label for="profissional_id">Profissional *</label>
-      <select id="profissional_id" name="profissional_id" required>
+      <select id="profissional_id" name="profissional_id" required data-prof-select>
         <option value="">Selecione…</option>
-        {% for p in profissionais %}<option value="{{ p.id }}" {{ 'selected' if form.get('profissional_id')|string==p.id|string }}>{{ p.nome }}{% if p.especialidade %} — {{ p.especialidade }}{% endif %}</option>{% endfor %}
+        {% for p in profissionais %}<option value="{{ p.id }}" data-sala="{{ p.sala or '' }}" data-duracao="{{ p.duracao_padrao_min or 30 }}" {{ 'selected' if form.get('profissional_id')|string==p.id|string }}>{{ p.nome }}{% if p.especialidade %} — {{ p.especialidade }}{% endif %}</option>{% endfor %}
       </select>
     </div>
     <div class="flex-form">
@@ -30,9 +30,23 @@
         <input type="time" id="hora" name="hora" required value="{{ form.get('hora','') }}">
       </div>
     </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="duracao_min">Duração</label>
+        <select id="duracao_min" name="duracao_min" data-prof-duracao>
+          {% for d in [30, 60, 90, 120] %}
+          <option value="{{ d }}" {{ 'selected' if form.get('duracao_min')|string == d|string }}>{{ d }} min</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="sala">Sala / consultório</label>
+        <input type="text" id="sala" name="sala" data-prof-sala value="{{ form.get('sala','') }}" placeholder="Puxa do profissional">
+      </div>
+    </div>
     <div class="form-group">
       <label for="convenio">Convênio</label>
-      <input type="text" id="convenio" name="convenio" value="{{ form.get('convenio','') }}">
+      <input type="text" id="convenio" name="convenio" list="convenios" value="{{ form.get('convenio','') }}">
     </div>
     <div class="form-group">
       <label for="observacoes">Observações</label>

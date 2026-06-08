@@ -42,7 +42,7 @@
     <tr>
       <td>{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</td>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a></td>
-      <td>{{ ag.profissional.nome }}</td>
+      <td>{{ ag.profissional.nome }}{% if ag.sala %}<br><span class="muted text-sm">{{ ag.sala }}</span>{% endif %}</td>
       <td>
         <span class="tag {{ ag.status|status_class }}">{{ ag.status|status_label }}</span>
         {% if ag.checkin_em %}<span class="tag tag-success">Chegou {{ ag.checkin_em|hora_br }}</span>{% endif %}

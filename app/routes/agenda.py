@@ -36,6 +36,16 @@ _STATUS_MANUAIS = {
     Agendamento.STATUS_AGENDADO, Agendamento.STATUS_CONFIRMADO,
     Agendamento.STATUS_CANCELADO, Agendamento.STATUS_FALTOU,
 }
+# Durações de consulta selecionáveis (min). Default = duração do profissional.
+_DURACOES = (30, 60, 90, 120)
+
+
+def _duracao_escolhida(profissional):
+    """Duração (min) do form se válida; senão a padrão do profissional."""
+    d = request.form.get("duracao_min", type=int)
+    if d in _DURACOES:
+        return d
+    return profissional.duracao_padrao_min or 30
 
 
 def _parse_dia(valor: str) -> date:
@@ -284,8 +294,8 @@ def novo():
                                    pacientes=pacientes, form=request.form,
                                    dia=dia.isoformat())
 
-        # Duracao vem do cadastro do profissional (sem campo no agendamento).
-        duracao = profissional.duracao_padrao_min or 30
+        # Duração: escolhida no form (30/60/90/120) ou a padrão do profissional.
+        duracao = _duracao_escolhida(profissional)
         fim = inicio + timedelta(minutes=duracao)
         conflito = _conflito_horario(profissional.id, inicio, fim)
         if conflito:
@@ -302,6 +312,8 @@ def novo():
             fim=fim,
             status=Agendamento.STATUS_AGENDADO,
             convenio=request.form.get("convenio", "").strip() or None,
+            # Sala: a digitada ou, se vazia, a sala padrão do profissional.
+            sala=request.form.get("sala", "").strip() or profissional.sala or None,
             observacoes=request.form.get("observacoes", "").strip() or None,
             criado_por_id=current_user.id,
         )
@@ -572,7 +584,7 @@ def editar(agendamento_id):
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)
 
-        duracao = profissional.duracao_padrao_min or 30
+        duracao = _duracao_escolhida(profissional)
         fim = inicio + timedelta(minutes=duracao)
         conflito = _conflito_horario(profissional.id, inicio, fim, excluir_id=ag.id)
         if conflito:
@@ -584,6 +596,7 @@ def editar(agendamento_id):
         ag.inicio = inicio
         ag.fim = fim
         ag.convenio = request.form.get("convenio", "").strip() or None
+        ag.sala = request.form.get("sala", "").strip() or profissional.sala or None
         ag.observacoes = request.form.get("observacoes", "").strip() or None
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_EDITADO, recurso_tipo="agendamento",
@@ -596,6 +609,8 @@ def editar(agendamento_id):
         "dia": ag.inicio.astimezone(_BR_TZ).date().isoformat(),
         "hora": ag.inicio.astimezone(_BR_TZ).strftime("%H:%M"),
         "convenio": ag.convenio or "",
+        "sala": ag.sala or "",
+        "duracao_min": int((ag.fim - ag.inicio).total_seconds() // 60),
         "observacoes": ag.observacoes or "",
     }
     return render_template("agenda/editar.html", ag=ag,

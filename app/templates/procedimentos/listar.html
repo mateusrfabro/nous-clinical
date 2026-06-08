@@ -1,22 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Procedimentos — Nous Clinical{% endblock %}
+{% block title %}Cadastro de Itens — Nous Clinical{% endblock %}
 {% block content %}
-<div class="page-header"><h2>Procedimentos e preços</h2></div>
-<p class="muted mb-4">Itens faturáveis que o médico marca no atendimento. O pagamento puxa o total automaticamente.</p>
+<div class="page-header"><h2>Cadastro de Itens</h2></div>
+<p class="muted mb-4">Itens faturáveis que o médico marca no atendimento (o pagamento puxa o total) e o cadastro centralizado de convênios.</p>
 
-<form method="POST" action="{{ url_for('procedimentos.novo') }}" class="card toolbar mb-4">
+<form method="POST" action="{{ url_for('procedimentos.adicionar') }}" class="card toolbar mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="form-group form-group-flex-main">
-    <label for="nome">Novo procedimento</label>
-    <input type="text" id="nome" name="nome" required placeholder="Ex: Ultrassonografia">
-  </div>
   <div class="form-group">
+    <label for="tipo">Adicionar</label>
+    <select id="tipo" name="tipo" data-item-tipo>
+      <option value="item">Item faturável</option>
+      <option value="convenio">Convênio</option>
+    </select>
+  </div>
+  <div class="form-group form-group-flex-main">
+    <label for="nome">Nome</label>
+    <input type="text" id="nome" name="nome" required placeholder="Ex: Ultrassonografia / Unimed">
+  </div>
+  <div class="form-group" data-item-valor>
     <label for="valor">Valor</label>
-    <input type="text" id="valor" name="valor" class="money-input w-input-money" inputmode="numeric" placeholder="R$ 0,00" required>
+    <input type="text" id="valor" name="valor" class="money-input w-input-money" inputmode="numeric" placeholder="R$ 0,00">
   </div>
   <button type="submit" class="btn btn-primary">Adicionar</button>
 </form>
 
+<div class="page-header section-title-mt"><h3>Itens faturáveis</h3></div>
 {% if procedimentos %}
 {% for p in procedimentos %}
 <form method="POST" action="{{ url_for('procedimentos.salvar', procedimento_id=p.id) }}" class="card toolbar no-loading mb-2">
@@ -37,6 +45,32 @@
 </form>
 {% endfor %}
 {% else %}
-<div class="empty-state"><p>Nenhum procedimento cadastrado ainda.</p></div>
+<div class="empty-state"><p>Nenhum item cadastrado ainda.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Convênios</h3></div>
+<p class="muted text-sm mb-2">Lista controlada — aparece como sugestão nos cadastros (paciente, agenda, financeiro).</p>
+{% if convenios %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Convênio</th><th>Status</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for c in convenios %}
+    <tr>
+      <td>{{ c.nome }}</td>
+      <td><span class="tag {{ 'tag-success' if c.ativo else 'tag-danger' }}">{{ 'Ativo' if c.ativo else 'Inativo' }}</span></td>
+      <td>
+        <form method="POST" action="{{ url_for('procedimentos.convenio_toggle', convenio_id=c.id) }}" class="inline-form no-loading">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhum convênio cadastrado. Use "Adicionar → Convênio" acima.</p></div>
 {% endif %}
 {% endblock %}

@@ -81,6 +81,7 @@ def novo():
             cor_agenda=request.form.get("cor_agenda", "").strip() or "#43B8A5",
             duracao_padrao_min=request.form.get("duracao_padrao_min", type=int)
             or 30,
+            sala=request.form.get("sala", "").strip() or None,
             comissao_percent=_parse_comissao(request.form.get("comissao_percent", "")),
         )
         db.session.add(prof)
@@ -113,6 +114,7 @@ def editar(profissional_id):
         prof.cor_agenda = request.form.get("cor_agenda", "").strip() or prof.cor_agenda
         prof.duracao_padrao_min = (request.form.get("duracao_padrao_min", type=int)
                                    or prof.duracao_padrao_min)
+        prof.sala = request.form.get("sala", "").strip() or None
         prof.comissao_percent = _parse_comissao(request.form.get("comissao_percent", ""))
         prof.ativo = bool(request.form.get("ativo"))
         db.session.commit()
