@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.auth_decorators import superadmin_required
-from app.models import Clinica, Usuario, Paciente, AuditLog
+from app.models import Clinica, Usuario, Paciente, Agendamento, AuditLog
 from app.services.passwords import hash_senha
 from app.services.audit import audit
 
@@ -32,8 +32,21 @@ def listar():
     n_pacientes = dict(db.session.execute(
         select(Paciente.clinica_id, func.count(Paciente.id)).group_by(Paciente.clinica_id)
     ).all())
+    # Visão consolidada da plataforma (cross-clínica) — acompanhamento/relação
+    # com os clientes (req. do sócio).
+    totais = {
+        "clinicas": len(clinicas),
+        "ativas": sum(1 for c in clinicas if c.ativo),
+        "usuarios": db.session.execute(
+            select(func.count(Usuario.id))).scalar_one(),
+        "pacientes": db.session.execute(
+            select(func.count(Paciente.id))).scalar_one(),
+        "agendamentos": db.session.execute(
+            select(func.count(Agendamento.id))).scalar_one(),
+    }
     return render_template("clinicas/listar.html", clinicas=clinicas,
-                           n_users=n_users, n_pacientes=n_pacientes)
+                           n_users=n_users, n_pacientes=n_pacientes,
+                           totais=totais)
 
 
 @clinicas_bp.route("/nova", methods=["GET", "POST"])

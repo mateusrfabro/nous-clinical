@@ -1507,6 +1507,19 @@ body.app {
     font-size: 0.9rem;
 }
 .check-item input { width: auto; }
+.check-item[hidden] { display: none; }
+/* Busca + lista rolável de itens no atendimento. */
+.item-busca {
+    width: 100%;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.6rem;
+    background: var(--bg-elevated-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font: inherit;
+}
+.check-grid-scroll { max-height: 280px; overflow-y: auto; padding-right: 4px; }
 
 /* Tabelas largas no mobile: rolagem horizontal só na tabela (nao no body). */
 @media (max-width: 600px) {

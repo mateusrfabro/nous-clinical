@@ -5,6 +5,27 @@
   <h2>Clínicas</h2>
   <a href="{{ url_for('clinicas.nova') }}" class="btn btn-primary">+ Nova clínica</a>
 </div>
+
+<section class="kpi-grid">
+  <div class="kpi-card card-hl-primary">
+    <span class="kpi-label">Clínicas</span>
+    <span class="kpi-value">{{ totais.clinicas }}</span>
+    <span class="kpi-delta">{{ totais.ativas }} ativa(s)</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Usuários</span>
+    <span class="kpi-value">{{ totais.usuarios }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Pacientes</span>
+    <span class="kpi-value">{{ totais.pacientes }}</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-label">Agendamentos</span>
+    <span class="kpi-value">{{ totais.agendamentos }}</span>
+  </div>
+</section>
+
 {% if clinicas %}
 <div class="table-wrapper">
 <table class="table">

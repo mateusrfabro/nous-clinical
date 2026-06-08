@@ -26,13 +26,15 @@
     <fieldset class="form-fieldset">
       <legend>Itens / procedimentos consumidos</legend>
       <p class="muted text-sm mb-2">Marque o que foi feito — o pagamento puxa o total automaticamente.</p>
-      <div class="check-grid">
+      <input type="search" class="item-busca" data-filtra-itens placeholder="Buscar item…" aria-label="Buscar item">
+      <div class="check-grid check-grid-scroll" data-itens-lista>
         {% for proc in procedimentos %}
-        <label class="check-item">
+        <label class="check-item" data-item-nome="{{ proc.nome|lower }}">
           <input type="checkbox" name="procedimentos" value="{{ proc.id }}" {{ 'checked' if proc.id in selecionados }}>
           <span>{{ proc.nome }} <span class="muted">· {{ proc.valor_padrao|brl }}</span></span>
         </label>
         {% endfor %}
+        <p class="muted text-sm item-busca-vazio" hidden>Nenhum item encontrado.</p>
       </div>
     </fieldset>
     {% endif %}

@@ -58,9 +58,9 @@
            data-top="{{ ev.top }}" data-height="{{ ev.height }}"
            data-left="{{ ev.left }}" data-width="{{ ev.width }}"
            data-accent="{{ ev.accent }}">
-          <span class="ag-ev-time">{{ ev.ini_br|hora_br }}</span>
+          {# Exibe apenas o nome do paciente (req. do sócio); horário e
+             profissional ficam no tooltip (title) do evento. #}
           <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
-          <span class="ag-ev-prof"><span class="ag-ev-dot" aria-hidden="true"></span>{{ ev.ag.profissional.nome }}</span>
         </a>
         {% endfor %}
       </div>
