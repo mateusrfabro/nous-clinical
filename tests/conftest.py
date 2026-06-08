@@ -11,7 +11,7 @@ import pytest
 
 from app import create_app, db, limiter
 from app.models import (
-    Usuario, Profissional, Paciente, Agendamento,
+    Clinica, Usuario, Profissional, Paciente, Agendamento,
 )
 from app.services.passwords import hash_senha
 
@@ -59,6 +59,10 @@ def _novo_usuario(email, tipo, nome="Teste"):
 
 
 def _seed_minimo():
+    clinica = Clinica(nome="Clínica Teste", slug="teste")
+    db.session.add(clinica)
+    db.session.flush()
+
     _novo_usuario("admin@test.com", "admin")
     _novo_usuario("recepcao@test.com", "recepcao")
 
@@ -80,6 +84,12 @@ def _seed_minimo():
         inicio=inicio, fim=inicio + timedelta(minutes=30),
         status=Agendamento.STATUS_AGENDADO,
     ))
+    db.session.flush()
+
+    # Multi-tenant Fase 0: vincula o seed à clínica de teste.
+    for M in (Usuario, Profissional, Paciente, Agendamento):
+        M.query.filter(M.clinica_id.is_(None)).update(
+            {"clinica_id": clinica.id}, synchronize_session=False)
     db.session.commit()
 
 

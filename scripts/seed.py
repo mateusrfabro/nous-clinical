@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db  # noqa: E402
 from app.models import (  # noqa: E402
-    Usuario, Profissional, Paciente, Agendamento, LancamentoFinanceiro,
-    Atendimento, Procedimento,
+    Clinica, Usuario, Profissional, Paciente, Agendamento,
+    LancamentoFinanceiro, Atendimento, Procedimento,
 )
 from app.services.passwords import hash_senha  # noqa: E402
 
@@ -147,6 +147,17 @@ def seed():
                 Procedimento(nome="Ultrassonografia", valor_padrao=Decimal("180.00")),
                 Procedimento(nome="Retorno", valor_padrao=Decimal("0.00")),
             ])
+
+        # Multi-tenant Fase 0: garante a clínica default e vincula tudo a ela.
+        clinica = Clinica.query.first()
+        if not clinica:
+            clinica = Clinica(nome="Clínica Nous", slug="nous")
+            db.session.add(clinica)
+            db.session.flush()
+        for M in (Usuario, Profissional, Paciente, Agendamento, Atendimento,
+                  LancamentoFinanceiro, Procedimento):
+            M.query.filter(M.clinica_id.is_(None)).update(
+                {"clinica_id": clinica.id}, synchronize_session=False)
 
         db.session.commit()
         print("Seed concluído.")
