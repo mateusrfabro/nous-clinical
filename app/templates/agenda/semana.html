@@ -8,7 +8,7 @@
   {% endif %}
 </div>
 
-<form method="GET" class="flex-form no-loading mb-4">
+<form method="GET" class="toolbar no-loading mb-4">
   <div class="view-switch" role="group" aria-label="Modo de visualização">
     <a href="{{ url_for('agenda.listar') }}" class="btn btn-outline btn-sm">Dia</a>
     <span class="btn btn-primary btn-sm is-active" aria-current="true">Semana</span>
@@ -69,7 +69,7 @@
   </div>
 </div>
 
-<div class="agenda-legenda" aria-hidden="true">
+<div class="agenda-legenda">
   <span class="leg-item"><span class="leg-dot tag-info"></span>Agendado</span>
   <span class="leg-item"><span class="leg-dot tag-create"></span>Confirmado</span>
   <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>

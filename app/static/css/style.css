@@ -21,7 +21,12 @@
 .mb-4 { margin-bottom: 1rem; }
 .inline-form  { display: inline; }
 
-.flex-form    { display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap; }
+/* Linhas de campos pareados dentro de um form (label em cima): alinha pelo TOPO,
+   para texto de ajuda (<small>) sob um campo não desalinhar o campo vizinho. */
+.flex-form    { display: flex; gap: 0.75rem; align-items: flex-start; flex-wrap: wrap; }
+/* Barra de filtros/ações: inputs rotulados + botões "soltos" alinhados pela BASE. */
+.toolbar      { display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap; }
+.toolbar > .form-group { margin-bottom: 0; }
 .flex-row-gap { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
 .text-sm      { font-size: 0.85em; }
@@ -995,6 +1000,13 @@ button[aria-disabled="true"] {
     white-space: nowrap;
     border: 0;
 }
+/* Rola só a tabela (não o body) em qualquer largura — tablets/laptops estreitos
+   onde uma tabela de 6-7 colunas estouraria o conteúdo. */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1.5rem;
+}
 .table-wrapper .table {
     margin-bottom: 0;
     min-width: 600px;  /* Tabela nao colapsa abaixo desse minimo */
@@ -1281,6 +1293,7 @@ a.kpi-card:hover {
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.1;
+    white-space: nowrap;   /* valor monetário nunca quebra (ex: "R$ -1.450,00") */
 }
 .kpi-delta {
     font-size: 0.78rem;

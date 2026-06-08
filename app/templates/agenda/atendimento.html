@@ -63,7 +63,7 @@
   </form>
 
   <div class="page-header section-title-mt"><h3>Exames e documentos</h3></div>
-  <form method="POST" action="{{ url_for('exames.upload', agendamento_id=ag.id) }}" enctype="multipart/form-data" class="card flex-form mb-2">
+  <form method="POST" action="{{ url_for('exames.upload', agendamento_id=ag.id) }}" enctype="multipart/form-data" class="card toolbar mb-2">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group form-group-flex-main">
       <label for="arquivo">Anexar exame (PDF, JPG, PNG ou WEBP — até 5MB)</label>

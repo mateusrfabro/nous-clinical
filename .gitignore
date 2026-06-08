@@ -6,3 +6,5 @@ __pycache__/
 instance/
 .venv/
 venv/
+*.log
+cf_tunnel.log

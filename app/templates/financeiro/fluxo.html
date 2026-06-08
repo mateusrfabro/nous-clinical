@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<form method="GET" class="flex-form no-loading mb-4">
+<form method="GET" class="toolbar no-loading mb-4">
   <div class="form-group">
     <label for="periodo">Período</label>
     <select id="periodo" name="periodo">
@@ -58,6 +58,7 @@
 <div class="page-header section-title-mt"><h3>Movimentações pagas no período</h3></div>
 
 {% if lancamentos %}
+<div class="table-wrapper">
 <table class="table">
   <thead>
     <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Paciente</th><th>Forma</th><th>Valor</th><th>Ações</th></tr>
@@ -85,6 +86,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum lançamento pago neste período.</p></div>
 {% endif %}

@@ -8,7 +8,7 @@
   {% endif %}
 </div>
 
-<form method="GET" class="flex-form no-loading mb-4">
+<form method="GET" class="toolbar no-loading mb-4">
   <div class="view-switch" role="group" aria-label="Modo de visualização">
     <span class="btn btn-primary btn-sm is-active" aria-current="true">Dia</span>
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
@@ -34,6 +34,7 @@
 </form>
 
 {% if agendamentos %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th><th>Financeiro</th><th>Ações</th></tr></thead>
   <tbody>
@@ -92,6 +93,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta neste dia.</p></div>
 {% endif %}

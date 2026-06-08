@@ -6,6 +6,7 @@
   <a href="{{ url_for('clinicas.nova') }}" class="btn btn-primary">+ Nova clínica</a>
 </div>
 {% if clinicas %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Clínica</th><th>Slug</th><th>Usuários</th><th>Pacientes</th><th>Status</th><th>Ações</th></tr></thead>
   <tbody>
@@ -26,6 +27,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma clínica cadastrada.</p></div>
 {% endif %}

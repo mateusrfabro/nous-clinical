@@ -18,7 +18,7 @@
      class="btn btn-outline">Exportar CSV</a>
 </div>
 
-<form method="GET" class="flex-form no-loading mb-4">
+<form method="GET" class="toolbar no-loading mb-4">
   <div class="form-group">
     <label for="ini">De</label>
     <input type="date" id="ini" name="ini" value="{{ ini }}">
@@ -99,6 +99,7 @@
 <div class="page-header section-title-mt"><h3>Produtividade por profissional</h3></div>
 <p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
 {% if produtividade %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr>
     <th>Profissional</th><th>Agendadas</th><th>Atendidas</th>
@@ -114,6 +115,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta na agenda do período.</p></div>
 {% endif %}

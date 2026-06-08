@@ -7,7 +7,7 @@
 </div>
 <p class="muted mb-4">Valor padrão (sem convênio): <strong>{{ procedimento.valor_padrao|brl }}</strong>. No atendimento, o sistema usa o preço do convênio do paciente quando houver.</p>
 
-<form method="POST" action="{{ url_for('procedimentos.precos', procedimento_id=procedimento.id) }}" class="card flex-form mb-4">
+<form method="POST" action="{{ url_for('procedimentos.precos', procedimento_id=procedimento.id) }}" class="card toolbar mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group form-group-flex-main">
     <label for="convenio">Convênio</label>

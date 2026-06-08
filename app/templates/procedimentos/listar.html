@@ -4,7 +4,7 @@
 <div class="page-header"><h2>Procedimentos e preços</h2></div>
 <p class="muted mb-4">Itens faturáveis que o médico marca no atendimento. O pagamento puxa o total automaticamente.</p>
 
-<form method="POST" action="{{ url_for('procedimentos.novo') }}" class="card flex-form mb-4">
+<form method="POST" action="{{ url_for('procedimentos.novo') }}" class="card toolbar mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group form-group-flex-main">
     <label for="nome">Novo procedimento</label>
@@ -19,7 +19,7 @@
 
 {% if procedimentos %}
 {% for p in procedimentos %}
-<form method="POST" action="{{ url_for('procedimentos.salvar', procedimento_id=p.id) }}" class="card flex-form no-loading mb-2">
+<form method="POST" action="{{ url_for('procedimentos.salvar', procedimento_id=p.id) }}" class="card toolbar no-loading mb-2">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group form-group-flex-main">
     <label for="nome-{{ p.id }}">Nome</label>

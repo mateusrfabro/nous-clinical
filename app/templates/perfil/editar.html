@@ -16,7 +16,7 @@
     </div>
     <div class="form-group">
       <label for="telefone">Telefone</label>
-      <input type="text" id="telefone" name="telefone" value="{{ current_user.telefone or '' }}">
+      <input type="tel" inputmode="tel" id="telefone" name="telefone" value="{{ current_user.telefone or '' }}">
     </div>
     <button type="submit" class="btn btn-primary">Salvar dados</button>
   </form>
