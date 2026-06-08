@@ -13,6 +13,7 @@ from app import db
 from app.auth_decorators import admin_required
 from app.models import Procedimento, PrecoConvenio, AuditLog
 from app.services.audit import audit
+from app.services.tenant import clinica_atual
 
 procedimentos_bp = Blueprint("procedimentos", __name__,
                              url_prefix="/procedimentos")
@@ -124,7 +125,12 @@ def precos(procedimento_id):
 @admin_required
 def excluir_preco(preco_id):
     pc = db.session.get(PrecoConvenio, preco_id)
-    if not pc:
+    # PrecoConvenio não tem clinica_id próprio: confirma a posse pelo pai
+    # comparando clinica_id explicitamente. Não dá pra confiar no escopo
+    # automático aqui — session.get() não reaplica with_loader_criteria.
+    proc = db.session.get(Procedimento, pc.procedimento_id) if pc else None
+    cid = clinica_atual()
+    if not pc or proc is None or (cid is not None and proc.clinica_id != cid):
         flash("Preço não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
     proc_id = pc.procedimento_id

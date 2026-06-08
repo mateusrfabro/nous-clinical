@@ -1,7 +1,10 @@
 """Multi-tenant Fase 0 + Fase 1: tenant existe, seed vinculado e ISOLAMENTO
 entre clínicas (escopo automático nas leituras)."""
+from decimal import Decimal
+
 from app import db
-from app.models import Clinica, Usuario, Paciente, Profissional, Agendamento
+from app.models import (Clinica, Usuario, Paciente, Profissional, Agendamento,
+                        Procedimento, PrecoConvenio)
 
 
 def test_clinica_tenant_existe(app):
@@ -44,3 +47,26 @@ def test_criacao_herda_clinica_do_usuario(client_admin):
     p = Paciente.query.filter_by(nome_completo="Novo Da T").first()
     c = Clinica.query.filter_by(slug="teste").first()
     assert p is not None and p.clinica_id == c.id
+
+
+def test_excluir_preco_de_outra_clinica_bloqueado(client_admin):
+    """IDOR cross-tenant: PrecoConvenio não tem clinica_id próprio. Admin da
+    clínica T NÃO pode excluir o preço de um procedimento de outra clínica."""
+    cb = Clinica(nome="Clínica B Preço", slug="b-preco")
+    db.session.add(cb)
+    db.session.flush()
+    proc = Procedimento(nome="Proc da B", valor_padrao=Decimal("100.00"),
+                        clinica_id=cb.id)
+    db.session.add(proc)
+    db.session.flush()
+    pc = PrecoConvenio(procedimento_id=proc.id, convenio="Unimed",
+                       valor=Decimal("80.00"))
+    db.session.add(pc)
+    db.session.commit()
+    preco_id = pc.id
+
+    r = client_admin.post(f"/procedimentos/precos/{preco_id}/excluir",
+                          follow_redirects=True)
+    assert r.status_code == 200
+    # o preço da clínica B continua existindo (exclusão foi barrada)
+    assert db.session.get(PrecoConvenio, preco_id) is not None
