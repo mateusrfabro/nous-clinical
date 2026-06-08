@@ -43,6 +43,30 @@ class Clinica(db.Model):
         return f"<Clinica {self.id} {self.nome}>"
 
 
+class Convenio(db.Model):
+    """Cadastro centralizado de convênios (master data).
+
+    Evita duplicidade e erros de grafia do texto livre que hoje vive em
+    Paciente.convenio / Agendamento.convenio / LancamentoFinanceiro.convenio /
+    PrecoConvenio.convenio. Os campos de texto livre continuam existindo (não
+    quebra dado legado); os forms passam a oferecer esta lista como sugestão.
+    """
+    __tablename__ = "convenios"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "nome", name="uq_convenio_clinica_nome"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(80), nullable=False)
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    def __repr__(self):
+        return f"<Convenio {self.id} {self.nome}>"
+
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = "usuarios"
 
@@ -104,6 +128,9 @@ class Profissional(db.Model):
     # Cor hex pra diferenciar profissionais na agenda (ex: #43B8A5).
     cor_agenda = db.Column(db.String(7), default="#43B8A5")
     duracao_padrao_min = db.Column(db.Integer, default=30)
+    # Sala/consultório padrão do profissional (texto livre). A agenda puxa
+    # automaticamente este valor pro agendamento ao marcar a consulta.
+    sala = db.Column(db.String(40))
     # % de repasse/comissão sobre a receita recebida das consultas (0..100).
     comissao_percent = db.Column(Numeric(5, 2), nullable=False, default=0)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
@@ -181,6 +208,9 @@ class Agendamento(db.Model):
     status = db.Column(db.String(20), nullable=False, default=STATUS_AGENDADO)
     convenio = db.Column(db.String(80))
     valor = db.Column(Numeric(12, 2))
+    # Sala/consultório da consulta. Preenchida automaticamente com a sala do
+    # profissional ao agendar; editável.
+    sala = db.Column(db.String(40))
     observacoes = db.Column(db.Text)
 
     # Check-in: momento em que o paciente chegou à recepção (NULL = não chegou).
@@ -454,6 +484,7 @@ class AuditLog(db.Model):
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"
     ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
+    ACAO_CONVENIO_SALVO = "convenio_salvo"
     ACAO_EXAME_ANEXADO = "exame_anexado"
     ACAO_EXAME_REMOVIDO = "exame_removido"
     # Acesso a dado sensivel (LGPD art. 37 — registro de operacoes de

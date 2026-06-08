@@ -37,11 +37,11 @@ def init_tenant(db):
     """Registra os listeners de escopo. Chamado uma vez no app factory."""
     from app.models import (
         Paciente, Profissional, Agendamento, Atendimento,
-        LancamentoFinanceiro, Procedimento, Exame, Usuario,
+        LancamentoFinanceiro, Procedimento, Exame, Convenio, Usuario,
     )
     # Escopo de LEITURA (sem Usuario — auth precisa de lookup global).
     escopados = [Paciente, Profissional, Agendamento, Atendimento,
-                 LancamentoFinanceiro, Procedimento, Exame]
+                 LancamentoFinanceiro, Procedimento, Exame, Convenio]
     # Recebem clinica_id na CRIAÇÃO (inclui Usuario).
     donos = tuple(escopados + [Usuario])
 
