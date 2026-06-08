@@ -158,6 +158,8 @@ class Agendamento(db.Model):
 
     # Check-in: momento em que o paciente chegou à recepção (NULL = não chegou).
     checkin_em = db.Column(db.DateTime(timezone=True))
+    # Lembrete automático já enviado (idempotência do job de lembretes).
+    lembrete_enviado_em = db.Column(db.DateTime(timezone=True))
 
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))

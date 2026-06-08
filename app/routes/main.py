@@ -1,14 +1,38 @@
+import hmac
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, render_template, redirect, url_for, jsonify, request
+from flask import (
+    Blueprint, render_template, redirect, url_for, jsonify, request,
+    abort, current_app,
+)
 from flask_login import login_required, current_user
 from sqlalchemy import select, func
 
-from app import db
+from app import db, csrf, limiter
 from app.models import Paciente, Profissional, Agendamento, LancamentoFinanceiro
 from app.services.app_info import app_version, migration_head
 
 main_bp = Blueprint("main", __name__)
+
+
+@main_bp.route("/tarefas/lembretes", methods=["POST"])
+@csrf.exempt
+@limiter.limit("12 per hour")
+def tarefa_lembretes():
+    """Dispara os lembretes do dia (gatilho de cron externo).
+
+    Protegido por token (config TAREFAS_TOKEN). Sem token configurado -> 404
+    (recurso inexistente). Token errado -> 403. Endpoint de máquina: isento de
+    CSRF e sem sessão.
+    """
+    token = current_app.config.get("TAREFAS_TOKEN")
+    if not token:
+        abort(404)
+    enviado = request.args.get("key") or request.headers.get("X-Tarefa-Token", "")
+    if not (enviado and hmac.compare_digest(enviado, token)):
+        abort(403)
+    from app.services.lembretes import enviar_lembretes
+    return jsonify(enviar_lembretes())
 
 
 @main_bp.route("/")

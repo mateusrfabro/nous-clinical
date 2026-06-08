@@ -237,6 +237,9 @@ def create_app(config_name="default"):
     app.register_blueprint(exames_bp)
     app.register_blueprint(perfil_bp)
 
+    from app.commands import register_commands
+    register_commands(app)
+
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----
 
     @app.context_processor

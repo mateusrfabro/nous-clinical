@@ -24,6 +24,13 @@ class Config:
     # pais (ex: 5543999999999). Vazio = botao flutuante nao aparece.
     WHATSAPP_NUMERO = os.getenv("WHATSAPP_NUMERO", "")
 
+    # Token do endpoint de tarefas agendadas (POST /tarefas/lembretes). Vazio =
+    # endpoint desabilitado. Defina e use no cron/gatilho externo.
+    TAREFAS_TOKEN = os.getenv("TAREFAS_TOKEN", "")
+    # Base publica (ex: https://clinica.com) pra montar links em e-mails/jobs
+    # fora de um request (cron). Vazio = links sao omitidos.
+    PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
+
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
