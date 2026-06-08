@@ -252,14 +252,16 @@ def _risco_evasao(limite_dias=180, maximo=50):
 @login_required
 @admin_required
 def index():
+    """Geração SOB DEMANDA (req. do sócio): só calcula quando o usuário define o
+    período e clica em "Gerar" (?gerar=1). Sem isso, mostra só o formulário."""
     ini_d, fim_d, ini, fim = _periodo(request.args)
-    dados = _agrega(ini, fim)
-    return render_template(
-        "relatorios/index.html",
-        ini=ini_d.isoformat(), fim=fim_d.isoformat(),
-        evasao=_risco_evasao(),
-        **dados,
-    )
+    gerado = request.args.get("gerar") is not None
+    contexto = {"ini": ini_d.isoformat(), "fim": fim_d.isoformat(),
+                "gerado": gerado}
+    if gerado:
+        contexto.update(_agrega(ini, fim))
+        contexto["evasao"] = _risco_evasao()
+    return render_template("relatorios/index.html", **contexto)
 
 
 @relatorios_bp.route("/export.csv")

@@ -27,7 +27,7 @@ def test_faturamento_e_convenio(client_admin):
                              pago_em=datetime.now(timezone.utc)),
     ])
     db.session.commit()
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert b"Faturamento" in h
     assert b"Unimed" in h
     assert b"R$ 250,00" in h          # faturamento
@@ -38,7 +38,7 @@ def test_taxa_de_faltas(client_admin):
     ag = Agendamento.query.first()
     ag.status = Agendamento.STATUS_FALTOU
     db.session.commit()
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert b"Taxa de faltas" in h
     # 1 de 1 consulta = 100%
     assert b"100.0%" in h
@@ -53,7 +53,7 @@ def test_volume_procedimentos(client_admin):
     at.itens.append(ItemAtendimento(descricao="Ultrassom",
                                     valor=Decimal("180.00"), quantidade=1))
     db.session.commit()
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert b"Ultrassom" in h
     assert b"R$ 180,00" in h
 
@@ -66,14 +66,14 @@ def test_receita_por_medico(client_admin):
         status="pago", pago_em=datetime.now(timezone.utc),
         agendamento_id=ag.id, paciente_id=ag.paciente_id))
     db.session.commit()
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert "Receita por médico".encode() in h
     assert nome_med.encode() in h
     assert b"R$ 400,00" in h
 
 
 def test_produtividade_e_novos_pacientes(client_admin):
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert "Produtividade por profissional".encode() in h
     assert "Novos pacientes".encode() in h
 
@@ -87,7 +87,7 @@ def test_risco_evasao_lista_paciente_sumido(client_admin):
     at.criado_em = datetime.now(timezone.utc) - timedelta(days=400)
     db.session.add(at)
     db.session.commit()
-    h = client_admin.get("/relatorios/").data
+    h = client_admin.get("/relatorios/?gerar=1").data
     assert "Pacientes em risco de evasão".encode() in h
     assert b"Sumido Silva" in h
 
