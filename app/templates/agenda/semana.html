@@ -60,12 +60,20 @@
            data-accent="{{ ev.accent }}">
           <span class="ag-ev-time">{{ ev.ini_br|hora_br }}</span>
           <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
-          <span class="ag-ev-prof">{{ ev.ag.profissional.nome }}</span>
+          <span class="ag-ev-prof"><span class="ag-ev-dot" aria-hidden="true"></span>{{ ev.ag.profissional.nome }}</span>
         </a>
         {% endfor %}
       </div>
       {% endfor %}
     </div>
   </div>
+</div>
+
+<div class="agenda-legenda" aria-hidden="true">
+  <span class="leg-item"><span class="leg-dot tag-info"></span>Agendado</span>
+  <span class="leg-item"><span class="leg-dot tag-create"></span>Confirmado</span>
+  <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>
+  <span class="leg-item"><span class="leg-dot tag-edit"></span>Faltou</span>
+  <span class="leg-item"><span class="leg-dot tag-danger"></span>Cancelado</span>
 </div>
 {% endblock %}

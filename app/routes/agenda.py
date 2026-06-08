@@ -347,6 +347,32 @@ def mudar_status(agendamento_id):
     return redirect(url_for("agenda.listar", dia=dia))
 
 
+@agenda_bp.route("/<int:agendamento_id>/checkin", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def checkin(agendamento_id):
+    """Marca/desmarca a chegada do paciente (fila do dia). Chegar confirma a
+    presença (agendado -> confirmado)."""
+    ag = db.session.get(Agendamento, agendamento_id)
+    if not ag:
+        flash("Agendamento não encontrado.", "error")
+        return redirect(url_for("agenda.listar"))
+    if ag.checkin_em:
+        ag.checkin_em = None
+        msg = "Check-in desfeito."
+    else:
+        ag.checkin_em = datetime.now(timezone.utc)
+        if ag.status == Agendamento.STATUS_AGENDADO:
+            ag.status = Agendamento.STATUS_CONFIRMADO
+        msg = "Paciente em atendimento na recepção."
+    db.session.commit()
+    audit(AuditLog.ACAO_AGENDAMENTO_CHECKIN, recurso_tipo="agendamento",
+          recurso_id=ag.id)
+    flash(msg, "success")
+    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
+    return redirect(url_for("agenda.listar", dia=dia))
+
+
 @agenda_bp.route("/<int:agendamento_id>/editar", methods=["GET", "POST"])
 @login_required
 @recepcao_ou_admin

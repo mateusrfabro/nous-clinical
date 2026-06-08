@@ -25,9 +25,11 @@
     if (!isNaN(height)) el.style.height = height + "px";
     if (!isNaN(left)) el.style.left = "calc(" + left + "% + 2px)";
     if (!isNaN(width)) el.style.width = "calc(" + width + "% - 4px)";
+    // Cor da BORDA = status (via classe CSS .ag-event.tag-*). O accent do
+    // profissional vira o pontinho colorido (útil na visão "Todos").
     if (accent) {
-      el.style.borderLeftColor = accent;
-      el.style.backgroundColor = accent + "1f";   // ~12% alpha (hex 8 dígitos)
+      var dot = el.querySelector(".ag-ev-dot");
+      if (dot) dot.style.backgroundColor = accent;
     }
   });
 })();

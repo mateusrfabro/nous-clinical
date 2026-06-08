@@ -3924,10 +3924,42 @@ textarea:focus-visible {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* Cor da BORDA + fundo por STATUS (legibilidade num relance). */
+.ag-event.tag-info    { border-left-color: #0369a1; background: rgba(78, 168, 222, 0.10); }
+.ag-event.tag-create  { border-left-color: #0f766e; background: rgba(67, 184, 165, 0.13); }
+.ag-event.tag-success { border-left-color: #15803d; background: rgba(22, 163, 74, 0.10); }
+.ag-event.tag-edit    { border-left-color: #b45309; background: rgba(245, 158, 11, 0.13); }
+.ag-event.tag-danger  { border-left-color: #dc2626; background: rgba(239, 68, 68, 0.08); }
+/* Pontinho = cor do profissional (agenda da cor de quem atende). */
+.ag-ev-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+    background: var(--brand-verde-claro);
+}
 /* Consultas canceladas/faltou: esmaecidas e riscadas. */
 .ag-event.tag-danger,
-.ag-event.tag-edit { opacity: 0.6; }
+.ag-event.tag-edit { opacity: 0.62; }
 .ag-event.tag-danger .ag-ev-pac { text-decoration: line-through; }
+
+/* Legenda de status da agenda. */
+.agenda-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    margin-top: 0.8rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.leg-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+.leg-dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.leg-dot.tag-info    { background: #0369a1; }
+.leg-dot.tag-create  { background: #0f766e; }
+.leg-dot.tag-success { background: #15803d; }
+.leg-dot.tag-edit    { background: #b45309; }
+.leg-dot.tag-danger  { background: #dc2626; }
 
 /* ===================== Busca rápida / paleta (Ctrl+K) ===================== */
 .topbar-search {

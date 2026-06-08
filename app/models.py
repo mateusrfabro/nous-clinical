@@ -154,6 +154,9 @@ class Agendamento(db.Model):
     valor = db.Column(Numeric(12, 2))
     observacoes = db.Column(db.Text)
 
+    # Check-in: momento em que o paciente chegou à recepção (NULL = não chegou).
+    checkin_em = db.Column(db.DateTime(timezone=True))
+
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
@@ -404,6 +407,8 @@ class AuditLog(db.Model):
     ACAO_AGENDAMENTO_CRIADO = "agendamento_criado"
     ACAO_AGENDAMENTO_STATUS = "agendamento_status"
     ACAO_AGENDAMENTO_EDITADO = "agendamento_editado"
+    ACAO_AGENDAMENTO_CHECKIN = "agendamento_checkin"
+    ACAO_AGENDAMENTO_CONFIRMADO_PUB = "agendamento_confirmado_publico"
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
     ACAO_LANCAMENTO_CRIADO = "lancamento_criado"
