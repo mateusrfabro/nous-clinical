@@ -1,5 +1,7 @@
 """Gestao de profissionais (admin). Cria o login (Usuario tipo=profissional)
 junto com o registro Profissional."""
+from decimal import Decimal, InvalidOperation
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from sqlalchemy import select
@@ -12,6 +14,18 @@ from app.services.audit import audit
 
 profissionais_bp = Blueprint("profissionais", __name__,
                              url_prefix="/profissionais")
+
+
+def _parse_comissao(raw):
+    """Texto -> Decimal de comissão clampado em 0..100 (default 0)."""
+    s = (raw or "").strip().replace("%", "").replace(",", ".")
+    if not s:
+        return Decimal("0")
+    try:
+        v = Decimal(s)
+    except InvalidOperation:
+        return Decimal("0")
+    return min(max(v, Decimal("0")), Decimal("100"))
 
 
 @profissionais_bp.route("/")
@@ -62,9 +76,10 @@ def novo():
             especialidade=request.form.get("especialidade", "").strip() or None,
             registro_conselho=request.form.get("registro_conselho", "").strip()
             or None,
-            cor_agenda=request.form.get("cor_agenda", "").strip() or "#2563eb",
+            cor_agenda=request.form.get("cor_agenda", "").strip() or "#43B8A5",
             duracao_padrao_min=request.form.get("duracao_padrao_min", type=int)
             or 30,
+            comissao_percent=_parse_comissao(request.form.get("comissao_percent", "")),
         )
         db.session.add(prof)
         db.session.commit()
@@ -74,3 +89,34 @@ def novo():
         return redirect(url_for("profissionais.listar"))
 
     return render_template("profissionais/form.html", form={})
+
+
+@profissionais_bp.route("/<int:profissional_id>/editar", methods=["GET", "POST"])
+@login_required
+@admin_required
+def editar(profissional_id):
+    prof = db.session.get(Profissional, profissional_id)
+    if not prof:
+        flash("Profissional não encontrado.", "error")
+        return redirect(url_for("profissionais.listar"))
+
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        if not nome:
+            flash("Nome é obrigatório.", "error")
+            return render_template("profissionais/editar.html", prof=prof)
+        prof.nome = nome
+        prof.especialidade = request.form.get("especialidade", "").strip() or None
+        prof.registro_conselho = request.form.get("registro_conselho", "").strip() or None
+        prof.cor_agenda = request.form.get("cor_agenda", "").strip() or prof.cor_agenda
+        prof.duracao_padrao_min = (request.form.get("duracao_padrao_min", type=int)
+                                   or prof.duracao_padrao_min)
+        prof.comissao_percent = _parse_comissao(request.form.get("comissao_percent", ""))
+        prof.ativo = bool(request.form.get("ativo"))
+        db.session.commit()
+        audit(AuditLog.ACAO_PROFISSIONAL_EDITADO, recurso_tipo="profissional",
+              recurso_id=prof.id)
+        flash("Profissional atualizado.", "success")
+        return redirect(url_for("profissionais.listar"))
+
+    return render_template("profissionais/editar.html", prof=prof)

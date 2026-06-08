@@ -79,6 +79,8 @@ class Profissional(db.Model):
     # Cor hex pra diferenciar profissionais na agenda (ex: #43B8A5).
     cor_agenda = db.Column(db.String(7), default="#43B8A5")
     duracao_padrao_min = db.Column(db.Integer, default=30)
+    # % de repasse/comissão sobre a receita recebida das consultas (0..100).
+    comissao_percent = db.Column(Numeric(5, 2), nullable=False, default=0)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
@@ -411,6 +413,7 @@ class AuditLog(db.Model):
     ACAO_AGENDAMENTO_CONFIRMADO_PUB = "agendamento_confirmado_publico"
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
+    ACAO_PROFISSIONAL_EDITADO = "profissional_editado"
     ACAO_LANCAMENTO_CRIADO = "lancamento_criado"
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"

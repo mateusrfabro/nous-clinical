@@ -144,6 +144,26 @@ def _agrega(ini, fim):
     ).all()
     por_medico = [{"nome": n, "total": t, "qtd": q} for n, t, q in med_rows]
 
+    # Repasse / comissão por profissional (sobre a receita recebida de consultas).
+    rep_rows = db.session.execute(
+        select(Profissional.nome, Profissional.comissao_percent,
+               func.coalesce(func.sum(L.valor), 0))
+        .join(A, L.agendamento_id == A.id)
+        .join(Profissional, A.profissional_id == Profissional.id)
+        .where(*pago_periodo, L.tipo == L.TIPO_RECEITA,
+               Profissional.comissao_percent > 0)
+        .group_by(Profissional.id, Profissional.nome,
+                  Profissional.comissao_percent)
+        .order_by(func.coalesce(func.sum(L.valor), 0).desc())
+    ).all()
+    repasse, total_repasse = [], Decimal("0.00")
+    for nome, pct, total in rep_rows:
+        pct = pct or Decimal("0")
+        val = (Decimal(str(total or 0)) * pct / Decimal("100")).quantize(Decimal("0.01"))
+        total_repasse += val
+        repasse.append({"nome": nome, "recebido": total, "percent": pct,
+                        "repasse": val})
+
     # Produtividade / ocupação por profissional (agendamentos do período).
     ocup_rows = db.session.execute(
         select(Profissional.nome, A.status, func.count(A.id))
@@ -193,6 +213,7 @@ def _agrega(ini, fim):
         "novos_pacientes": novos_pacientes, "comparativo": comparativo,
         "por_convenio": por_convenio, "por_medico": por_medico,
         "produtividade": produtividade, "procedimentos": procedimentos,
+        "repasse": repasse, "total_repasse": total_repasse,
     }
 
 

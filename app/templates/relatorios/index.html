@@ -80,6 +80,22 @@
 <div class="empty-state"><p>Nenhum recebimento de consulta no período.</p></div>
 {% endif %}
 
+<div class="page-header section-title-mt"><h3>Repasse / comissão médica</h3></div>
+<p class="muted text-sm mb-2">Comissão sobre a receita recebida de consultas no período (configurada no cadastro do profissional).</p>
+{% if repasse %}
+<table class="table">
+  <thead><tr><th>Profissional</th><th>Recebido</th><th>Comissão</th><th>Repasse</th></tr></thead>
+  <tbody>
+    {% for r in repasse %}
+    <tr><td>{{ r.nome }}</td><td>{{ r.recebido|brl }}</td><td>{{ '%.1f'|format(r.percent) }}%</td><td>{{ r.repasse|brl }}</td></tr>
+    {% endfor %}
+    <tr><td><strong>Total a repassar</strong></td><td></td><td></td><td><strong>{{ total_repasse|brl }}</strong></td></tr>
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state"><p>Nenhum repasse no período (defina a comissão no cadastro do profissional).</p></div>
+{% endif %}
+
 <div class="page-header section-title-mt"><h3>Produtividade por profissional</h3></div>
 <p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
 {% if produtividade %}

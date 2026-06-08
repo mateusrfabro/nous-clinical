@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Editar profissional — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header">
+    <h2>Editar profissional</h2>
+    <p class="muted">{{ prof.nome }} · login não é alterado aqui.</p>
+  </div>
+  <form method="POST" action="{{ url_for('profissionais.editar', profissional_id=prof.id) }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="nome">Nome *</label>
+      <input type="text" id="nome" name="nome" required value="{{ prof.nome }}">
+    </div>
+    <div class="flex-form">
+      <div class="form-group form-group-grow">
+        <label for="especialidade">Especialidade</label>
+        <input type="text" id="especialidade" name="especialidade" value="{{ prof.especialidade or '' }}">
+      </div>
+      <div class="form-group form-group-grow">
+        <label for="registro_conselho">Registro (CRM/CRO/…)</label>
+        <input type="text" id="registro_conselho" name="registro_conselho" value="{{ prof.registro_conselho or '' }}">
+      </div>
+    </div>
+    <div class="flex-form">
+      <div class="form-group">
+        <label for="cor_agenda">Cor na agenda</label>
+        <input type="color" id="cor_agenda" name="cor_agenda" value="{{ prof.cor_agenda or '#43B8A5' }}">
+      </div>
+      <div class="form-group">
+        <label for="duracao_padrao_min">Duração padrão (min)</label>
+        <input type="number" id="duracao_padrao_min" name="duracao_padrao_min" class="w-input-num" value="{{ prof.duracao_padrao_min or 30 }}" min="5" step="5">
+      </div>
+      <div class="form-group">
+        <label for="comissao_percent">Comissão / repasse (%)</label>
+        <input type="number" id="comissao_percent" name="comissao_percent" class="w-input-num" value="{{ '%.1f'|format(prof.comissao_percent or 0) }}" min="0" max="100" step="0.5">
+      </div>
+    </div>
+    <div class="form-checkbox">
+      <label><input type="checkbox" name="ativo" {{ 'checked' if prof.ativo }}> Profissional ativo</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('profissionais.listar') }}" class="btn btn-outline">Cancelar</a>
+  </form>
+</div>
+{% endblock %}
