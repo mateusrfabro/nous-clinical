@@ -4019,9 +4019,11 @@ textarea:focus-visible {
 .slot-pick input:checked + span {
     background: var(--brand-verde-claro);
     border-color: var(--brand-verde-claro);
-    color: var(--text-on-brand, #fff);
+    color: var(--text-on-ouro);   /* navy sobre teal — contraste WCAG AA */
     font-weight: 600;
 }
+/* honeypot anti-bot: fora da tela, sem afetar layout/leitores de tela úteis */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .slot-pick input:focus-visible + span {
     outline: 2px solid var(--brand-verde-claro);
     outline-offset: 1px;

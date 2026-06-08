@@ -23,6 +23,8 @@ def _parse_comissao(raw):
         return Decimal("0")
     try:
         v = Decimal(s)
+        if not v.is_finite():        # 'nan'/'inf' constroem mas quebram comparação
+            return Decimal("0")
     except InvalidOperation:
         return Decimal("0")
     return min(max(v, Decimal("0")), Decimal("100"))

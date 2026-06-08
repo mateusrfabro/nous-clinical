@@ -35,6 +35,15 @@ def test_repasse_calculado_no_relatorio(client_admin):
     assert b"R$ 200,00" in r.data          # 20% de R$ 1.000,00
 
 
+def test_parse_comissao_robusto():
+    from app.routes.profissionais import _parse_comissao
+    for ruim in ["nan", "Infinity", "-Infinity", "1e999", "abc", "-5"]:
+        v = _parse_comissao(ruim)
+        assert v.is_finite() and Decimal("0") <= v <= Decimal("100")
+    assert _parse_comissao("120") == Decimal("100")
+    assert _parse_comissao("15,5") == Decimal("15.5")
+
+
 def test_repasse_zero_sem_comissao(client_admin):
     # Sem comissão configurada, profissional não aparece na seção de repasse.
     ag = Agendamento.query.first()

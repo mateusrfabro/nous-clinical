@@ -39,6 +39,8 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="profissional_id" value="{{ prof_sel.id }}">
       <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
+      {# honeypot anti-bot: oculto; humano não preenche #}
+      <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       <fieldset class="form-fieldset">
         <legend>Horários livres — {{ dia|data_br }}</legend>
         <div class="slot-grid">

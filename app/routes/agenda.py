@@ -377,8 +377,18 @@ def checkin(agendamento_id):
 _PUB_HORA_INI, _PUB_HORA_FIM = 8, 18   # janela de horários do agendamento online
 
 
+def _normalizar_tel(t):
+    """Só dígitos, no máx. 13 (DDI+DDD+numero). '' se vazio."""
+    import re
+    return re.sub(r"\D", "", t or "")[:13]
+
+
 def _slots_livres(profissional, dia):
-    """Horários livres ('HH:MM') do profissional no dia (passo = duração padrão)."""
+    """Horários livres ('HH:MM') do profissional no dia (passo = duração padrão).
+
+    Dias de fim de semana não têm slots (clínica fecha sáb/dom)."""
+    if dia.weekday() >= 5:
+        return []
     passo = profissional.duracao_padrao_min or 30
     ini_dia = datetime.combine(dia, time(_PUB_HORA_INI, 0),
                                tzinfo=_BR_TZ).astimezone(timezone.utc)
@@ -402,7 +412,7 @@ def _slots_livres(profissional, dia):
 
 
 @agenda_bp.route("/agendar", methods=["GET", "POST"])
-@limiter.limit("20 per hour")
+@limiter.limit("5 per hour;1 per minute", methods=["POST"])
 def agendar_online():
     """Agendamento online PÚBLICO (portal do paciente). Sem login.
 
@@ -417,54 +427,62 @@ def agendar_online():
     hoje = datetime.now(_BR_TZ).date()
 
     if request.method == "POST":
+        # Honeypot anti-bot: campo oculto que humano não preenche.
+        if request.form.get("website", "").strip():
+            flash("Não foi possível processar a solicitação.", "error")
+            return render_template("agenda/agendar.html",
+                                   profissionais=profissionais, hoje=hoje,
+                                   prof_sel=None, dia=None, slots=None, form={})
+
         profissional = db.session.get(
             Profissional, request.form.get("profissional_id", type=int))
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
-        nome = request.form.get("nome", "").strip()
-        telefone = request.form.get("telefone", "").strip()
-        inicio = _br_para_utc(dia, hora) if profissional else None
+        nome = request.form.get("nome", "").strip()[:150]
+        telefone = _normalizar_tel(request.form.get("telefone", ""))
 
-        if not (profissional and inicio and nome and telefone):
-            flash("Preencha nome, telefone e escolha um horário.", "error")
+        def _reexibe(msg):
+            flash(msg, "error")
+            slots = (_slots_livres(profissional, dia)
+                     if profissional and dia and dia >= hoje else None)
             return render_template("agenda/agendar.html",
                                    profissionais=profissionais, hoje=hoje,
-                                   prof_sel=profissional, dia=dia,
-                                   slots=_slots_livres(profissional, dia) if profissional and dia >= hoje else None,
+                                   prof_sel=profissional, dia=dia, slots=slots,
                                    form=request.form)
+
+        if not profissional:
+            return _reexibe("Selecione um profissional.")
+        if len(nome) < 2:
+            return _reexibe("Informe seu nome completo.")
+        if not (10 <= len(telefone) <= 13):
+            return _reexibe("Informe um telefone válido com DDD.")
         if dia < hoje:
-            flash("Escolha uma data futura.", "error")
-            return render_template("agenda/agendar.html",
-                                   profissionais=profissionais, hoje=hoje,
-                                   prof_sel=profissional, dia=dia, slots=None,
-                                   form=request.form)
+            return _reexibe("Escolha uma data futura.")
+        # O horário precisa ser um dos slots livres (barra hora arbitrária,
+        # fora do expediente e fim de semana — fonte única com o GET).
+        if hora not in _slots_livres(profissional, dia):
+            return _reexibe("Horário indisponível. Escolha um dos livres.")
 
+        inicio = _br_para_utc(dia, hora)
         fim = inicio + timedelta(minutes=profissional.duracao_padrao_min or 30)
-        if _conflito_horario(profissional.id, inicio, fim):
-            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
-            return render_template("agenda/agendar.html",
-                                   profissionais=profissionais, hoje=hoje,
-                                   prof_sel=profissional, dia=dia,
-                                   slots=_slots_livres(profissional, dia),
-                                   form=request.form)
+        if not inicio or _conflito_horario(profissional.id, inicio, fim):
+            return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
 
-        # Reusa paciente pelo telefone; senão cria um novo (cadastro online).
-        paciente = db.session.execute(
-            select(Paciente).where(Paciente.telefone == telefone)
-        ).scalars().first()
-        if not paciente:
-            paciente = Paciente(
-                nome_completo=nome, telefone=telefone,
-                convenio=request.form.get("convenio", "").strip() or None,
-                observacoes="Cadastro via agendamento online.")
-            db.session.add(paciente)
-            db.session.flush()
+        # Fluxo anônimo: SEMPRE cria um cadastro novo (nunca reusa por telefone
+        # — evitaria vazar/sequestrar o cadastro de terceiros). A recepção
+        # deduplica/verifica depois.
+        paciente = Paciente(
+            nome_completo=nome, telefone=telefone,
+            convenio=request.form.get("convenio", "").strip() or None,
+            observacoes="Cadastro via agendamento online (a verificar).")
+        db.session.add(paciente)
+        db.session.flush()
 
         ag = Agendamento(
             paciente_id=paciente.id, profissional_id=profissional.id,
             inicio=inicio, fim=fim, status=Agendamento.STATUS_AGENDADO,
             convenio=request.form.get("convenio", "").strip() or None,
-            observacoes=request.form.get("observacoes", "").strip() or None)
+            observacoes=request.form.get("observacoes", "").strip()[:500] or None)
         db.session.add(ag)
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
