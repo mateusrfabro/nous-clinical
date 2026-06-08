@@ -3999,6 +3999,34 @@ textarea:focus-visible {
 .confirma-info li span { color: var(--text-secondary); }
 .confirma-info li strong { color: var(--text-primary); text-align: right; }
 
+/* Grade de horários do agendamento online (radio estilizado como chip). */
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 0.4rem;
+}
+.slot-pick { position: relative; }
+.slot-pick input { position: absolute; opacity: 0; width: 0; height: 0; }
+.slot-pick span {
+    display: block;
+    text-align: center;
+    padding: 0.45rem 0;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.slot-pick input:checked + span {
+    background: var(--brand-verde-claro);
+    border-color: var(--brand-verde-claro);
+    color: var(--text-on-brand, #fff);
+    font-weight: 600;
+}
+.slot-pick input:focus-visible + span {
+    outline: 2px solid var(--brand-verde-claro);
+    outline-offset: 1px;
+}
+
 /* ===================== Busca rápida / paleta (Ctrl+K) ===================== */
 .topbar-search {
     display: inline-flex;

@@ -374,6 +374,117 @@ def checkin(agendamento_id):
     return redirect(url_for("agenda.listar", dia=dia))
 
 
+_PUB_HORA_INI, _PUB_HORA_FIM = 8, 18   # janela de horários do agendamento online
+
+
+def _slots_livres(profissional, dia):
+    """Horários livres ('HH:MM') do profissional no dia (passo = duração padrão)."""
+    passo = profissional.duracao_padrao_min or 30
+    ini_dia = datetime.combine(dia, time(_PUB_HORA_INI, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim_dia = datetime.combine(dia, time(_PUB_HORA_FIM, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+    ocupados = db.session.execute(
+        select(Agendamento).where(
+            Agendamento.profissional_id == profissional.id,
+            Agendamento.status != Agendamento.STATUS_CANCELADO,
+            Agendamento.inicio < fim_dia, Agendamento.fim > ini_dia)
+    ).scalars().all()
+    agora = datetime.now(timezone.utc)
+    livres, t = [], ini_dia
+    while t + timedelta(minutes=passo) <= fim_dia:
+        fimslot = t + timedelta(minutes=passo)
+        if t >= agora and not any(
+                _aware(o.inicio) < fimslot and _aware(o.fim) > t for o in ocupados):
+            livres.append(t.astimezone(_BR_TZ).strftime("%H:%M"))
+        t = fimslot
+    return livres
+
+
+@agenda_bp.route("/agendar", methods=["GET", "POST"])
+@limiter.limit("20 per hour")
+def agendar_online():
+    """Agendamento online PÚBLICO (portal do paciente). Sem login.
+
+    Passo 1: escolhe profissional + dia. Passo 2: escolhe um horário livre e
+    informa os dados. Cria o paciente (ou reusa pelo telefone) e a consulta
+    como 'agendado' — a clínica confirma depois.
+    """
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+    hoje = datetime.now(_BR_TZ).date()
+
+    if request.method == "POST":
+        profissional = db.session.get(
+            Profissional, request.form.get("profissional_id", type=int))
+        dia = _parse_dia(request.form.get("dia", ""))
+        hora = request.form.get("hora", "").strip()
+        nome = request.form.get("nome", "").strip()
+        telefone = request.form.get("telefone", "").strip()
+        inicio = _br_para_utc(dia, hora) if profissional else None
+
+        if not (profissional and inicio and nome and telefone):
+            flash("Preencha nome, telefone e escolha um horário.", "error")
+            return render_template("agenda/agendar.html",
+                                   profissionais=profissionais, hoje=hoje,
+                                   prof_sel=profissional, dia=dia,
+                                   slots=_slots_livres(profissional, dia) if profissional and dia >= hoje else None,
+                                   form=request.form)
+        if dia < hoje:
+            flash("Escolha uma data futura.", "error")
+            return render_template("agenda/agendar.html",
+                                   profissionais=profissionais, hoje=hoje,
+                                   prof_sel=profissional, dia=dia, slots=None,
+                                   form=request.form)
+
+        fim = inicio + timedelta(minutes=profissional.duracao_padrao_min or 30)
+        if _conflito_horario(profissional.id, inicio, fim):
+            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
+            return render_template("agenda/agendar.html",
+                                   profissionais=profissionais, hoje=hoje,
+                                   prof_sel=profissional, dia=dia,
+                                   slots=_slots_livres(profissional, dia),
+                                   form=request.form)
+
+        # Reusa paciente pelo telefone; senão cria um novo (cadastro online).
+        paciente = db.session.execute(
+            select(Paciente).where(Paciente.telefone == telefone)
+        ).scalars().first()
+        if not paciente:
+            paciente = Paciente(
+                nome_completo=nome, telefone=telefone,
+                convenio=request.form.get("convenio", "").strip() or None,
+                observacoes="Cadastro via agendamento online.")
+            db.session.add(paciente)
+            db.session.flush()
+
+        ag = Agendamento(
+            paciente_id=paciente.id, profissional_id=profissional.id,
+            inicio=inicio, fim=fim, status=Agendamento.STATUS_AGENDADO,
+            convenio=request.form.get("convenio", "").strip() or None,
+            observacoes=request.form.get("observacoes", "").strip() or None)
+        db.session.add(ag)
+        db.session.commit()
+        audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
+              recurso_id=ag.id, detalhes="online")
+        return render_template("agenda/agendar.html", sucesso=ag,
+                               profissionais=profissionais, hoje=hoje)
+
+    # GET — passo 1 (escolher prof/dia) e, se válidos, passo 2 (slots).
+    prof_sel = db.session.get(
+        Profissional, request.args.get("profissional_id", type=int)) \
+        if request.args.get("profissional_id") else None
+    dia = _parse_dia(request.args.get("dia", "")) if request.args.get("dia") else None
+    slots = None
+    if prof_sel and dia and dia >= hoje:
+        slots = _slots_livres(prof_sel, dia)
+    return render_template("agenda/agendar.html", profissionais=profissionais,
+                           hoje=hoje, prof_sel=prof_sel, dia=dia, slots=slots,
+                           form={})
+
+
 @agenda_bp.route("/confirmar/<token>", methods=["GET", "POST"])
 @limiter.limit("30 per hour")
 def confirmar_publico(token):

@@ -141,6 +141,7 @@
     <nav class="navbar" aria-label="Navegação principal">
         <div class="nav-brand">{{ brand(url_for('main.index')) }}</div>
         <div class="nav-links">
+            <a href="{{ url_for('agenda.agendar_online') }}" class="btn btn-outline btn-sm">Agendar consulta</a>
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Entrar</a>
         </div>
     </nav>

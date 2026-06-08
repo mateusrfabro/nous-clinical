@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Agendar consulta — Nous Clinical{% endblock %}
+{% block content %}
+<div class="confirma-card">
+{% if sucesso %}
+  <span class="confirma-selo">Consulta solicitada</span>
+  <ul class="confirma-info">
+    <li><span>Paciente</span><strong>{{ sucesso.paciente.nome_completo }}</strong></li>
+    <li><span>Data e hora</span><strong>{{ sucesso.inicio|datetime_br }}</strong></li>
+    <li><span>Profissional</span><strong>{{ sucesso.profissional.nome }}</strong></li>
+  </ul>
+  <p class="muted">Recebemos sua solicitação. A clínica vai confirmar em breve pelo telefone informado.</p>
+  <a href="{{ url_for('agenda.agendar_online') }}" class="btn btn-outline btn-block">Agendar outra consulta</a>
+{% else %}
+  <h2>Agendar consulta</h2>
+  <p class="muted">Escolha o profissional e o dia para ver os horários livres.</p>
+
+  <form method="GET" class="no-loading" data-no-validate>
+    <div class="form-group">
+      <label for="profissional_id">Profissional</label>
+      <select id="profissional_id" name="profissional_id" required>
+        <option value="">Selecione…</option>
+        {% for p in profissionais %}
+          <option value="{{ p.id }}" {{ 'selected' if prof_sel and prof_sel.id == p.id }}>{{ p.nome }}{% if p.especialidade %} — {{ p.especialidade }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="dia">Dia</label>
+      <input type="date" id="dia" name="dia" min="{{ hoje.isoformat() }}"
+             value="{{ dia.isoformat() if dia else '' }}" required>
+    </div>
+    <button type="submit" class="btn btn-outline btn-block">Ver horários</button>
+  </form>
+
+  {% if slots is not none %}
+    {% if slots %}
+    <form method="POST" class="mt-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="profissional_id" value="{{ prof_sel.id }}">
+      <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
+      <fieldset class="form-fieldset">
+        <legend>Horários livres — {{ dia|data_br }}</legend>
+        <div class="slot-grid">
+          {% for s in slots %}
+          <label class="slot-pick">
+            <input type="radio" name="hora" value="{{ s }}" required>
+            <span>{{ s }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div class="form-group">
+        <label for="nome">Seu nome</label>
+        <input id="nome" name="nome" required value="{{ form.nome or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="telefone">Telefone / WhatsApp</label>
+        <input id="telefone" name="telefone" required value="{{ form.telefone or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="convenio">Convênio (opcional)</label>
+        <input id="convenio" name="convenio" value="{{ form.convenio or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="observacoes">Observações (opcional)</label>
+        <textarea id="observacoes" name="observacoes" rows="2">{{ form.observacoes or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Agendar</button>
+    </form>
+    {% else %}
+    <div class="empty-state mt-4"><p>Sem horários livres nesse dia. Tente outra data.</p></div>
+    {% endif %}
+  {% endif %}
+{% endif %}
+</div>
+{% endblock %}
