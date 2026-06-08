@@ -12,13 +12,14 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import select
 
-from app import db
+from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin, clinico_required
 from app.models import (
     Agendamento, Atendimento, Paciente, Profissional, AuditLog,
     Procedimento, ItemAtendimento,
 )
 from app.services.audit import audit
+from app.services.tokens import ler_token_confirmacao
 
 agenda_bp = Blueprint("agenda", __name__, url_prefix="/agenda")
 
@@ -371,6 +372,33 @@ def checkin(agendamento_id):
     flash(msg, "success")
     dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     return redirect(url_for("agenda.listar", dia=dia))
+
+
+@agenda_bp.route("/confirmar/<token>", methods=["GET", "POST"])
+@limiter.limit("30 per hour")
+def confirmar_publico(token):
+    """Página PÚBLICA de confirmação de consulta (link do WhatsApp).
+
+    O token é assinado (itsdangerous) — sem login, sem IDOR. GET mostra os
+    dados e um botão; POST confirma a presença (agendado -> confirmado).
+    """
+    ag_id = ler_token_confirmacao(token)
+    ag = db.session.get(Agendamento, ag_id) if ag_id else None
+    if not ag:
+        return render_template("agenda/confirmar.html", ag=None, erro="link"), 400
+    if ag.status in (Agendamento.STATUS_CANCELADO, Agendamento.STATUS_ATENDIDO):
+        return render_template("agenda/confirmar.html", ag=ag, erro="estado")
+
+    if request.method == "POST":
+        if ag.status == Agendamento.STATUS_AGENDADO:
+            ag.status = Agendamento.STATUS_CONFIRMADO
+            db.session.commit()
+            audit(AuditLog.ACAO_AGENDAMENTO_CONFIRMADO_PUB,
+                  recurso_tipo="agendamento", recurso_id=ag.id)
+        return render_template("agenda/confirmar.html", ag=ag, confirmado=True)
+
+    confirmado = ag.status == Agendamento.STATUS_CONFIRMADO
+    return render_template("agenda/confirmar.html", ag=ag, confirmado=confirmado)
 
 
 @agenda_bp.route("/<int:agendamento_id>/editar", methods=["GET", "POST"])

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Confirmar consulta — Nous Clinical{% endblock %}
+{% block content %}
+<div class="confirma-card">
+  {% if erro == "link" %}
+    <h2>Link inválido</h2>
+    <p class="muted">Este link de confirmação é inválido ou expirou. Entre em contato com a clínica para confirmar sua consulta.</p>
+  {% elif erro == "estado" %}
+    <h2>Consulta indisponível</h2>
+    <p class="muted">Esta consulta foi {{ ag.status|status_label|lower }} e não pode ser confirmada por aqui. Entre em contato com a clínica.</p>
+  {% elif confirmado %}
+    <span class="confirma-selo">Presença confirmada</span>
+    <ul class="confirma-info">
+      <li><span>Paciente</span><strong>{{ ag.paciente.nome_completo }}</strong></li>
+      <li><span>Data e hora</span><strong>{{ ag.inicio|datetime_br }}</strong></li>
+      <li><span>Profissional</span><strong>{{ ag.profissional.nome }}</strong></li>
+    </ul>
+    <p class="muted">Tudo certo! Caso precise remarcar, fale com a clínica.</p>
+  {% else %}
+    <h2>Confirmar consulta</h2>
+    <p class="muted">Confira os dados e confirme sua presença:</p>
+    <ul class="confirma-info">
+      <li><span>Paciente</span><strong>{{ ag.paciente.nome_completo }}</strong></li>
+      <li><span>Data e hora</span><strong>{{ ag.inicio|datetime_br }}</strong></li>
+      <li><span>Profissional</span><strong>{{ ag.profissional.nome }}</strong></li>
+    </ul>
+    <form method="POST" data-no-validate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary btn-block">Confirmar presença</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

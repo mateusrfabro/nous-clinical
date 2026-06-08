@@ -79,7 +79,7 @@
             <a href="{{ url_for('agenda.editar', agendamento_id=ag.id) }}" class="btn-link">Editar</a>
             {% set wn = ag.paciente.telefone|wa_numero %}
             {% if wn %}
-            <a href="https://wa.me/{{ wn }}?text={{ ('Olá ' ~ ag.paciente.nome_completo ~ ', lembrete da sua consulta em ' ~ (ag.inicio|datetime_br) ~ ' com ' ~ ag.profissional.nome ~ '. Podemos confirmar?')|urlencode }}" target="_blank" rel="noopener" class="btn-link">Lembrete</a>
+            <a href="https://wa.me/{{ wn }}?text={{ ('Olá ' ~ ag.paciente.nome_completo ~ ', lembrete da sua consulta em ' ~ (ag.inicio|datetime_br) ~ ' com ' ~ ag.profissional.nome ~ '. Confirme sua presença em 1 clique: ' ~ url_confirmacao(ag))|urlencode }}" target="_blank" rel="noopener" class="btn-link">Lembrete</a>
             {% endif %}
             {% endif %}
           {% endif %}

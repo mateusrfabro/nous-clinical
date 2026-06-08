@@ -245,10 +245,19 @@ def create_app(config_name="default"):
         url = f"https://wa.me/{numero}" if numero else ""
         from app.permissions import tem_permissao
         from flask_login import current_user as _cu
+        from flask import url_for as _url_for
+
+        def _url_confirmacao(ag):
+            from app.services.tokens import gerar_token_confirmacao
+            return _url_for("agenda.confirmar_publico",
+                            token=gerar_token_confirmacao(ag.id), _external=True)
+
         return {
             "whatsapp_url": url,
             # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
             "pode": lambda permissao: tem_permissao(_cu, permissao),
+            # Link público de confirmação (WhatsApp) — token assinado.
+            "url_confirmacao": _url_confirmacao,
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.
