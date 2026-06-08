@@ -148,4 +148,4 @@ def test_agenda_renderiza_com_pagamento(client_recepcao):
     dia = ini.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat()
     r = client_recepcao.get(f"/agenda/?dia={dia}")
     assert r.status_code == 200
-    assert b"Pagamento" in r.data
+    assert b"Receber" in r.data

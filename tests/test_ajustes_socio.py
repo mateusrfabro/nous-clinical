@@ -39,7 +39,7 @@ def test_pagamento_link_na_agenda(client_recepcao):
     db.session.commit()
     dia = _hoje_br_iso(ag)
     h = client_recepcao.get(f"/agenda/?dia={dia}").data
-    assert b"Pagamento" in h
+    assert b"Receber" in h
     assert b"/financeiro/novo" in h
 
 
