@@ -14,22 +14,37 @@ atendimento (prontuário), gestor acompanha a operação e o financeiro. Nicho m
 com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 **Stack:** Flask + SQLAlchemy + Alembic + Jinja2 + CSS vanilla + JS vanilla CSP-safe.
 
-## 3 papéis do sistema (`Usuario.tipo`)
-1. **admin** — dono/gestor. Acessa tudo (agenda, pacientes, profissionais, prontuário).
-2. **profissional** — médico/profissional de saúde. Vê a própria agenda e registra
-   atendimento clínico (prontuário) dos próprios pacientes. Vinculado a `Profissional`.
-3. **recepcao** — recepcionista. Marca consultas e gerencia cadastro de pacientes,
-   mas **NÃO** acessa prontuário (dado sensível LGPD).
+## Papéis do sistema (`Usuario.tipo`) — multi-tenant por `clinica_id`
+1. **superadmin** — plataforma, cross-tenant (sem `clinica_id`). Gerencia clínicas
+   (`/clinicas`) e vê painel consolidado (totais cross-clínica). Não tem escopo.
+2. **admin** — dono/gestor da clínica. Acessa tudo da clínica, **inclusive Relatórios
+   e Auditoria** (`/auditoria`).
+3. **profissional** — médico. Vê a própria agenda, registra prontuário e **acessa a
+   tela de Pacientes limitada aos seus** (pacientes com quem tem agendamento).
+4. **recepcao** — recepcionista. Agenda, pacientes, financeiro e **Cadastro de Itens/
+   Convênios**. **NÃO** acessa prontuário (LGPD), **NÃO** vê Relatórios/Auditoria, e
+   **NÃO** vê/lança despesas de aluguel/salário/imposto no financeiro.
+
+> RBAC: decorators em `app/auth_decorators.py` (`superadmin_required`, `admin_required`,
+> `recepcao_ou_admin`, `clinico_required`, `equipe_required`=recepção+admin+profissional).
+> Matriz legível em `app/permissions.py` + global Jinja `pode(...)`.
 
 ## Modelos (`app/models.py`)
-- **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id).
-- **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor de agenda.
-- **Paciente** — cadastro (nome, CPF, nascimento, contato, convênio, observações).
-- **Agendamento** — paciente + profissional + início/fim + status + valor/convênio.
+- **Clinica** — tenant. Escopo automático via `app/services/tenant.py`.
+- **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id, clinica_id).
+- **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor,
+  `duracao_padrao_min`, `comissao_percent`, **`sala`**.
+- **Paciente** — cadastro (nome/CPF/nascimento **obrigatórios no form**, contato, endereço
+  via CEP, convênio, observações).
+- **Agendamento** — paciente + profissional + início/fim + status + valor/convênio + **sala**
+  (puxada do profissional) + checkin_em. Duração selecionável (30/60/90/120).
 - **Atendimento** — prontuário (queixa/evolução/prescrição). **Dado sensível LGPD.**
-- **LancamentoFinanceiro** — receita/despesa (categoria, valor, status pendente/pago/cancelado,
-  forma de pagamento, vencimento, pago_em). Liga opcional a paciente e a agendamento (1:1).
-- **AuditLog** — trilha de auditoria (constantes `ACAO_*`).
+- **LancamentoFinanceiro** — receita/despesa (categoria, valor, status, forma, vencimento,
+  pago_em). Liga opcional a paciente e a agendamento (1:1).
+- **Procedimento/PrecoConvenio/ItemAtendimento** — itens faturáveis + preço por convênio.
+- **Convenio** — cadastro centralizado de convênios (master data, por clínica). Datalist
+  global `#convenios` injetado em `base.html` via `convenios_ativos()`.
+- **AuditLog** — trilha de auditoria (constantes `ACAO_*`). Tela admin em `/auditoria`.
 
 ## Fluxo principal
 ```
