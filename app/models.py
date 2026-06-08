@@ -54,7 +54,7 @@ class Usuario(UserMixin, db.Model):
     # admin | profissional | recepcao
     tipo = db.Column(db.String(20), nullable=False, default="recepcao")
     ativo = db.Column(db.Boolean, nullable=False, default=True)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
 
     # Canal opcional de notificacao/reset de senha.
     telegram_chat_id = db.Column(db.String(40))
@@ -100,7 +100,7 @@ class Profissional(db.Model):
     # % de repasse/comissão sobre a receita recebida das consultas (0..100).
     comissao_percent = db.Column(Numeric(5, 2), nullable=False, default=0)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     usuario = db.relationship("Usuario", back_populates="profissional")
@@ -130,7 +130,7 @@ class Paciente(db.Model):
     observacoes = db.Column(db.Text)
 
     ativo = db.Column(db.Boolean, nullable=False, default=True)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
@@ -180,7 +180,7 @@ class Agendamento(db.Model):
     checkin_em = db.Column(db.DateTime(timezone=True))
     # Lembrete automático já enviado (idempotência do job de lembretes).
     lembrete_enviado_em = db.Column(db.DateTime(timezone=True))
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
 
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
@@ -226,7 +226,7 @@ class Atendimento(db.Model):
     # CRM Retorno (Fase 2): data de retorno recomendada pelo profissional.
     # Alimenta o painel de retornos pendentes. Nullable = sem retorno previsto.
     retorno_em = db.Column(db.Date)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
 
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
@@ -264,7 +264,7 @@ class Procedimento(db.Model):
     nome = db.Column(db.String(120), nullable=False)
     valor_padrao = db.Column(Numeric(12, 2), nullable=False, default=0)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     precos = db.relationship(
@@ -373,7 +373,7 @@ class LancamentoFinanceiro(db.Model):
     )
     convenio = db.Column(db.String(80))
 
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
@@ -411,7 +411,7 @@ class Exame(db.Model):
     arquivo_key = db.Column(db.String(255), nullable=False)
     content_type = db.Column(db.String(100))
     tamanho = db.Column(db.Integer)
-    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 

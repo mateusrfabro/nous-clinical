@@ -51,6 +51,14 @@ def seed():
     app = create_app(os.getenv("FLASK_ENV", "development") == "production"
                      and "production" or "development")
     with app.app_context():
+        # Clínica (tenant) PRIMEIRO — assim tudo já nasce com clinica_id
+        # (before_flush usa a única clínica como fallback).
+        clinica = Clinica.query.first()
+        if not clinica:
+            clinica = Clinica(nome="Clínica Nous", slug="nous")
+            db.session.add(clinica)
+            db.session.flush()
+
         # Admin + recepcao
         _get_or_create_usuario("admin@nous.com", "Administrador", "admin")
         _get_or_create_usuario("recepcao@nous.com", "Recepção", "recepcao")
