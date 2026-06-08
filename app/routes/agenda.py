@@ -471,10 +471,13 @@ def agendar_online():
         # Fluxo anônimo: SEMPRE cria um cadastro novo (nunca reusa por telefone
         # — evitaria vazar/sequestrar o cadastro de terceiros). A recepção
         # deduplica/verifica depois.
+        # Rota pública (sem usuário logado): a clínica vem do profissional
+        # escolhido (multi-tenant — não depende do fallback de clínica única).
         paciente = Paciente(
             nome_completo=nome, telefone=telefone,
             convenio=request.form.get("convenio", "").strip() or None,
-            observacoes="Cadastro via agendamento online (a verificar).")
+            observacoes="Cadastro via agendamento online (a verificar).",
+            clinica_id=profissional.clinica_id)
         db.session.add(paciente)
         db.session.flush()
 
@@ -482,7 +485,8 @@ def agendar_online():
             paciente_id=paciente.id, profissional_id=profissional.id,
             inicio=inicio, fim=fim, status=Agendamento.STATUS_AGENDADO,
             convenio=request.form.get("convenio", "").strip() or None,
-            observacoes=request.form.get("observacoes", "").strip()[:500] or None)
+            observacoes=request.form.get("observacoes", "").strip()[:500] or None,
+            clinica_id=profissional.clinica_id)
         db.session.add(ag)
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",

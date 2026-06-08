@@ -51,6 +51,8 @@ def create_app(config_name="default"):
     login_manager.init_app(app)
     csrf.init_app(app)
     from app import models  # noqa: F401
+    from app.services.tenant import init_tenant
+    init_tenant(db)
     migrate.init_app(app, db, render_as_batch=True)
     limiter.init_app(app)
     cache.init_app(app)
@@ -141,6 +143,14 @@ def create_app(config_name="default"):
         # Renova a janela de inatividade e mantem o TTL absoluto valido.
         session.permanent = True
         session["_ultima_atividade"] = agora
+
+    # ---- Tenant atual (multi-tenant): clinica do usuario logado em g ----
+    @app.before_request
+    def _set_clinica_atual():
+        from flask import g
+        from flask_login import current_user
+        g.clinica_id = (current_user.clinica_id
+                        if current_user.is_authenticated else None)
 
     from app.routes.auth import auth_bp
     from app.routes.main import main_bp

@@ -1,7 +1,6 @@
-"""Multi-tenant Fase 0: existe a clínica (tenant) e o seed está vinculado.
-
-Fase 0 é fundação não-quebra: clinica_id é nullable e ainda NÃO há escopo
-automático. Estes testes travam a base para a Fase 1 (enforcement)."""
+"""Multi-tenant Fase 0 + Fase 1: tenant existe, seed vinculado e ISOLAMENTO
+entre clínicas (escopo automático nas leituras)."""
+from app import db
 from app.models import Clinica, Usuario, Paciente, Profissional, Agendamento
 
 
@@ -15,3 +14,33 @@ def test_seed_vinculado_a_clinica(app):
     assert Profissional.query.first().clinica_id == c.id
     assert Paciente.query.first().clinica_id == c.id
     assert Agendamento.query.first().clinica_id == c.id
+
+
+# ---- Fase 1: isolamento entre clínicas (escopo automático) ----
+
+def test_isolamento_lista_e_busca(client_admin):
+    """Admin da clínica T não vê paciente de outra clínica (B) na lista nem
+    na busca rápida — o escopo automático filtra por clinica_id."""
+    cb = Clinica(nome="Clínica B", slug="b")
+    db.session.add(cb)
+    db.session.flush()
+    db.session.add(Paciente(nome_completo="Paciente Da Clinica B",
+                            telefone="11900000000", clinica_id=cb.id))
+    db.session.commit()
+
+    r = client_admin.get("/pacientes/")
+    assert r.status_code == 200
+    assert b"Paciente Da Clinica B" not in r.data      # lista escopada
+    assert b"Paciente Teste" in r.data                 # vê os da própria clínica
+
+    busca = client_admin.get("/buscar?q=Clinica B").get_json()
+    assert busca["pacientes"] == []                    # busca não vaza
+
+
+def test_criacao_herda_clinica_do_usuario(client_admin):
+    # Paciente criado por admin (clínica T) nasce com a clínica dele.
+    client_admin.post("/pacientes/novo",
+                      data={"nome_completo": "Novo Da T"}, follow_redirects=True)
+    p = Paciente.query.filter_by(nome_completo="Novo Da T").first()
+    c = Clinica.query.filter_by(slug="teste").first()
+    assert p is not None and p.clinica_id == c.id
