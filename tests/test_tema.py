@@ -95,3 +95,52 @@ def test_remover_logo(client_admin):
     client_admin.post("/configuracoes/logo/remover", follow_redirects=True)
     c = Clinica.query.filter_by(slug="teste").first()
     assert c.logo_key is None
+
+
+# ---- Cor de marca livre (white-label v2b) ----
+
+def test_salva_cor_e_serve_tema_css(client_admin):
+    r = client_admin.post("/configuracoes/cor",
+                          data={"cor": "#8E44AD"}, follow_redirects=True)
+    assert r.status_code == 200
+    c = Clinica.query.filter_by(slug="teste").first()
+    assert c.cor_primaria == "#8e44ad"
+    # /tema.css reflete a cor e é servido como text/css
+    css = client_admin.get("/configuracoes/tema.css")
+    assert css.mimetype == "text/css"
+    assert b"#8e44ad" in css.data
+    assert b"--brand-primary-rgb: 142, 68, 173" in css.data
+    # o <link> do tema.css entra no <head>
+    pg = client_admin.get("/agenda/")
+    assert b"configuracoes/tema.css" in pg.data or b"tema.css" in pg.data
+
+
+def test_cor_invalida_rejeitada(client_admin):
+    client_admin.post("/configuracoes/cor", data={"cor": "roxo"},
+                      follow_redirects=True)
+    c = Clinica.query.filter_by(slug="teste").first()
+    assert c.cor_primaria is None
+
+
+def test_remove_cor(client_admin):
+    client_admin.post("/configuracoes/cor", data={"cor": "#123456"},
+                      follow_redirects=True)
+    client_admin.post("/configuracoes/cor/remover", follow_redirects=True)
+    c = Clinica.query.filter_by(slug="teste").first()
+    assert c.cor_primaria is None
+    # sem cor, o tema.css volta vazio
+    assert client_admin.get("/configuracoes/tema.css").data.strip() == b""
+
+
+def test_cor_so_admin(client_recepcao):
+    assert client_recepcao.post("/configuracoes/cor",
+                                data={"cor": "#000000"}).status_code in (301, 302)
+
+
+def test_contraste_automatico():
+    from app.services.cores import texto_sobre, hex_to_rgb, css_para_cor
+    # cor clara -> texto navy; cor escura -> texto off-white
+    assert texto_sobre(hex_to_rgb("#FDE68A")) == "#1E293B"   # amarelo claro
+    assert texto_sobre(hex_to_rgb("#1A1A2E")) == "#F8FAF8"   # azul escuro
+    assert "--brand-verde-claro: #8e44ad" in css_para_cor("#8E44AD")
+    assert css_para_cor("xyz") == ""                          # inválida

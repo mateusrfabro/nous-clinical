@@ -27,6 +27,28 @@
     <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline mt-4">Voltar</a>
   </form>
 
+  <div class="page-header section-title-mt"><h3>Cor de marca personalizada</h3></div>
+  <p class="muted text-sm mb-2">Quer uma cor exata da sua marca? Escolha aqui — ela sobrescreve o tema na cor primária, e o contraste do texto é ajustado automaticamente. Deixe em branco pra usar o tema acima.</p>
+  <div class="card">
+    {% if clinica.cor_primaria %}
+    <p class="muted text-sm mb-2">Cor atual: <strong>{{ clinica.cor_primaria }}</strong> (sobrescrevendo o tema).</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('configuracoes.cor_salvar') }}" class="toolbar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="cor">Cor primária</label>
+        <input type="color" id="cor" name="cor" value="{{ clinica.cor_primaria or '#43B8A5' }}" data-cor-preview>
+      </div>
+      <button type="submit" class="btn btn-primary">Aplicar cor</button>
+    </form>
+    {% if clinica.cor_primaria %}
+    <form method="POST" action="{{ url_for('configuracoes.cor_remover') }}" class="inline-form mt-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-link">Remover cor (voltar ao tema)</button>
+    </form>
+    {% endif %}
+  </div>
+
   <div class="page-header section-title-mt"><h3>Logo da clínica</h3></div>
   <p class="muted text-sm mb-2">Aparece no topo do sistema no lugar da marca Nous. PNG, JPG ou WEBP — até 5MB. Fundo transparente (PNG) fica melhor.</p>
   <div class="card">

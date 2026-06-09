@@ -304,6 +304,7 @@ def create_app(config_name="default"):
             _logo_url = _url_for("configuracoes.logo_servir",
                                  clinica_id=_clinica_wl.id,
                                  v=_clinica_wl.logo_key[:8])
+        _cor = _clinica_wl.cor_primaria if _clinica_wl else None
 
         return {
             "whatsapp_url": url,
@@ -313,9 +314,10 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
-            # White-label: tema (classe no <body>) + logo da clínica.
+            # White-label: tema (classe no <body>) + logo + cor livre da clínica.
             "tema_clinica": _tema,
             "clinica_logo_url": _logo_url,
+            "clinica_cor": _cor,
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.

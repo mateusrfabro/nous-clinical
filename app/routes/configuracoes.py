@@ -8,11 +8,14 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
+from flask import Response
+
 from app import db
 from app.auth_decorators import admin_required
 from app.models import Clinica, AuditLog
 from app.services.audit import audit
 from app.services.storage import get_storage
+from app.services.cores import hex_to_rgb, css_para_cor
 
 configuracoes_bp = Blueprint("configuracoes", __name__,
                              url_prefix="/configuracoes")
@@ -108,6 +111,52 @@ def logo_remover():
         get_storage().delete(key)
         flash("Logo removida.", "success")
     return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/cor", methods=["POST"])
+@login_required
+@admin_required
+def cor_salvar():
+    """Salva a cor de marca livre (v2b). Sobrescreve o tema na primária."""
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+    cor = (request.form.get("cor", "") or "").strip()
+    if hex_to_rgb(cor) is None:
+        flash("Cor inválida.", "error")
+        return redirect(url_for("configuracoes.aparencia"))
+    clinica.cor_primaria = cor.lower()
+    db.session.commit()
+    audit(AuditLog.ACAO_CLINICA_STATUS, recurso_tipo="clinica",
+          recurso_id=clinica.id, detalhes=f"cor={cor.lower()}")
+    flash("Cor de marca atualizada — recarregue para ver em todo o sistema.",
+          "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/cor/remover", methods=["POST"])
+@login_required
+@admin_required
+def cor_remover():
+    clinica = _minha_clinica()
+    if clinica and clinica.cor_primaria:
+        clinica.cor_primaria = None
+        db.session.commit()
+        flash("Cor personalizada removida — voltou ao tema.", "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/tema.css")
+@login_required
+def tema_css():
+    """CSS por clínica (cor de marca livre). Servido como text/css de 'self'
+    -> CSP-safe. Vazio se a clínica não tem cor personalizada."""
+    clinica = _minha_clinica()
+    css = css_para_cor(clinica.cor_primaria) if (clinica and clinica.cor_primaria) else ""
+    resp = Response(css, mimetype="text/css")
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @configuracoes_bp.route("/logo/<int:clinica_id>")
