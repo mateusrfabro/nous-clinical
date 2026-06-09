@@ -26,5 +26,29 @@
     <button type="submit" class="btn btn-primary mt-4">Salvar aparência</button>
     <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline mt-4">Voltar</a>
   </form>
+
+  <div class="page-header section-title-mt"><h3>Logo da clínica</h3></div>
+  <p class="muted text-sm mb-2">Aparece no topo do sistema no lugar da marca Nous. PNG, JPG ou WEBP — até 5MB. Fundo transparente (PNG) fica melhor.</p>
+  <div class="card">
+    {% if clinica.logo_key %}
+    <div class="logo-atual">
+      <img src="{{ url_for('configuracoes.logo_servir', clinica_id=clinica.id, v=clinica.logo_key[:8]) }}" alt="Logo atual da clínica">
+      <form method="POST" action="{{ url_for('configuracoes.logo_remover') }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-link" data-confirm="Remover a logo da clínica?">Remover logo</button>
+      </form>
+    </div>
+    {% else %}
+    <p class="muted text-sm mb-2">Nenhuma logo enviada — usando a marca Nous.</p>
+    {% endif %}
+    <form method="POST" action="{{ url_for('configuracoes.logo_upload') }}" enctype="multipart/form-data" class="toolbar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group form-group-flex-main">
+        <label for="logo">{{ 'Trocar logo' if clinica.logo_key else 'Enviar logo' }}</label>
+        <input type="file" id="logo" name="logo" accept=".png,.jpg,.jpeg,.webp" required>
+      </div>
+      <button type="submit" class="btn btn-outline">Enviar</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

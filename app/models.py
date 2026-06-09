@@ -39,6 +39,11 @@ class Clinica(db.Model):
     # White-label: tema de marca da clínica (classe CSS body.tema-<tema>).
     # Valores: teal (padrão) | indigo | violeta | verde | ambar | petroleo.
     tema = db.Column(db.String(20), nullable=False, default="teal")
+    # Cor de marca livre (v2b) — sobrescreve o tema quando definida (#rrggbb).
+    cor_primaria = db.Column(db.String(7))
+    # Logo da clínica (v2a): chave opaca no storage + content-type confiável.
+    logo_key = db.Column(db.String(255))
+    logo_mime = db.Column(db.String(60))
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 

@@ -1,14 +1,31 @@
-"""Configurações da clínica (admin). Por ora: Aparência (white-label / tema)."""
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+"""Configurações da clínica (admin): Aparência — white-label (tema + logo)."""
+import io
+import os
+
+from flask import (
+    Blueprint, render_template, redirect, url_for, flash, request,
+    send_file, abort,
+)
 from flask_login import login_required, current_user
 
 from app import db
 from app.auth_decorators import admin_required
 from app.models import Clinica, AuditLog
 from app.services.audit import audit
+from app.services.storage import get_storage
 
 configuracoes_bp = Blueprint("configuracoes", __name__,
                              url_prefix="/configuracoes")
+
+# Logo: só raster (NUNCA SVG — risco de XSS). content-type vem da extensão
+# validada, nunca do mimetype enviado pelo cliente.
+_LOGO_EXT_MIME = {".png": "image/png", ".jpg": "image/jpeg",
+                  ".jpeg": "image/jpeg", ".webp": "image/webp"}
+
+
+def _minha_clinica():
+    return (db.session.get(Clinica, current_user.clinica_id)
+            if current_user.clinica_id else None)
 
 # (chave do tema, rótulo, descrição curta)
 TEMAS = [
@@ -26,8 +43,7 @@ _TEMAS_VALIDOS = {k for k, _, _ in TEMAS}
 @login_required
 @admin_required
 def aparencia():
-    clinica = (db.session.get(Clinica, current_user.clinica_id)
-               if current_user.clinica_id else None)
+    clinica = _minha_clinica()
     if not clinica:
         flash("Clínica não encontrada.", "error")
         return redirect(url_for("main.dashboard"))
@@ -47,3 +63,66 @@ def aparencia():
 
     return render_template("configuracoes/aparencia.html",
                            temas=TEMAS, atual=clinica.tema, clinica=clinica)
+
+
+@configuracoes_bp.route("/logo", methods=["POST"])
+@login_required
+@admin_required
+def logo_upload():
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        flash("Selecione um arquivo de imagem.", "error")
+        return redirect(url_for("configuracoes.aparencia"))
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in _LOGO_EXT_MIME:
+        flash("Formato não suportado. Use PNG, JPG ou WEBP.", "error")
+        return redirect(url_for("configuracoes.aparencia"))
+
+    antiga = clinica.logo_key
+    key = get_storage().save(file, subdir="logos", original_name=file.filename)
+    clinica.logo_key = key
+    clinica.logo_mime = _LOGO_EXT_MIME[ext]
+    db.session.commit()
+    if antiga:                       # remove a logo anterior do storage
+        get_storage().delete(antiga)
+    audit(AuditLog.ACAO_CLINICA_STATUS, recurso_tipo="clinica",
+          recurso_id=clinica.id, detalhes="logo_atualizada")
+    flash("Logo atualizada.", "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/logo/remover", methods=["POST"])
+@login_required
+@admin_required
+def logo_remover():
+    clinica = _minha_clinica()
+    if clinica and clinica.logo_key:
+        key = clinica.logo_key
+        clinica.logo_key = None
+        clinica.logo_mime = None
+        db.session.commit()
+        get_storage().delete(key)
+        flash("Logo removida.", "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/logo/<int:clinica_id>")
+@login_required
+def logo_servir(clinica_id):
+    """Serve a logo de uma clínica (brand asset, não-sensível). Acesso: a
+    própria clínica ou superadmin. content-type confiável (da extensão)."""
+    if not (current_user.is_superadmin or current_user.clinica_id == clinica_id):
+        abort(403)
+    clinica = db.session.get(Clinica, clinica_id)
+    if not clinica or not clinica.logo_key:
+        abort(404)
+    try:
+        dados = get_storage().read(clinica.logo_key)
+    except FileNotFoundError:
+        abort(404)
+    return send_file(io.BytesIO(dados),
+                     mimetype=clinica.logo_mime or "image/png")

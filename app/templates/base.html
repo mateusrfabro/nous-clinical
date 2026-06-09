@@ -26,6 +26,11 @@
 {% endmacro %}
 
 {% macro brand(href) %}
+    {% if clinica_logo_url %}
+    <a href="{{ href }}" class="brand-link brand-link-logo" aria-label="{{ current_user.clinica_id and 'Logo da clínica' or 'Nous Clinical' }}">
+        <img class="brand-logo" src="{{ clinica_logo_url }}" alt="Logo da clínica">
+    </a>
+    {% else %}
     <a href="{{ href }}" class="brand-link" aria-label="Nous Clinical">
         <svg class="logo-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
             <defs>
@@ -44,6 +49,7 @@
             <span class="logo-tagline">Clinical</span>
         </span>
     </a>
+    {% endif %}
 {% endmacro %}
 
 {% if current_user.is_authenticated %}

@@ -289,19 +289,21 @@ def create_app(config_name="default"):
             except Exception:
                 return []
 
-        def _tema_clinica():
-            """Tema de marca (white-label) da clínica do usuário logado.
-            Default 'teal' (público/superadmin sem clínica)."""
-            from app.models import Clinica
-            try:
-                if (getattr(_cu, "is_authenticated", False)
-                        and not _cu.is_superadmin and _cu.clinica_id):
-                    cl = db.session.get(Clinica, _cu.clinica_id)
-                    if cl and cl.tema:
-                        return cl.tema
-            except Exception:
-                pass
-            return "teal"
+        # White-label: 1 lookup da clínica do usuário -> tema + logo.
+        _clinica_wl = None
+        try:
+            if (getattr(_cu, "is_authenticated", False)
+                    and not _cu.is_superadmin and _cu.clinica_id):
+                from app.models import Clinica
+                _clinica_wl = db.session.get(Clinica, _cu.clinica_id)
+        except Exception:
+            _clinica_wl = None
+        _tema = _clinica_wl.tema if (_clinica_wl and _clinica_wl.tema) else "teal"
+        _logo_url = None
+        if _clinica_wl and _clinica_wl.logo_key:
+            _logo_url = _url_for("configuracoes.logo_servir",
+                                 clinica_id=_clinica_wl.id,
+                                 v=_clinica_wl.logo_key[:8])
 
         return {
             "whatsapp_url": url,
@@ -311,8 +313,9 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
-            # Tema de marca da clínica (white-label) -> classe no <body>.
-            "tema_clinica": _tema_clinica(),
+            # White-label: tema (classe no <body>) + logo da clínica.
+            "tema_clinica": _tema,
+            "clinica_logo_url": _logo_url,
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.
