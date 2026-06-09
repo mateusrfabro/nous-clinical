@@ -12,6 +12,7 @@
 <p class="muted mb-4">Pacientes com retorno recomendado pelo profissional que ainda não reagendaram. {{ linhas|length }} pendente(s).</p>
 
 {% if linhas %}
+<div class="table-wrapper">
 <table class="table">
   <thead>
     <tr><th>Paciente</th><th>Retorno</th><th>Profissional</th><th>Telefone</th><th>Ações</th></tr>
@@ -44,6 +45,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum retorno pendente nesta janela.</p></div>
 {% endif %}

@@ -20,6 +20,7 @@
 
 <div class="page-header section-title-mt"><h3>Histórico de consultas</h3></div>
 {% if paciente.agendamentos %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Data</th><th>Profissional</th><th>Status</th>{% if pode_ver_prontuario %}<th>Prontuário</th>{% endif %}</tr></thead>
   <tbody>
@@ -39,6 +40,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta registrada.</p></div>
 {% endif %}
@@ -48,6 +50,7 @@
 {% set total_pago = paciente.lancamentos|selectattr('status','equalto','pago')|map(attribute='valor')|sum %}
 {% set total_pendente = paciente.lancamentos|selectattr('status','equalto','pendente')|map(attribute='valor')|sum %}
 <p class="muted">Pago: <span class="economia-pos">{{ total_pago|brl }}</span> &middot; Em aberto: {{ total_pendente|brl }}</p>
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th></tr></thead>
   <tbody>
@@ -62,6 +65,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum lançamento financeiro.</p></div>
 {% endif %}

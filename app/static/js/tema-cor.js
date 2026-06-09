@@ -15,13 +15,19 @@
     });
     return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
   }
+  // Mesma decisão do servidor (cores.texto_sobre): contraste WCAG navy x off-white.
+  var NAVY = [30, 41, 59], OFFWHITE = [248, 250, 248];
+  function contraste(a, b) {
+    var la = lum(a), lb = lum(b), hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
   function hx(v) { return ("0" + Math.round(v).toString(16)).slice(-2); }
   function aplica(hex) {
     var c = rgb(hex), b = document.body;
     b.style.setProperty("--brand-verde-claro", hex);
     b.style.setProperty("--brand-primary-rgb", c.join(", "));
     b.style.setProperty("--primary-dark", "#" + c.map(function (v) { return hx(v * 0.84); }).join(""));
-    b.style.setProperty("--text-on-ouro", lum(c) > 0.4 ? "#1E293B" : "#F8FAF8");
+    b.style.setProperty("--text-on-ouro", contraste(c, NAVY) >= contraste(c, OFFWHITE) ? "#1E293B" : "#F8FAF8");
   }
   document.addEventListener("DOMContentLoaded", function () {
     var inp = document.querySelector("[data-cor-preview]");

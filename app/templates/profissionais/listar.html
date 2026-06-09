@@ -6,6 +6,7 @@
   <a href="{{ url_for('profissionais.novo') }}" class="btn btn-primary">+ Novo profissional</a>
 </div>
 {% if profissionais %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Nome</th><th>Especialidade</th><th>Conselho</th><th>Comissão</th><th>Status</th><th>Ações</th></tr></thead>
   <tbody>
@@ -21,6 +22,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum profissional cadastrado.</p></div>
 {% endif %}

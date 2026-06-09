@@ -22,6 +22,7 @@
 </form>
 
 {% if pacientes %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Nome</th><th>Telefone</th><th>Convênio</th><th>Idade</th><th></th></tr></thead>
   <tbody>
@@ -36,6 +37,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum paciente encontrado.</p></div>
 {% endif %}

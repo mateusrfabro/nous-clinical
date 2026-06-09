@@ -45,10 +45,12 @@
   <span class="tag tag-info">{{ total_receber|brl }}</span>
 </div>
 {% if a_receber %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th>Valor</th><th>Ações</th></tr></thead>
   <tbody>{% for l in a_receber %}{{ linha(l) }}{% endfor %}</tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma conta a receber em aberto.</p></div>
 {% endif %}
@@ -58,10 +60,12 @@
   <span class="tag tag-danger">{{ total_pagar|brl }}</span>
 </div>
 {% if a_pagar %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th>Valor</th><th>Ações</th></tr></thead>
   <tbody>{% for l in a_pagar %}{{ linha(l) }}{% endfor %}</tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma conta a pagar em aberto.</p></div>
 {% endif %}
