@@ -48,7 +48,7 @@
 
 {% if current_user.is_authenticated %}
 {# ===================== APP SHELL (logado) ===================== #}
-<body class="app">
+<body class="app tema-{{ tema_clinica }}">
     <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
     <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle" aria-hidden="true">
 
@@ -103,6 +103,10 @@
             <a class="nav-item" href="{{ url_for('profissionais.listar') }}" {{ 'aria-current="page"'|safe if ep.startswith('profissionais.') }}>
                 <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
                 <span>Profissionais</span>
+            </a>
+            <a class="nav-item" href="{{ url_for('configuracoes.aparencia') }}" {{ 'aria-current="page"'|safe if ep.startswith('configuracoes.') }}>
+                <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="12" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.5-.7 1.5-1.5 0-1-1-1.5-1-2.5s.7-1.5 1.5-1.5H17a5 5 0 0 0 5-5c0-5-4.5-9-10-9z"/></svg>
+                <span>Aparência</span>
             </a>
             {% endif %}
         </nav>
@@ -190,5 +194,6 @@
     <script src="{{ url_for('static', filename='js/cep-lookup.js') }}"></script>
     <script src="{{ url_for('static', filename='js/phone-mask.js') }}"></script>
     <script src="{{ url_for('static', filename='js/item-busca.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tema-preview.js') }}"></script>
 </body>
 </html>

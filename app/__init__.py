@@ -168,6 +168,7 @@ def create_app(config_name="default"):
     from app.routes.perfil import perfil_bp
     from app.routes.clinicas import clinicas_bp
     from app.routes.auditoria import auditoria_bp
+    from app.routes.configuracoes import configuracoes_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -253,6 +254,7 @@ def create_app(config_name="default"):
     app.register_blueprint(perfil_bp)
     app.register_blueprint(clinicas_bp)
     app.register_blueprint(auditoria_bp)
+    app.register_blueprint(configuracoes_bp)
 
     from app.commands import register_commands
     register_commands(app)
@@ -287,6 +289,20 @@ def create_app(config_name="default"):
             except Exception:
                 return []
 
+        def _tema_clinica():
+            """Tema de marca (white-label) da clínica do usuário logado.
+            Default 'teal' (público/superadmin sem clínica)."""
+            from app.models import Clinica
+            try:
+                if (getattr(_cu, "is_authenticated", False)
+                        and not _cu.is_superadmin and _cu.clinica_id):
+                    cl = db.session.get(Clinica, _cu.clinica_id)
+                    if cl and cl.tema:
+                        return cl.tema
+            except Exception:
+                pass
+            return "teal"
+
         return {
             "whatsapp_url": url,
             # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
@@ -295,6 +311,8 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
+            # Tema de marca da clínica (white-label) -> classe no <body>.
+            "tema_clinica": _tema_clinica(),
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.

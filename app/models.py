@@ -36,6 +36,9 @@ class Clinica(db.Model):
     nome = db.Column(db.String(150), nullable=False)
     # Identificador curto (futuro subdomínio/slug de URL). Único quando definido.
     slug = db.Column(db.String(60), unique=True)
+    # White-label: tema de marca da clínica (classe CSS body.tema-<tema>).
+    # Valores: teal (padrão) | indigo | violeta | verde | ambar | petroleo.
+    tema = db.Column(db.String(20), nullable=False, default="teal")
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 

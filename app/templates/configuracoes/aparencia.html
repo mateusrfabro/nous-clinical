@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Aparência — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>Aparência da clínica</h2></div>
+  <p class="muted mb-4">Escolha a cor de marca da <strong>{{ clinica.nome }}</strong>. Ela recolore botões, agenda, indicadores e destaques em todo o sistema — a sua identidade, não um template genérico.</p>
+
+  <form method="POST" action="{{ url_for('configuracoes.aparencia') }}" class="card" data-tema-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="tema-grid">
+      {% for chave, rotulo, desc in temas %}
+      <label class="tema-opcao tema-{{ chave }} {{ 'is-sel' if atual == chave }}">
+        <input type="radio" name="tema" value="{{ chave }}" {{ 'checked' if atual == chave }} data-tema-radio>
+        <span class="tema-amostra" aria-hidden="true">
+          <span class="tema-amostra-primaria"></span>
+          <span class="tema-amostra-accent"></span>
+          <span class="tema-amostra-btn">Botão</span>
+        </span>
+        <span class="tema-meta">
+          <strong>{{ rotulo }}</strong>
+          <span class="muted text-sm">{{ desc }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary mt-4">Salvar aparência</button>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline mt-4">Voltar</a>
+  </form>
+</div>
+{% endblock %}

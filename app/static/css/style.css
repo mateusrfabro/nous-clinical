@@ -40,7 +40,7 @@
 .form-group-flex-main { flex: 1; min-width: 200px; margin-bottom: 0; }
 
 /* Cards destacados com borda lateral colorida — tinta sutil sobre card claro. */
-.card-hl-primary { border-left: 4px solid var(--primary); background: rgba(67, 184, 165, 0.10); }
+.card-hl-primary { border-left: 4px solid var(--primary); background: rgba(var(--brand-primary-rgb), 0.10); }
 .card-hl-success { border-left: 4px solid var(--success); background: rgba(22, 163, 74, 0.08); }
 .card-hl-warning { border-left: 4px solid var(--warning); background: rgba(245, 158, 11, 0.10); }
 
@@ -72,6 +72,12 @@
     --brand-grafite:      #FFFFFF;  /* surface/card/navbar (branco) */
     --brand-cinza-claro:  #EEF2F1;  /* texto CLARO p/ uso sobre navy/cor */
     --brand-paper:        #F8FAF8;  /* off-white base do tema claro */
+
+    /* PRIMITIVOS RGB da marca — alimentam os rgba() dinâmicos (glow, tints,
+       hovers) e permitem a tematização por clínica (body.tema-*). Mantê-los
+       em sincronia com --brand-verde-claro / --brand-ouro. */
+    --brand-primary-rgb: 67, 184, 165;   /* teal  (= --brand-verde-claro) */
+    --brand-accent-rgb:  183, 167, 245;  /* lilás (= --brand-ouro)        */
 
     /* Tokens semanticos — TEMA CLARO. */
     --bg-page:        #EDF2F1;            /* fundo geral off-white esverdeado */
@@ -112,7 +118,7 @@
     --radius:         8px;
 
     /* Realce teal discreto — usado em hover de CTAs, focos, cards. */
-    --glow-verde:     0 6px 18px -6px rgba(67, 184, 165, 0.45);
+    --glow-verde:     0 6px 18px -6px rgba(var(--brand-primary-rgb), 0.45);
 
     /* Tipografia oficial: Sora/Poppins/Inter (family). Poppins no wordmark,
        Sora em titulos, Inter no corpo. Google Fonts no base.html. */
@@ -130,6 +136,44 @@
     --space-7: 80px;
 }
 
+/* ============================================================
+   WHITE-LABEL POR CLÍNICA — temas de marca (v1, paleta curada).
+   A classe vai no <body> (ex.: body.tema-indigo). Sobrescreve APENAS os
+   tokens de MARCA (primária/accent + rgb + texto-sobre-primária). Fundo
+   off-white e ink navy ficam fixos. Contraste WCAG AA garantido por tema.
+   --primary (=var --brand-verde-claro) e --glow (=rgba --brand-primary-rgb)
+   acompanham automaticamente. ============================================ */
+.tema-teal {            /* padrão Nous — teal + lilás */
+    --brand-verde-claro: #43B8A5; --primary-dark: #2F9E8C; --primary-text: #0F766E;
+    --text-on-ouro: #1E293B; --brand-ouro: #B7A7F5; --accent: #6D4FC4;
+    --brand-primary-rgb: 67, 184, 165; --brand-accent-rgb: 183, 167, 245;
+}
+.tema-indigo {          /* Confiança — índigo + céu */
+    --brand-verde-claro: #4F5BD5; --primary-dark: #3F49B0; --primary-text: #3730A3;
+    --text-on-ouro: #F8FAF8; --brand-ouro: #38BDF8; --accent: #0369A1;
+    --brand-primary-rgb: 79, 91, 213; --brand-accent-rgb: 56, 189, 248;
+}
+.tema-violeta {         /* Sofisticação — violeta + rosé */
+    --brand-verde-claro: #6D4DCB; --primary-dark: #5B3FB0; --primary-text: #5B21B6;
+    --text-on-ouro: #F8FAF8; --brand-ouro: #F0A6C8; --accent: #BE185D;
+    --brand-primary-rgb: 109, 77, 203; --brand-accent-rgb: 240, 166, 200;
+}
+.tema-verde {           /* Saúde — esmeralda + azul-clínico */
+    --brand-verde-claro: #2E9E6B; --primary-dark: #25895C; --primary-text: #15803D;
+    --text-on-ouro: #1E293B; --brand-ouro: #5EB0C9; --accent: #0E7490;
+    --brand-primary-rgb: 46, 158, 107; --brand-accent-rgb: 94, 176, 201;
+}
+.tema-ambar {           /* Acolhimento — âmbar + azul sereno */
+    --brand-verde-claro: #E08A3C; --primary-dark: #C5772E; --primary-text: #B45309;
+    --text-on-ouro: #1E293B; --brand-ouro: #5B8DC9; --accent: #1D4ED8;
+    --brand-primary-rgb: 224, 138, 60; --brand-accent-rgb: 91, 141, 201;
+}
+.tema-petroleo {        /* Serenidade — azul-petróleo + ouro suave */
+    --brand-verde-claro: #246A7B; --primary-dark: #1D5666; --primary-text: #155E75;
+    --text-on-ouro: #F8FAF8; --brand-ouro: #E2B25E; --accent: #92681A;
+    --brand-primary-rgb: 36, 106, 123; --brand-accent-rgb: 226, 178, 94;
+}
+
 /* Tema claro — hint pro browser pintar scrollbar/form controls em modo claro. */
 html { color-scheme: light; }
 
@@ -143,13 +187,13 @@ body {
     /* Wash teal/sage radial sutil no topo — assina a marca sem distrair.
        Fica fixo enquanto rola pra dar sensacao de "iluminacao de cima". */
     background-image:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(67, 184, 165, 0.08), transparent 70%);
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(var(--brand-primary-rgb), 0.08), transparent 70%);
     background-attachment: fixed;
 }
 
 /* Links — teal escuro (cor primaria da marca) sobre fundo claro. */
 a { color: var(--primary-text); }
-a:hover { color: #0b5e54; }
+a:hover { color: var(--primary-dark); }
 
 /* Form controls nativos em dark. Browser ja respeita color-scheme: dark
    acima, mas reforca pra consistencia entre engines. */
@@ -317,7 +361,7 @@ h1, h2, h3, h4, h5, h6 {
     inset: -10% -20%;
     background:
         radial-gradient(ellipse 50% 70% at 5% 90%, rgba(22, 163, 74, 0.20), transparent 70%),
-        radial-gradient(ellipse 45% 60% at 95% 5%, rgba(183, 167, 245, 0.12), transparent 70%);
+        radial-gradient(ellipse 45% 60% at 95% 5%, rgba(var(--brand-accent-rgb), 0.12), transparent 70%);
     pointer-events: none;
     z-index: -1;
 }
@@ -538,7 +582,7 @@ button[aria-disabled="true"] {
 }
 .btn-primary {
     background: var(--brand-verde-claro);
-    color: var(--text-primary);
+    color: var(--text-on-ouro);   /* tematizável: navy em primária clara, claro em escura */
     border-color: var(--brand-verde-claro);
 }
 .btn-primary:hover {
@@ -553,7 +597,7 @@ button[aria-disabled="true"] {
 }
 .btn-outline:hover {
     background: var(--brand-verde-claro);
-    color: var(--text-primary);
+    color: var(--text-on-ouro);
     box-shadow: var(--glow-verde);
 }
 .btn-lg { padding: 0.8rem 2rem; font-size: 1rem; }
@@ -663,7 +707,7 @@ button[aria-disabled="true"] {
     inset: -10% -20%;
     background:
         radial-gradient(ellipse 55% 70% at 15% 90%, rgba(22, 163, 74, 0.50), transparent 70%),
-        radial-gradient(ellipse 50% 60% at 90% 10%, rgba(183, 167, 245, 0.18), transparent 70%);
+        radial-gradient(ellipse 50% 60% at 90% 10%, rgba(var(--brand-accent-rgb), 0.18), transparent 70%);
     pointer-events: none;
     z-index: -1;
 }
@@ -706,7 +750,7 @@ button[aria-disabled="true"] {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    border-top: 1px solid rgba(183, 167, 245, 0.25);
+    border-top: 1px solid rgba(var(--brand-accent-rgb), 0.25);
     padding-top: var(--space-4);
     max-width: 36ch;
 }
@@ -837,7 +881,7 @@ button[aria-disabled="true"] {
 .form-group textarea:focus {
     outline: none;
     border-color: var(--brand-verde-claro);
-    box-shadow: 0 0 0 3px rgba(67, 184, 165, 0.25);
+    box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.25);
 }
 .form-group label {
     color: var(--text-secondary);
@@ -916,7 +960,7 @@ button[aria-disabled="true"] {
     line-height: 1;
     margin-bottom: var(--space-3);
     letter-spacing: -2px;
-    text-shadow: 0 0 40px rgba(183, 167, 245, 0.18);
+    text-shadow: 0 0 40px rgba(var(--brand-accent-rgb), 0.18);
 }
 .error-page h2 {
     color: var(--text-primary);
@@ -1084,9 +1128,9 @@ button[aria-disabled="true"] {
     border-color: rgba(239, 68, 68, 0.30);
 }
 .tag-create {
-    background: rgba(67, 184, 165, 0.12);
+    background: rgba(var(--brand-primary-rgb), 0.12);
     color: var(--primary-text);
-    border-color: rgba(67, 184, 165, 0.30);
+    border-color: rgba(var(--brand-primary-rgb), 0.30);
 }
 .tag-edit {
     background: rgba(78, 168, 222, 0.10);
@@ -1209,7 +1253,7 @@ button[aria-disabled="true"] {
 /* Alert variante "indicacao" — usa accent (verde alimento) com border-left
    pra diferenciar de alert-info (neutro/azul claro) e sinalizar beneficio. */
 .alert-indicacao {
-    background: rgba(183, 167, 245, 0.10);
+    background: rgba(var(--brand-accent-rgb), 0.10);
     color: var(--brand-ouro);
     border-left: 4px solid var(--brand-ouro);
     padding: var(--space-3);
@@ -1346,7 +1390,7 @@ body.app {
 }
 .nav-item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
 .nav-item[aria-current="page"] {
-    background: rgba(67, 184, 165, 0.16);
+    background: rgba(var(--brand-primary-rgb), 0.16);
     color: #fff;
     box-shadow: inset 3px 0 0 var(--brand-verde-claro);
 }
@@ -1455,7 +1499,7 @@ body.app {
 .feature-ico {
     width: 44px; height: 44px; border-radius: 10px;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(67, 184, 165, 0.12);
+    background: rgba(var(--brand-primary-rgb), 0.12);
     color: var(--primary-text);
     margin-bottom: 0.8rem;
 }
@@ -1520,6 +1564,28 @@ body.app {
     font: inherit;
 }
 .check-grid-scroll { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+
+/* Seletor de tema (white-label). Cada opção carrega a classe .tema-* e por
+   isso suas amostras mostram as cores daquele tema (vars escopadas). */
+.tema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; }
+.tema-opcao {
+    position: relative; display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 0.9rem; border: 2px solid var(--gray-200); border-radius: var(--radius);
+    cursor: pointer; background: var(--white);
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.tema-opcao:hover { border-color: var(--brand-verde-claro); transform: translateY(-1px); }
+.tema-opcao.is-sel { border-color: var(--brand-verde-claro); box-shadow: var(--glow-verde); }
+.tema-opcao input { position: absolute; opacity: 0; pointer-events: none; }
+.tema-amostra { display: flex; align-items: center; gap: 6px; }
+.tema-amostra-primaria, .tema-amostra-accent { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(30,41,59,0.08); }
+.tema-amostra-primaria { background: var(--brand-verde-claro); }
+.tema-amostra-accent { background: var(--brand-ouro); }
+.tema-amostra-btn {
+    margin-left: auto; font-size: .72rem; font-weight: 600; padding: .25rem .6rem;
+    border-radius: 6px; background: var(--brand-verde-claro); color: var(--text-on-ouro);
+}
+.tema-meta { display: flex; flex-direction: column; }
 
 /* Tabelas largas no mobile: rolagem horizontal só na tabela (nao no body). */
 @media (max-width: 600px) {
@@ -1613,7 +1679,7 @@ textarea.is-invalid:focus {
 body.app .table th { padding: 0.55rem 0.8rem; }
 body.app .table td { padding: 0.55rem 0.8rem; }
 body.app .table tbody tr:nth-child(even) { background: rgba(30, 41, 59, 0.018); }
-body.app .table tbody tr:hover { background: rgba(67, 184, 165, 0.09); }
+body.app .table tbody tr:hover { background: rgba(var(--brand-primary-rgb), 0.09); }
 /* Números (dinheiro, contagens) alinhados em colunas. */
 body.app .table td,
 .kpi-value { font-variant-numeric: tabular-nums; }
@@ -1667,7 +1733,7 @@ textarea:focus-visible {
     font-weight: 600;
 }
 .week-dayhead .wd-date { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-.week-dayhead.is-today { background: rgba(67, 184, 165, 0.10); }
+.week-dayhead.is-today { background: rgba(var(--brand-primary-rgb), 0.10); }
 .week-dayhead.is-today .wd-date { color: var(--primary-text); }
 
 .week-hours {
@@ -1700,7 +1766,7 @@ textarea:focus-visible {
     );
 }
 .week-col:last-child { border-right: 0; }
-.week-col.is-today { background-color: rgba(67, 184, 165, 0.04); }
+.week-col.is-today { background-color: rgba(var(--brand-primary-rgb), 0.04); }
 
 .ag-event {
     position: absolute;
@@ -1709,7 +1775,7 @@ textarea:focus-visible {
     overflow: hidden;
     border-radius: 5px;
     border-left: 3px solid var(--brand-verde-claro);
-    background: rgba(67, 184, 165, 0.12);
+    background: rgba(var(--brand-primary-rgb), 0.12);
     padding: 2px 5px;
     font-size: 0.72rem;
     line-height: 1.15;
@@ -1740,7 +1806,7 @@ textarea:focus-visible {
 }
 /* Cor da BORDA + fundo por STATUS (legibilidade num relance). */
 .ag-event.tag-info    { border-left-color: #0369a1; background: rgba(78, 168, 222, 0.10); }
-.ag-event.tag-create  { border-left-color: #0f766e; background: rgba(67, 184, 165, 0.13); }
+.ag-event.tag-create  { border-left-color: #0f766e; background: rgba(var(--brand-primary-rgb), 0.13); }
 .ag-event.tag-success { border-left-color: #15803d; background: rgba(22, 163, 74, 0.10); }
 .ag-event.tag-edit    { border-left-color: #b45309; background: rgba(245, 158, 11, 0.13); }
 .ag-event.tag-danger  { border-left-color: #dc2626; background: rgba(239, 68, 68, 0.08); }
@@ -1919,7 +1985,7 @@ textarea:focus-visible {
     border-radius: 8px;
     cursor: pointer;
 }
-.cmdk-item.is-sel { background: rgba(67, 184, 165, 0.14); }
+.cmdk-item.is-sel { background: rgba(var(--brand-primary-rgb), 0.14); }
 .cmdk-label { font-weight: 600; color: var(--text-primary); }
 .cmdk-sub { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
 .cmdk-empty { padding: 0.9rem 0.8rem; color: var(--text-muted); font-size: 0.9rem; }
