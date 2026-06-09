@@ -169,6 +169,7 @@ def create_app(config_name="default"):
     from app.routes.clinicas import clinicas_bp
     from app.routes.auditoria import auditoria_bp
     from app.routes.configuracoes import configuracoes_bp
+    from app.routes.portal import portal_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -255,6 +256,7 @@ def create_app(config_name="default"):
     app.register_blueprint(clinicas_bp)
     app.register_blueprint(auditoria_bp)
     app.register_blueprint(configuracoes_bp)
+    app.register_blueprint(portal_bp)
 
     from app.commands import register_commands
     register_commands(app)
@@ -289,22 +291,35 @@ def create_app(config_name="default"):
             except Exception:
                 return []
 
-        # White-label: 1 lookup da clínica do usuário -> tema + logo.
-        _clinica_wl = None
+        # White-label: identidade da clínica. Logado -> a clínica do usuário.
+        # Público no portal /c/<slug> -> a clínica do slug (g.portal_clinica).
+        from flask import g as _g
+        _clinica_wl, _portal = None, False
         try:
             if (getattr(_cu, "is_authenticated", False)
                     and not _cu.is_superadmin and _cu.clinica_id):
                 from app.models import Clinica
                 _clinica_wl = db.session.get(Clinica, _cu.clinica_id)
+            else:
+                _pc = getattr(_g, "portal_clinica", None)
+                if _pc is not None:
+                    _clinica_wl, _portal = _pc, True
         except Exception:
-            _clinica_wl = None
+            _clinica_wl, _portal = None, False
         _tema = _clinica_wl.tema if (_clinica_wl and _clinica_wl.tema) else "teal"
         _logo_url = None
         if _clinica_wl and _clinica_wl.logo_key:
-            _logo_url = _url_for("configuracoes.logo_servir",
-                                 clinica_id=_clinica_wl.id,
-                                 v=_clinica_wl.logo_key[:8])
-        _cor = _clinica_wl.cor_primaria if _clinica_wl else None
+            if _portal:
+                _logo_url = _url_for("portal.logo", slug=_clinica_wl.slug,
+                                     v=_clinica_wl.logo_key[:8])
+            else:
+                _logo_url = _url_for("configuracoes.logo_servir",
+                                     clinica_id=_clinica_wl.id,
+                                     v=_clinica_wl.logo_key[:8])
+        _tema_css_url = None
+        if _clinica_wl and _clinica_wl.cor_primaria:
+            _tema_css_url = (_url_for("portal.tema_css", slug=_clinica_wl.slug)
+                             if _portal else _url_for("configuracoes.tema_css"))
 
         return {
             "whatsapp_url": url,
@@ -314,10 +329,12 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
-            # White-label: tema (classe no <body>) + logo + cor livre da clínica.
+            # White-label: tema (classe no <body>) + logo + CSS de cor livre.
             "tema_clinica": _tema,
             "clinica_logo_url": _logo_url,
-            "clinica_cor": _cor,
+            "tema_css_url": _tema_css_url,
+            # Clínica do portal público (None quando não é página de portal).
+            "portal_clinica": _clinica_wl if _portal else None,
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.

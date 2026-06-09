@@ -4,6 +4,15 @@
 
 {% block content %}
 <section class="auth-split" aria-label="Entrar na sua conta">
+    {% if portal_clinica %}
+    <aside class="auth-brand" aria-label="{{ portal_clinica.nome }}">
+        {% if clinica_logo_url %}<img class="auth-brand-logo" src="{{ clinica_logo_url }}" alt="Logo {{ portal_clinica.nome }}">{% endif %}
+        <span class="auth-brand-eyebrow">Bem-vindo(a)</span>
+        <h1 class="auth-brand-titulo">{{ portal_clinica.nome }}</h1>
+        <p class="auth-brand-sub">Acesse sua conta para ver a agenda, pacientes e atendimentos.</p>
+        <p class="auth-brand-foot">{{ portal_clinica.nome }}</p>
+    </aside>
+    {% else %}
     <aside class="auth-brand" aria-label="Nous Clinical">
         <span class="auth-brand-eyebrow">Gestão de clínica sem fricção</span>
         <h1 class="auth-brand-titulo">Agenda, pacientes e prontuário num só lugar.</h1>
@@ -20,6 +29,7 @@
         </div>
         <p class="auth-brand-foot">NOUS CLINICAL · GESTÃO DE CLÍNICA</p>
     </aside>
+    {% endif %}
 
     <div class="auth-form-side">
         <div class="auth-form-wrapper">

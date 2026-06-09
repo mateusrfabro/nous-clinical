@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&family=Sora:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% if clinica_cor %}{# White-label v2b: cor de marca livre da clínica (CSP-safe, 'self'). #}
-    <link rel="stylesheet" href="{{ url_for('configuracoes.tema_css') }}">{% endif %}
+    {% if tema_css_url %}{# White-label: cor de marca livre da clínica (CSP-safe, 'self'). #}
+    <link rel="stylesheet" href="{{ tema_css_url }}">{% endif %}
 </head>
 {% set ep = request.endpoint or '' %}
 {% macro flashes() %}
@@ -166,7 +166,7 @@
 
 {% else %}
 {# ===================== PÚBLICO (deslogado) ===================== #}
-<body class="public">
+<body class="public tema-{{ tema_clinica }}">
     <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
     <nav class="navbar" aria-label="Navegação principal">
         <div class="nav-brand">{{ brand(url_for('main.index')) }}</div>

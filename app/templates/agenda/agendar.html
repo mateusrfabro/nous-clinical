@@ -10,9 +10,9 @@
     <li><span>Profissional</span><strong>{{ sucesso.profissional.nome }}</strong></li>
   </ul>
   <p class="muted">Recebemos sua solicitação. A clínica vai confirmar em breve pelo telefone informado.</p>
-  <a href="{{ url_for('agenda.agendar_online') }}" class="btn btn-outline btn-block">Agendar outra consulta</a>
+  <a href="{{ request.path }}" class="btn btn-outline btn-block">Agendar outra consulta</a>
 {% else %}
-  <h2>Agendar consulta</h2>
+  <h2>Agendar consulta{% if portal_clinica %} — {{ portal_clinica.nome }}{% endif %}</h2>
   <p class="muted">Escolha o profissional e o dia para ver os horários livres.</p>
 
   <form method="GET" class="no-loading" data-no-validate>

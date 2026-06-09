@@ -1590,6 +1590,8 @@ body.app {
 /* Logo da clínica (white-label) no lugar do wordmark Nous. */
 .brand-link-logo { display: inline-flex; align-items: center; }
 .brand-logo { max-height: 40px; max-width: 170px; width: auto; height: auto; object-fit: contain; display: block; }
+/* Logo da clínica no painel de marca do login (portal /c/<slug>). */
+.auth-brand-logo { max-height: 64px; max-width: 220px; object-fit: contain; margin-bottom: 1.25rem; }
 /* Preview da logo atual na tela de Aparência. */
 .logo-atual { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1rem; background: var(--bg-elevated-2); border-radius: var(--radius); margin-bottom: 0.75rem; }
 .logo-atual img { max-height: 48px; max-width: 200px; object-fit: contain; }

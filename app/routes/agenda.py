@@ -7,7 +7,7 @@ from datetime import datetime, date, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, request,
+    Blueprint, render_template, redirect, url_for, flash, request, g,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select
@@ -16,7 +16,7 @@ from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin, clinico_required
 from app.models import (
     Agendamento, Atendimento, Paciente, Profissional, AuditLog,
-    Procedimento, ItemAtendimento,
+    Procedimento, ItemAtendimento, Clinica,
 )
 from app.services.audit import audit
 from app.services.tokens import ler_token_confirmacao
@@ -396,6 +396,21 @@ def _normalizar_tel(t):
     return re.sub(r"\D", "", t or "")[:13]
 
 
+def _portal_clinica():
+    """Clínica do portal público de agendamento. Vem do slug (g.portal_clinica,
+    setado por portal.agendar) ou, em instalação de clínica ÚNICA, a única ativa.
+    None em multi-clínica sem slug — aí NÃO listamos profissionais de todas as
+    clínicas juntas (cada clínica usa o seu link /c/<slug>/agendar)."""
+    cl = getattr(g, "portal_clinica", None)
+    if cl is not None:
+        return cl
+    ativas = db.session.execute(
+        select(Clinica).where(Clinica.ativo.is_(True))
+        .execution_options(ignore_tenant=True).limit(2)
+    ).scalars().all()
+    return ativas[0] if len(ativas) == 1 else None
+
+
 def _slots_livres(profissional, dia):
     """Horários livres ('HH:MM') do profissional no dia (passo = duração padrão).
 
@@ -432,10 +447,19 @@ def agendar_online():
     Passo 1: escolhe profissional + dia. Passo 2: escolhe um horário livre e
     informa os dados. Cria o paciente (ou reusa pelo telefone) e a consulta
     como 'agendado' — a clínica confirma depois.
+
+    ESCOPADO por clínica (slug do portal ou clínica única). Em multi-clínica
+    sem slug, redireciona — não expõe profissionais de todas as clínicas.
     """
+    clinica = _portal_clinica()
+    if clinica is None:
+        flash("Acesse o agendamento pelo link da sua clínica.", "info")
+        return redirect(url_for("auth.login"))
     profissionais = db.session.execute(
-        select(Profissional).where(Profissional.ativo.is_(True))
-        .order_by(Profissional.nome)
+        select(Profissional).where(
+            Profissional.ativo.is_(True),
+            Profissional.clinica_id == clinica.id)
+        .execution_options(ignore_tenant=True).order_by(Profissional.nome)
     ).scalars().all()
     hoje = datetime.now(_BR_TZ).date()
 
@@ -463,7 +487,7 @@ def agendar_online():
                                    prof_sel=profissional, dia=dia, slots=slots,
                                    form=request.form)
 
-        if not profissional:
+        if not profissional or profissional.clinica_id != clinica.id:
             return _reexibe("Selecione um profissional.")
         if len(nome) < 2:
             return _reexibe("Informe seu nome completo.")
