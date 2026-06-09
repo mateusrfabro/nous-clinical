@@ -50,7 +50,10 @@ profissional_required = role_required("profissional", check_cadastro=True)
 # Recepcao OU admin gerenciam pacientes e agenda.
 recepcao_ou_admin     = role_required("recepcao", "admin")
 # Quem pode ver/editar prontuario: profissional (o seu) ou admin.
-clinico_required      = role_required("profissional", "admin")
+# check_cadastro=True: profissional SEM registro Profissional vinculado é
+# barrado (senão o guard de posse "própria agenda", que depende de
+# current_user.profissional, seria pulado p/ profissional órfão — LGPD).
+clinico_required      = role_required("profissional", "admin", check_cadastro=True)
 # Toda a equipe da clinica (recepcao + admin + profissional). Usado na tela de
 # pacientes, que o medico tambem acessa (limitado aos pacientes que ele atende).
 equipe_required       = role_required("recepcao", "admin", "profissional")

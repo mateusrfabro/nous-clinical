@@ -5,7 +5,8 @@ vencendo/vencido e que ainda NÃO reagendaram (sem consulta futura). Permite
 agendar o retorno e disparar lembrete por WhatsApp. Gate: recepcao_ou_admin
 (a recepção/gestor faz a retenção; o profissional recomenda no atendimento).
 """
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from urllib.parse import quote
 
 from flask import Blueprint, render_template, request
@@ -17,6 +18,7 @@ from app.auth_decorators import recepcao_ou_admin
 from app.models import Atendimento, Agendamento
 
 crm_bp = Blueprint("crm", __name__, url_prefix="/crm")
+_BR_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 def _wa_url(telefone, texto):
@@ -50,7 +52,7 @@ def _retornos_pendentes(janela_dias: int):
     o atendimento mais recente de cada paciente: se ele não tem retorno_em (ou
     já está fora da janela, ou o paciente já reagendou), não aparece.
     """
-    hoje = date.today()
+    hoje = datetime.now(_BR_TZ).date()   # data BR (container em UTC)
     limite = hoje + timedelta(days=janela_dias)
 
     # Último atendimento por paciente (mais recente; id desempata de forma

@@ -196,8 +196,12 @@ def buscar_cep(cep):
     if len(d) != 8:
         return jsonify({"erro": "cep_invalido"}), 400
     try:
+        # Host fixo https + só 8 dígitos interpolados (sem esquema/host do
+        # usuário) -> sem SSRF. nosec: B310 é falso-positivo aqui.
         url = f"https://viacep.com.br/ws/{d}/json/"
-        with urllib.request.urlopen(url, timeout=4) as resp:
+        if not url.startswith("https://viacep.com.br/"):   # guarda redundante
+            return jsonify({"erro": "cep_invalido"}), 400
+        with urllib.request.urlopen(url, timeout=4) as resp:  # nosec B310
             dados = json.loads(resp.read().decode("utf-8"))
     except Exception:
         return jsonify({"erro": "falha_consulta"}), 502

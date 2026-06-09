@@ -430,8 +430,9 @@ class LancamentoFinanceiro(db.Model):
         """True se pendente e o vencimento ja passou (compara em data BR)."""
         if self.status != self.STATUS_PENDENTE or not self.vencimento:
             return False
-        from datetime import date
-        return self.vencimento < date.today()
+        from zoneinfo import ZoneInfo
+        hoje_br = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+        return self.vencimento < hoje_br
 
     def __repr__(self):
         return f"<LancamentoFinanceiro {self.id} {self.tipo} {self.status} {self.valor}>"

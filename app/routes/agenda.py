@@ -65,7 +65,8 @@ def _calcular_retorno(opcao: str, data_str: str):
     """Opcao 30/90/180/365 -> hoje+N dias; 'personalizado' -> data_str; senao None."""
     opcao = (opcao or "").strip()
     if opcao in _RETORNO_DIAS:
-        return date.today() + timedelta(days=_RETORNO_DIAS[opcao])
+        # Data BR (container roda em UTC; date.today() viraria 1 dia à noite).
+        return datetime.now(_BR_TZ).date() + timedelta(days=_RETORNO_DIAS[opcao])
     if opcao == "personalizado" and data_str:
         try:
             return datetime.strptime(data_str.strip(), "%Y-%m-%d").date()
@@ -598,6 +599,8 @@ def editar(agendamento_id):
         ag.convenio = request.form.get("convenio", "").strip() or None
         ag.sala = request.form.get("sala", "").strip() or profissional.sala or None
         ag.observacoes = request.form.get("observacoes", "").strip() or None
+        # Reagendou p/ outra data -> precisa reenviar lembrete da NOVA data.
+        ag.lembrete_enviado_em = None
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_EDITADO, recurso_tipo="agendamento",
               recurso_id=ag.id)

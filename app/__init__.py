@@ -178,7 +178,7 @@ def create_app(config_name="default"):
     _err_logger = _logging.getLogger("app.errors")
 
     _TOKEN_PATH_RE = _re.compile(
-        r'(/(?:redefinir-senha|uploads)/)([^/?\s"\']+)'
+        r'(/(?:redefinir-senha|uploads|agenda/confirmar)/)([^/?\s"\']+)'
     )
 
     class _SanitizeTokenFilter(_logging.Filter):
