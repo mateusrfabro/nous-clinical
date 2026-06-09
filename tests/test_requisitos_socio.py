@@ -85,12 +85,12 @@ def test_duracao_configuravel(client_admin):
 # ---- Financeiro: recepção não vê/lança categorias sensíveis ----
 
 def _despesa_aluguel():
-    l = LancamentoFinanceiro(
+    lanc = LancamentoFinanceiro(
         tipo="despesa", categoria="aluguel", valor=Decimal("3000.00"),
         status="pago", pago_em=datetime.now(timezone.utc), descricao="Aluguel")
-    db.session.add(l)
+    db.session.add(lanc)
     db.session.commit()
-    return l
+    return lanc
 
 
 def test_recepcao_nao_ve_despesa_sensivel_no_fluxo(client_recepcao):
