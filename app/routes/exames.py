@@ -15,6 +15,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.auth_decorators import clinico_required
 from app.models import Agendamento, Atendimento, Exame, AuditLog
+from app.routes.agenda import aplicar_campos_prontuario
 from app.services.audit import audit
 from app.services.storage import get_storage
 
@@ -54,10 +55,24 @@ def upload(agendamento_id):
         flash("Você só anexa exames da sua agenda.", "error")
         return redirect(url_for("agenda.listar"))
 
-    file = request.files.get("arquivo")
     destino = url_for("agenda.atendimento", agendamento_id=ag.id)
+
+    # O upload vem do MESMO form do prontuário. ANTES de mexer no arquivo,
+    # persiste o rascunho digitado (queixa/evolução/prescrição/itens/atestado)
+    # — assim anexar nunca apaga o que o médico escreveu (bug reportado). NÃO
+    # marca a consulta como atendida (isso só no "Salvar atendimento").
+    registro = ag.atendimento
+    if registro is None:
+        registro = Atendimento(agendamento_id=ag.id, paciente_id=ag.paciente_id,
+                               profissional_id=ag.profissional_id)
+        db.session.add(registro)
+        db.session.flush()
+    aplicar_campos_prontuario(registro, ag)
+    db.session.commit()
+
+    file = request.files.get("arquivo")
     if not file or not file.filename:
-        flash("Selecione um arquivo.", "error")
+        flash("Rascunho salvo. Selecione um arquivo para anexar.", "info")
         return redirect(destino)
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in _EXT_OK:
@@ -68,14 +83,6 @@ def upload(agendamento_id):
     file.stream.seek(0, os.SEEK_END)
     tamanho = file.stream.tell()
     file.stream.seek(0)
-
-    # Garante o registro de atendimento pra vincular o anexo.
-    registro = ag.atendimento
-    if registro is None:
-        registro = Atendimento(agendamento_id=ag.id, paciente_id=ag.paciente_id,
-                               profissional_id=ag.profissional_id)
-        db.session.add(registro)
-        db.session.flush()
 
     key = get_storage().save(file, subdir="exames", original_name=file.filename)
     ex = Exame(

@@ -23,7 +23,7 @@
     <div class="flex-row-gap">
       <form method="POST" action="{{ url_for('financeiro.pagar', lancamento_id=l.id) }}" class="inline-form no-loading flex-row-gap">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <select name="forma_pagamento" class="text-sm">
+        <select name="forma_pagamento" class="text-sm" required>
           <option value="">Forma…</option>
           {% for f in ['dinheiro','pix','cartao_credito','cartao_debito','convenio','boleto','transferencia'] %}
             <option value="{{ f }}" {{ 'selected' if l.forma_pagamento==f }}>{{ f|forma_pgto_label }}</option>

@@ -16,8 +16,9 @@ from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin, clinico_required
 from app.models import (
     Agendamento, Atendimento, Paciente, Profissional, AuditLog,
-    Procedimento, ItemAtendimento, Clinica,
+    Procedimento, ItemAtendimento, Clinica, Convenio,
 )
+from app.routes.pacientes import _valida_cpf, _parse_data
 from app.services.audit import audit
 from app.services.tokens import ler_token_confirmacao
 
@@ -396,19 +397,38 @@ def _normalizar_tel(t):
     return re.sub(r"\D", "", t or "")[:13]
 
 
-def _portal_clinica():
-    """Clínica do portal público de agendamento. Vem do slug (g.portal_clinica,
-    setado por portal.agendar) ou, em instalação de clínica ÚNICA, a única ativa.
-    None em multi-clínica sem slug — aí NÃO listamos profissionais de todas as
-    clínicas juntas (cada clínica usa o seu link /c/<slug>/agendar)."""
+def _clinicas_ativas():
+    """Todas as clínicas ativas (sem escopo — contexto público)."""
+    return db.session.execute(
+        select(Clinica).where(Clinica.ativo.is_(True))
+        .execution_options(ignore_tenant=True).order_by(Clinica.nome)
+    ).scalars().all()
+
+
+def _clinica_publica():
+    """Clínica do agendamento público. Prioridade: slug do portal
+    (g.portal_clinica) > clinica_id escolhida no form/query > clínica única.
+    None quando há várias clínicas e nenhuma foi escolhida (mostra o seletor)."""
     cl = getattr(g, "portal_clinica", None)
     if cl is not None:
         return cl
+    cid = request.values.get("clinica_id", type=int)
+    if cid:
+        c = db.session.execute(
+            select(Clinica).where(Clinica.id == cid, Clinica.ativo.is_(True))
+            .execution_options(ignore_tenant=True)
+        ).scalars().first()
+        if c:
+            return c
     ativas = db.session.execute(
         select(Clinica).where(Clinica.ativo.is_(True))
         .execution_options(ignore_tenant=True).limit(2)
     ).scalars().all()
     return ativas[0] if len(ativas) == 1 else None
+
+
+# Mantido por compatibilidade (nome antigo).
+_portal_clinica = _clinica_publica
 
 
 def _slots_livres(profissional, dia):
@@ -439,37 +459,96 @@ def _slots_livres(profissional, dia):
     return livres
 
 
+def _profissionais_da_clinica(clinica, especialidade=None):
+    """Profissionais ativos da clínica (sem escopo — público), opcionalmente
+    filtrados por especialidade."""
+    q = (select(Profissional).where(
+            Profissional.ativo.is_(True),
+            Profissional.clinica_id == clinica.id)
+         .execution_options(ignore_tenant=True).order_by(Profissional.nome))
+    if especialidade:
+        q = q.where(Profissional.especialidade == especialidade)
+    return db.session.execute(q).scalars().all()
+
+
+def _especialidades_da_clinica(clinica):
+    """Especialidades distintas (não vazias) dos profissionais da clínica."""
+    return db.session.execute(
+        select(Profissional.especialidade).where(
+            Profissional.ativo.is_(True),
+            Profissional.clinica_id == clinica.id,
+            Profissional.especialidade.is_not(None),
+            Profissional.especialidade != "")
+        .execution_options(ignore_tenant=True)
+        .distinct().order_by(Profissional.especialidade)
+    ).scalars().all()
+
+
+def _cria_ou_reusa_paciente(clinica, nome, telefone, cpf_fmt, data_nasc, convenio):
+    """Cria o cadastro do paciente do agendamento online (ou reusa o existente
+    de MESMO CPF na MESMA clínica). CPF é único global: se pertencer a outra
+    clínica, cadastra sem CPF (a recepção concilia) — evita vínculo cross-tenant.
+    Nunca SOBRESCREVE dados de um cadastro existente (fonte anônima)."""
+    existente = db.session.execute(
+        select(Paciente).where(Paciente.cpf == cpf_fmt)
+        .execution_options(ignore_tenant=True)
+    ).scalars().first() if cpf_fmt else None
+    if existente is not None:
+        if existente.clinica_id == clinica.id:
+            return existente            # paciente recorrente -> reusa
+        cpf_fmt = None                  # CPF de outra clínica -> não vincula
+    paciente = Paciente(
+        nome_completo=nome, telefone=telefone, cpf=cpf_fmt,
+        data_nascimento=data_nasc,
+        convenio=convenio or None,
+        observacoes="Cadastro via agendamento online (a verificar).",
+        clinica_id=clinica.id)
+    db.session.add(paciente)
+    db.session.flush()
+    return paciente
+
+
 @agenda_bp.route("/agendar", methods=["GET", "POST"])
 @limiter.limit("5 per hour;1 per minute", methods=["POST"])
 def agendar_online():
     """Agendamento online PÚBLICO (portal do paciente). Sem login.
 
-    Passo 1: escolhe profissional + dia. Passo 2: escolhe um horário livre e
-    informa os dados. Cria o paciente (ou reusa pelo telefone) e a consulta
-    como 'agendado' — a clínica confirma depois.
-
-    ESCOPADO por clínica (slug do portal ou clínica única). Em multi-clínica
-    sem slug, redireciona — não expõe profissionais de todas as clínicas.
+    Passo 0 (multi-clínica): escolhe a clínica. Passo 1: especialidade
+    (opcional) + profissional + dia. Passo 2: escolhe um horário livre e informa
+    nome, CPF, data de nascimento e WhatsApp. Cria a consulta como 'agendado'.
+    ESCOPADO por clínica (slug do portal, clinica_id escolhido ou clínica única).
     """
-    clinica = _portal_clinica()
-    if clinica is None:
-        flash("Acesse o agendamento pelo link da sua clínica.", "info")
-        return redirect(url_for("auth.login"))
-    profissionais = db.session.execute(
-        select(Profissional).where(
-            Profissional.ativo.is_(True),
-            Profissional.clinica_id == clinica.id)
-        .execution_options(ignore_tenant=True).order_by(Profissional.nome)
-    ).scalars().all()
     hoje = datetime.now(_BR_TZ).date()
+    clinica = _clinica_publica()
+
+    # Passo 0: várias clínicas e nenhuma escolhida -> mostra o seletor.
+    if clinica is None:
+        return render_template("agenda/agendar.html",
+                               clinicas=_clinicas_ativas(), hoje=hoje)
+
+    especialidade = (request.values.get("especialidade", "") or "").strip() or None
+    especialidades = _especialidades_da_clinica(clinica)
+    profissionais = _profissionais_da_clinica(clinica, especialidade)
+    convenios = db.session.execute(
+        select(Convenio.nome).where(Convenio.clinica_id == clinica.id,
+                                    Convenio.ativo.is_(True))
+        .execution_options(ignore_tenant=True).order_by(Convenio.nome)
+    ).scalars().all()
+
+    def _ctx(**extra):
+        base = dict(clinica=clinica, profissionais=profissionais,
+                    especialidades=especialidades, especialidade=especialidade,
+                    convenios=convenios, hoje=hoje)
+        base.update(extra)
+        return base
 
     if request.method == "POST":
         # Honeypot anti-bot: campo oculto que humano não preenche.
         if request.form.get("website", "").strip():
             flash("Não foi possível processar a solicitação.", "error")
             return render_template("agenda/agendar.html",
-                                   profissionais=profissionais, hoje=hoje,
-                                   prof_sel=None, dia=None, slots=None, form={})
+                                   **_ctx(prof_sel=None, dia=None, slots=None,
+                                          form={}))
 
         profissional = db.session.get(
             Profissional, request.form.get("profissional_id", type=int))
@@ -477,22 +556,27 @@ def agendar_online():
         hora = request.form.get("hora", "").strip()
         nome = request.form.get("nome", "").strip()[:150]
         telefone = _normalizar_tel(request.form.get("telefone", ""))
+        cpf_fmt, cpf_ok = _valida_cpf(request.form.get("cpf", ""))
+        data_nasc = _parse_data(request.form.get("data_nascimento", ""))
 
         def _reexibe(msg):
             flash(msg, "error")
             slots = (_slots_livres(profissional, dia)
                      if profissional and dia and dia >= hoje else None)
             return render_template("agenda/agendar.html",
-                                   profissionais=profissionais, hoje=hoje,
-                                   prof_sel=profissional, dia=dia, slots=slots,
-                                   form=request.form)
+                                   **_ctx(prof_sel=profissional, dia=dia,
+                                          slots=slots, form=request.form))
 
         if not profissional or profissional.clinica_id != clinica.id:
             return _reexibe("Selecione um profissional.")
         if len(nome) < 2:
             return _reexibe("Informe seu nome completo.")
+        if not cpf_ok or not cpf_fmt:
+            return _reexibe("Informe um CPF válido.")
+        if not data_nasc:
+            return _reexibe("Informe sua data de nascimento.")
         if not (10 <= len(telefone) <= 13):
-            return _reexibe("Informe um telefone válido com DDD.")
+            return _reexibe("Informe um WhatsApp válido com DDD.")
         if dia < hoje:
             return _reexibe("Escolha uma data futura.")
         # O horário precisa ser um dos slots livres (barra hora arbitrária,
@@ -505,43 +589,35 @@ def agendar_online():
         if not inicio or _conflito_horario(profissional.id, inicio, fim):
             return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
 
-        # Fluxo anônimo: SEMPRE cria um cadastro novo (nunca reusa por telefone
-        # — evitaria vazar/sequestrar o cadastro de terceiros). A recepção
-        # deduplica/verifica depois.
-        # Rota pública (sem usuário logado): a clínica vem do profissional
-        # escolhido (multi-tenant — não depende do fallback de clínica única).
-        paciente = Paciente(
-            nome_completo=nome, telefone=telefone,
-            convenio=request.form.get("convenio", "").strip() or None,
-            observacoes="Cadastro via agendamento online (a verificar).",
-            clinica_id=profissional.clinica_id)
-        db.session.add(paciente)
-        db.session.flush()
+        convenio = request.form.get("convenio", "").strip() or None
+        paciente = _cria_ou_reusa_paciente(
+            clinica, nome, telefone, cpf_fmt, data_nasc, convenio)
 
         ag = Agendamento(
             paciente_id=paciente.id, profissional_id=profissional.id,
             inicio=inicio, fim=fim, status=Agendamento.STATUS_AGENDADO,
-            convenio=request.form.get("convenio", "").strip() or None,
+            convenio=convenio,
             observacoes=request.form.get("observacoes", "").strip()[:500] or None,
-            clinica_id=profissional.clinica_id)
+            clinica_id=clinica.id)
         db.session.add(ag)
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id, detalhes="online")
-        return render_template("agenda/agendar.html", sucesso=ag,
-                               profissionais=profissionais, hoje=hoje)
+        return render_template("agenda/agendar.html", sucesso=ag, **_ctx())
 
     # GET — passo 1 (escolher prof/dia) e, se válidos, passo 2 (slots).
     prof_sel = db.session.get(
         Profissional, request.args.get("profissional_id", type=int)) \
         if request.args.get("profissional_id") else None
+    if prof_sel and prof_sel.clinica_id != clinica.id:
+        prof_sel = None
     dia = _parse_dia(request.args.get("dia", "")) if request.args.get("dia") else None
     slots = None
     if prof_sel and dia and dia >= hoje:
         slots = _slots_livres(prof_sel, dia)
-    return render_template("agenda/agendar.html", profissionais=profissionais,
-                           hoje=hoje, prof_sel=prof_sel, dia=dia, slots=slots,
-                           form={})
+    return render_template("agenda/agendar.html",
+                           **_ctx(prof_sel=prof_sel, dia=dia, slots=slots,
+                                  form={}))
 
 
 @agenda_bp.route("/confirmar/<token>", methods=["GET", "POST"])
@@ -644,6 +720,38 @@ def editar(agendamento_id):
                            profissionais=profissionais, form=form_inicial)
 
 
+def aplicar_campos_prontuario(registro, ag):
+    """Aplica os campos do form ao registro de atendimento (queixa, evolução,
+    prescrição, retorno, itens e atestado). NÃO altera o status do agendamento
+    — por isso pode ser chamado tanto pelo 'Salvar atendimento' quanto pelo
+    upload de exame (preserva o rascunho ao anexar, evitando perda de dados)."""
+    registro.queixa = request.form.get("queixa", "").strip() or None
+    registro.evolucao = request.form.get("evolucao", "").strip() or None
+    registro.prescricao = request.form.get("prescricao", "").strip() or None
+    # CRM Retorno: data recomendada (30/90/180/365) ou personalizada.
+    registro.retorno_em = _calcular_retorno(
+        request.form.get("retorno_opcao", ""),
+        request.form.get("retorno_data", ""),
+    )
+    # Atestado (opcional): dias de afastamento + CID.
+    dias = request.form.get("atestado_dias", type=int)
+    registro.atestado_dias = dias if (dias and dias > 0) else None
+    registro.atestado_cid = request.form.get("atestado_cid", "").strip()[:20] or None
+    # Itens/procedimentos consumidos. Recria a lista com snapshot nome+valor.
+    registro.itens.clear()
+    conv = ag.convenio
+    for sid in request.form.getlist("procedimentos"):
+        try:
+            proc = db.session.get(Procedimento, int(sid))
+        except (TypeError, ValueError):
+            proc = None
+        if proc:
+            registro.itens.append(ItemAtendimento(
+                procedimento_id=proc.id, descricao=proc.nome,
+                valor=proc.preco_para(conv), quantidade=1,
+            ))
+
+
 @agenda_bp.route("/<int:agendamento_id>/atendimento", methods=["GET", "POST"])
 @login_required
 @clinico_required
@@ -663,6 +771,9 @@ def atendimento(agendamento_id):
     registro = ag.atendimento
 
     if request.method == "POST":
+        # Era edição (prontuário já existia) ou primeiro registro? Define a
+        # ação de auditoria (req. do sócio: registrar ALTERAÇÕES de prontuário).
+        era_edicao = registro is not None
         if registro is None:
             registro = Atendimento(
                 agendamento_id=ag.id,
@@ -670,36 +781,14 @@ def atendimento(agendamento_id):
                 profissional_id=ag.profissional_id,
             )
             db.session.add(registro)
-        registro.queixa = request.form.get("queixa", "").strip() or None
-        registro.evolucao = request.form.get("evolucao", "").strip() or None
-        registro.prescricao = request.form.get("prescricao", "").strip() or None
-        # CRM Retorno: data recomendada a partir da opcao (30/90/180/365) ou
-        # data personalizada. Vazio = sem retorno previsto.
-        registro.retorno_em = _calcular_retorno(
-            request.form.get("retorno_opcao", ""),
-            request.form.get("retorno_data", ""),
-        )
-        # Itens/procedimentos consumidos (flagbox do medico). Recria a lista
-        # com snapshot de nome+valor do catalogo (cascade remove os antigos).
-        registro.itens.clear()
-        # Convênio da consulta -> preço da tabela por convênio (ou padrão).
-        # Fonte única: o convênio do agendamento (igual ao lançamento financeiro).
-        conv = ag.convenio
-        for sid in request.form.getlist("procedimentos"):
-            try:
-                proc = db.session.get(Procedimento, int(sid))
-            except (TypeError, ValueError):
-                proc = None
-            if proc:
-                registro.itens.append(ItemAtendimento(
-                    procedimento_id=proc.id, descricao=proc.nome,
-                    valor=proc.preco_para(conv), quantidade=1,
-                ))
+        aplicar_campos_prontuario(registro, ag)
         # Marca a consulta como atendida ao registrar.
         ag.status = Agendamento.STATUS_ATENDIDO
         db.session.commit()
-        audit(AuditLog.ACAO_ATENDIMENTO_REGISTRADO, recurso_tipo="atendimento",
-              recurso_id=registro.id)
+        audit(AuditLog.ACAO_ATENDIMENTO_EDITADO if era_edicao
+              else AuditLog.ACAO_ATENDIMENTO_REGISTRADO,
+              recurso_tipo="atendimento", recurso_id=registro.id,
+              detalhes="edicao" if era_edicao else "registro")
         flash("Atendimento registrado.", "success")
         return redirect(url_for("pacientes.detalhe", paciente_id=ag.paciente_id))
 

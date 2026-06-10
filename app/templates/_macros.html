@@ -1,0 +1,19 @@
+{# Macros reutilizáveis de UI. Importe com:
+   {% from "_macros.html" import convenio_select %} #}
+
+{% macro convenio_select(name, atual, convenios=none, required=false, incluir_particular=true, prompt=none) %}
+{# Convênio é lista CONTROLADA (req. do sócio): só seleção, nunca texto livre.
+   `convenios` explícito (rota pública) ou o global convenios_ativos() (logado).
+   Preserva valor legado fora da lista como opção marcada (não some o dado). #}
+{% set lista = convenios if convenios is not none else convenios_ativos() %}
+<select id="{{ name }}" name="{{ name }}"{% if required %} required{% endif %}>
+  {% if prompt %}<option value="">{{ prompt }}</option>
+  {% elif incluir_particular %}<option value="">Sem convênio / Particular</option>{% endif %}
+  {% for c in lista %}
+  <option value="{{ c }}" {{ 'selected' if atual and atual == c }}>{{ c }}</option>
+  {% endfor %}
+  {% if atual and atual not in lista %}
+  <option value="{{ atual }}" selected>{{ atual }} (não cadastrado)</option>
+  {% endif %}
+</select>
+{% endmacro %}

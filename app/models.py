@@ -271,6 +271,10 @@ class Atendimento(db.Model):
     # CRM Retorno (Fase 2): data de retorno recomendada pelo profissional.
     # Alimenta o painel de retornos pendentes. Nullable = sem retorno previsto.
     retorno_em = db.Column(db.Date)
+    # Atestado médico (opcional): dias de afastamento + CID. Alimenta o PDF de
+    # atestado. Nullable = sem atestado nesta consulta.
+    atestado_dias = db.Column(db.Integer)
+    atestado_cid = db.Column(db.String(20))
     clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
 
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
@@ -485,6 +489,7 @@ class AuditLog(db.Model):
     ACAO_AGENDAMENTO_CHECKIN = "agendamento_checkin"
     ACAO_AGENDAMENTO_CONFIRMADO_PUB = "agendamento_confirmado_publico"
     ACAO_ATENDIMENTO_REGISTRADO = "atendimento_registrado"
+    ACAO_ATENDIMENTO_EDITADO = "atendimento_editado"
     ACAO_PROFISSIONAL_CRIADO = "profissional_criado"
     ACAO_PROFISSIONAL_EDITADO = "profissional_editado"
     ACAO_CLINICA_CRIADA = "clinica_criada"
@@ -501,6 +506,7 @@ class AuditLog(db.Model):
     ACAO_PRONTUARIO_VISUALIZADO = "prontuario_visualizado"
     ACAO_EXAME_BAIXADO = "exame_baixado"
     ACAO_RELATORIO_EXPORTADO = "relatorio_exportado"
+    ACAO_DOCUMENTO_EMITIDO = "documento_emitido"  # receita/atestado PDF
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

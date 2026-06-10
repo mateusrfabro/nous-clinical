@@ -69,4 +69,26 @@
 {% else %}
 <div class="empty-state"><p>Nenhum lançamento financeiro.</p></div>
 {% endif %}
+
+{% if pode_ver_prontuario %}
+<div class="page-header section-title-mt"><h3>Histórico de anexos</h3></div>
+{% if exames %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Arquivo</th><th>Data</th><th></th></tr></thead>
+  <tbody>
+    {% for ex in exames %}
+    <tr>
+      <td>{{ ex.nome_original }}</td>
+      <td>{{ ex.criado_em|data_br }}</td>
+      <td><a href="{{ url_for('exames.download', exame_id=ex.id) }}" target="_blank" rel="noopener" class="btn-link">Abrir</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhum exame ou documento anexado.</p></div>
+{% endif %}
+{% endif %}
 {% endblock %}

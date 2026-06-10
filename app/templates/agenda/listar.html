@@ -52,7 +52,7 @@
           {% if ag.lancamento %}
             <span class="tag tag-success">Recebido</span>
           {% elif ag.status in ['confirmado','atendido'] %}
-            <a class="btn-link" href="{{ url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') }}">Receber</a>
+            <a class="btn btn-outline btn-sm" href="{{ url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') }}">Receber</a>
           {% else %}—{% endif %}
         {% else %}—{% endif %}
       </td>

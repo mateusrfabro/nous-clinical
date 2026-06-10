@@ -171,6 +171,14 @@ def novo():
             return render_template("financeiro/form.html",
                                    pacientes=pacientes, form=request.form)
 
+        # Forma de pagamento obrigatória ao registrar algo já pago/recebido
+        # (req. do sócio). Em conta pendente ela é definida na baixa.
+        forma = request.form.get("forma_pagamento", "").strip()
+        if request.form.get("status") == L.STATUS_PAGO and not forma:
+            flash("Informe a forma de pagamento.", "error")
+            return render_template("financeiro/form.html",
+                                   pacientes=pacientes, form=request.form)
+
         vencimento = None
         venc = request.form.get("vencimento", "").strip()
         if venc:
@@ -184,7 +192,7 @@ def novo():
             categoria=categoria,
             descricao=request.form.get("descricao", "").strip() or None,
             valor=valor,
-            forma_pagamento=request.form.get("forma_pagamento", "").strip() or None,
+            forma_pagamento=forma or None,
             vencimento=vencimento,
             convenio=request.form.get("convenio", "").strip() or None,
             criado_por_id=current_user.id,
@@ -274,11 +282,14 @@ def pagar(lancamento_id):
     if current_user.is_recepcao and lanc.categoria in _CATEGORIAS_RESTRITAS:
         abort(403)
     if lanc.status == LancamentoFinanceiro.STATUS_PENDENTE:
+        # Forma de pagamento obrigatória na baixa (req. do sócio).
+        forma = request.form.get("forma_pagamento", "").strip()
+        if not forma:
+            flash("Selecione a forma de pagamento para dar baixa.", "error")
+            return redirect(url_for("financeiro.contas"))
         lanc.status = LancamentoFinanceiro.STATUS_PAGO
         lanc.pago_em = datetime.now(timezone.utc)
-        forma = request.form.get("forma_pagamento", "").strip()
-        if forma:
-            lanc.forma_pagamento = forma
+        lanc.forma_pagamento = forma
         db.session.commit()
         audit(AuditLog.ACAO_LANCAMENTO_PAGO, recurso_tipo="lancamento",
               recurso_id=lanc.id)

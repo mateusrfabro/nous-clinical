@@ -14,7 +14,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.auth_decorators import recepcao_ou_admin
-from app.models import Procedimento, PrecoConvenio, Convenio, AuditLog
+from app.models import (
+    Procedimento, PrecoConvenio, Convenio, ItemAtendimento, AuditLog,
+)
 from app.services.audit import audit
 from app.services.tenant import clinica_atual
 
@@ -154,6 +156,33 @@ def salvar(procedimento_id):
     audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
           recurso_id=p.id, detalhes="editado")
     flash("Item atualizado.", "success")
+    return redirect(url_for("procedimentos.listar"))
+
+
+@procedimentos_bp.route("/<int:procedimento_id>/excluir", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def excluir(procedimento_id):
+    """Exclui um item faturável. Preserva o histórico: os ItemAtendimento já
+    consumidos guardam snapshot de nome+valor, então só desvinculamos o
+    procedimento (procedimento_id -> NULL) antes de remover. Preços por
+    convênio caem por cascade."""
+    p = db.session.get(Procedimento, procedimento_id)
+    if not p:
+        flash("Item não encontrado.", "error")
+        return redirect(url_for("procedimentos.listar"))
+    # Desvincula os snapshots históricos (mantém descricao/valor preservados).
+    db.session.execute(
+        ItemAtendimento.__table__.update()
+        .where(ItemAtendimento.procedimento_id == p.id)
+        .values(procedimento_id=None)
+    )
+    nome = p.nome
+    db.session.delete(p)
+    db.session.commit()
+    audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
+          recurso_id=procedimento_id, detalhes=f"excluido:{nome}")
+    flash("Item excluído.", "success")
     return redirect(url_for("procedimentos.listar"))
 
 

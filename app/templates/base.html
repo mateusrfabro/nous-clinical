@@ -160,11 +160,6 @@
             {% block content %}{% endblock %}
         </main>
     </div>
-    {# Datalist global de convênios (master data) — sugestão nos forms. #}
-    <datalist id="convenios">
-      {% for c in convenios_ativos() %}<option value="{{ c }}">{% endfor %}
-    </datalist>
-
 {% else %}
 {# ===================== PÚBLICO (deslogado) ===================== #}
 <body class="public tema-{{ tema_clinica }}">

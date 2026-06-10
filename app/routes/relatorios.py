@@ -50,14 +50,20 @@ def _periodo(args):
     return ini_d, fim_d, ini, fim
 
 
-def _agrega(ini, fim):
+def _agrega(ini, fim, prof_id=None):
     """Calcula todos os indicadores do período [ini, fim) (UTC aware).
 
-    Retorna um dict pronto pra render/CSV. Centralizado pra index() e export().
+    Filtro opcional por profissional (`prof_id`): aplica à agenda direto e ao
+    financeiro via a consulta ligada (despesas não se atribuem a um médico, então
+    ficam zeradas quando há filtro). Retorna um dict pronto pra render/CSV.
     """
     L = LancamentoFinanceiro
     A = Agendamento
     pago_periodo = (L.status == L.STATUS_PAGO, L.pago_em >= ini, L.pago_em < fim)
+    # Filtros opcionais por profissional.
+    ag_prof = (A.profissional_id == prof_id,) if prof_id else ()
+    rec_prof = ((L.agendamento_id.in_(
+        select(A.id).where(A.profissional_id == prof_id)),) if prof_id else ())
 
     def _soma(*w):
         return db.session.execute(
@@ -67,16 +73,19 @@ def _agrega(ini, fim):
     def _conta_status(i, f):
         rows = db.session.execute(
             select(A.status, func.count(A.id))
-            .where(A.inicio >= i, A.inicio < f)
+            .where(A.inicio >= i, A.inicio < f, *ag_prof)
             .group_by(A.status)
         ).all()
         return {s: c for s, c in rows}
 
-    receitas = _soma(*pago_periodo, L.tipo == L.TIPO_RECEITA)
-    despesas = _soma(*pago_periodo, L.tipo == L.TIPO_DESPESA)
+    receitas = _soma(*pago_periodo, L.tipo == L.TIPO_RECEITA, *rec_prof)
+    # Despesas não são atribuíveis a um profissional -> zeradas sob filtro.
+    despesas = (Decimal("0.00") if prof_id
+                else _soma(*pago_periodo, L.tipo == L.TIPO_DESPESA))
     saldo = receitas - despesas
     n_receitas = db.session.execute(
-        select(func.count(L.id)).where(*pago_periodo, L.tipo == L.TIPO_RECEITA)
+        select(func.count(L.id)).where(*pago_periodo, L.tipo == L.TIPO_RECEITA,
+                                       *rec_prof)
     ).scalar_one()
     ticket = (receitas / n_receitas) if n_receitas else Decimal("0.00")
 
@@ -87,10 +96,13 @@ def _agrega(ini, fim):
     cancelados = por_status.get(A.STATUS_CANCELADO, 0)
     taxa_faltas = (faltas / total_ags * 100) if total_ags else 0.0
 
-    # Novos pacientes cadastrados no período.
+    # Novos pacientes cadastrados no período (sob filtro: só os do profissional).
+    pac_prof = ((Paciente.id.in_(
+        select(A.paciente_id).where(A.profissional_id == prof_id)),)
+        if prof_id else ())
     novos_pacientes = db.session.execute(
         select(func.count(Paciente.id))
-        .where(Paciente.criado_em >= ini, Paciente.criado_em < fim)
+        .where(Paciente.criado_em >= ini, Paciente.criado_em < fim, *pac_prof)
     ).scalar_one()
 
     # --- Comparativo com o período anterior de mesma duração ---
@@ -98,12 +110,13 @@ def _agrega(ini, fim):
     ini_ant, fim_ant = ini - dur, ini
     pago_ant = (L.status == L.STATUS_PAGO, L.pago_em >= ini_ant,
                 L.pago_em < fim_ant)
-    receitas_ant = _soma(*pago_ant, L.tipo == L.TIPO_RECEITA)
+    receitas_ant = _soma(*pago_ant, L.tipo == L.TIPO_RECEITA, *rec_prof)
     por_status_ant = _conta_status(ini_ant, fim_ant)
     atendidos_ant = por_status_ant.get(A.STATUS_ATENDIDO, 0)
     novos_ant = db.session.execute(
         select(func.count(Paciente.id))
-        .where(Paciente.criado_em >= ini_ant, Paciente.criado_em < fim_ant)
+        .where(Paciente.criado_em >= ini_ant, Paciente.criado_em < fim_ant,
+               *pac_prof)
     ).scalar_one()
 
     def _delta(atual, anterior):
@@ -124,7 +137,7 @@ def _agrega(ini, fim):
     # Ranking por convênio (receitas pagas).
     conv_rows = db.session.execute(
         select(L.convenio, func.coalesce(func.sum(L.valor), 0))
-        .where(*pago_periodo, L.tipo == L.TIPO_RECEITA)
+        .where(*pago_periodo, L.tipo == L.TIPO_RECEITA, *rec_prof)
         .group_by(L.convenio)
         .order_by(func.coalesce(func.sum(L.valor), 0).desc())
     ).all()
@@ -138,7 +151,7 @@ def _agrega(ini, fim):
                func.count(L.id))
         .join(A, L.agendamento_id == A.id)
         .join(Profissional, A.profissional_id == Profissional.id)
-        .where(*pago_periodo, L.tipo == L.TIPO_RECEITA)
+        .where(*pago_periodo, L.tipo == L.TIPO_RECEITA, *ag_prof)
         .group_by(Profissional.id, Profissional.nome)  # id evita colapsar homônimos
         .order_by(func.coalesce(func.sum(L.valor), 0).desc())
     ).all()
@@ -151,7 +164,7 @@ def _agrega(ini, fim):
         .join(A, L.agendamento_id == A.id)
         .join(Profissional, A.profissional_id == Profissional.id)
         .where(*pago_periodo, L.tipo == L.TIPO_RECEITA,
-               Profissional.comissao_percent > 0)
+               Profissional.comissao_percent > 0, *ag_prof)
         .group_by(Profissional.id, Profissional.nome,
                   Profissional.comissao_percent)
         .order_by(func.coalesce(func.sum(L.valor), 0).desc())
@@ -168,7 +181,7 @@ def _agrega(ini, fim):
     ocup_rows = db.session.execute(
         select(Profissional.nome, A.status, func.count(A.id))
         .join(Profissional, A.profissional_id == Profissional.id)
-        .where(A.inicio >= ini, A.inicio < fim)
+        .where(A.inicio >= ini, A.inicio < fim, *ag_prof)
         .group_by(Profissional.nome, A.status)
     ).all()
     ocup = {}
@@ -198,7 +211,8 @@ def _agrega(ini, fim):
                func.count(ItemAtendimento.id),
                func.coalesce(func.sum(ItemAtendimento.valor), 0))
         .join(Atendimento, ItemAtendimento.atendimento_id == Atendimento.id)
-        .where(Atendimento.criado_em >= ini, Atendimento.criado_em < fim)
+        .where(Atendimento.criado_em >= ini, Atendimento.criado_em < fim,
+               *((Atendimento.profissional_id == prof_id,) if prof_id else ()))
         .group_by(ItemAtendimento.descricao)
         .order_by(func.count(ItemAtendimento.id).desc())
     ).all()
@@ -253,13 +267,20 @@ def _risco_evasao(limite_dias=180, maximo=50):
 @admin_required
 def index():
     """Geração SOB DEMANDA (req. do sócio): só calcula quando o usuário define o
-    período e clica em "Gerar" (?gerar=1). Sem isso, mostra só o formulário."""
+    período e clica em "Gerar" (?gerar=1). Sem isso, mostra só o formulário.
+    Filtro opcional por profissional (?profissional_id=)."""
     ini_d, fim_d, ini, fim = _periodo(request.args)
     gerado = request.args.get("gerar") is not None
+    prof_id = request.args.get("profissional_id", type=int)
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
     contexto = {"ini": ini_d.isoformat(), "fim": fim_d.isoformat(),
-                "gerado": gerado}
+                "gerado": gerado, "profissionais": profissionais,
+                "prof_id": prof_id}
     if gerado:
-        contexto.update(_agrega(ini, fim))
+        contexto.update(_agrega(ini, fim, prof_id=prof_id))
         contexto["evasao"] = _risco_evasao()
     return render_template("relatorios/index.html", **contexto)
 
@@ -273,12 +294,16 @@ def export_csv():
     Acesso a dado financeiro consolidado — auditado (LGPD/governança).
     """
     ini_d, fim_d, ini, fim = _periodo(request.args)
+    prof_id = request.args.get("profissional_id", type=int)
     L = LancamentoFinanceiro
+    A = Agendamento
+    rec_prof = ((L.agendamento_id.in_(
+        select(A.id).where(A.profissional_id == prof_id)),) if prof_id else ())
     rows = db.session.execute(
         select(L.pago_em, L.categoria, L.descricao, L.convenio,
                L.forma_pagamento, L.valor)
         .where(L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
-               L.pago_em >= ini, L.pago_em < fim)
+               L.pago_em >= ini, L.pago_em < fim, *rec_prof)
         .order_by(L.pago_em)
     ).all()
 

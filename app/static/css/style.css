@@ -39,6 +39,12 @@
 /* Form-group dentro de .flex-form que cresce e tem minimo de 200px. */
 .form-group-flex-main { flex: 1; min-width: 200px; margin-bottom: 0; }
 
+/* Checkbox inline (toolbar/linha) — NAO estica como input de texto e alinha
+   verticalmente com os demais campos. Corrige a "caixa de selecao" gigante. */
+.form-check { display: flex; align-items: center; gap: 0.45rem; white-space: nowrap; }
+.form-check input[type="checkbox"] { width: auto; margin: 0; flex: none; }
+.toolbar .form-check { align-self: center; margin-bottom: 0; }
+
 /* Cards destacados com borda lateral colorida — tinta sutil sobre card claro. */
 .card-hl-primary { border-left: 4px solid var(--primary); background: rgba(var(--brand-primary-rgb), 0.10); }
 .card-hl-success { border-left: 4px solid var(--success); background: rgba(22, 163, 74, 0.08); }
@@ -1274,6 +1280,8 @@ button[aria-disabled="true"] {
 }
 .btn-link:hover { color: var(--primary-dark); }
 .btn-link:disabled { color: var(--gray-500); cursor: default; text-decoration: none; }
+.btn-link-danger { color: var(--danger); }
+.btn-link-danger:hover { color: #b91c1c; }
 
 /* Empty state generico */
 .empty-state {

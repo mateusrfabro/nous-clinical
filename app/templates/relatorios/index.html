@@ -15,10 +15,10 @@
 <div class="page-header">
   <h2>Relatórios</h2>
   {% if gerado %}
-  <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim) }}" class="btn btn-outline">Exportar CSV</a>
+  <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline">Exportar CSV</a>
   {% endif %}
 </div>
-<p class="muted mb-4">Defina o período e clique em <strong>Gerar</strong>. Os relatórios são calculados sob demanda.</p>
+<p class="muted mb-4">Defina o período (e, opcionalmente, o profissional) e clique em <strong>Gerar</strong>. Os relatórios são calculados sob demanda.</p>
 
 <form method="GET" class="toolbar no-loading mb-4">
   <input type="hidden" name="gerar" value="1">
@@ -30,8 +30,20 @@
     <label for="fim">Até</label>
     <input type="date" id="fim" name="fim" value="{{ fim }}">
   </div>
+  <div class="form-group form-group-grow">
+    <label for="profissional_id">Profissional</label>
+    <select id="profissional_id" name="profissional_id">
+      <option value="">Todos</option>
+      {% for p in profissionais %}
+        <option value="{{ p.id }}" {{ 'selected' if prof_id==p.id }}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
   <button type="submit" class="btn btn-primary">Gerar relatório</button>
 </form>
+{% if gerado and prof_id %}
+<p class="muted text-sm mb-2">Filtrado por profissional. Despesas não se aplicam a um profissional específico (exibidas como R$ 0,00).</p>
+{% endif %}
 
 {% if not gerado %}
 <div class="empty-state">

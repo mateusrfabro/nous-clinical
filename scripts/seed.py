@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import create_app, db  # noqa: E402
 from app.models import (  # noqa: E402
     Clinica, Usuario, Profissional, Paciente, Agendamento,
-    LancamentoFinanceiro, Atendimento, Procedimento,
+    LancamentoFinanceiro, Atendimento, Procedimento, Convenio,
 )
 from app.services.passwords import hash_senha  # noqa: E402
 
@@ -62,6 +62,14 @@ def seed():
         # Admin + recepcao
         _get_or_create_usuario("admin@nous.com", "Administrador", "admin")
         _get_or_create_usuario("recepcao@nous.com", "Recepção", "recepcao")
+
+        # Convênios (master data) — alimentam os selects de convênio nos cadastros.
+        for nome_conv in ("Unimed", "Bradesco Saúde", "SulAmérica", "Amil",
+                          "Particular"):
+            if not Convenio.query.filter_by(clinica_id=clinica.id,
+                                            nome=nome_conv).first():
+                db.session.add(Convenio(nome=nome_conv, clinica_id=clinica.id))
+        db.session.flush()
 
         # Profissionais (com login proprio)
         profs = []

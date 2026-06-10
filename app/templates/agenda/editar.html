@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import convenio_select with context %}
 {% block title %}Reagendar consulta — Nous Clinical{% endblock %}
 {% block content %}
 <div class="w-narrow">
@@ -38,7 +39,7 @@
     </div>
     <div class="form-group">
       <label for="convenio">Convênio</label>
-      <input type="text" id="convenio" name="convenio" list="convenios" value="{{ form.get('convenio','') }}">
+      {{ convenio_select('convenio', form.get('convenio','')) }}
     </div>
     <div class="form-group">
       <label for="observacoes">Observações</label>

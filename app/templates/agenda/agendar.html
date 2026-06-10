@@ -9,13 +9,44 @@
     <li><span>Data e hora</span><strong>{{ sucesso.inicio|datetime_br }}</strong></li>
     <li><span>Profissional</span><strong>{{ sucesso.profissional.nome }}</strong></li>
   </ul>
-  <p class="muted">Recebemos sua solicitação. A clínica vai confirmar em breve pelo telefone informado.</p>
+  <p class="muted">Recebemos sua solicitação. A clínica vai confirmar em breve pelo WhatsApp informado.</p>
   <a href="{{ request.path }}" class="btn btn-outline btn-block">Agendar outra consulta</a>
+
+{% elif clinicas is defined %}
+  {# Passo 0 — várias clínicas: escolher a clínica. #}
+  <h2>Agendar consulta</h2>
+  {% if clinicas %}
+  <p class="muted">Escolha a clínica para ver os profissionais disponíveis.</p>
+  <form method="GET" class="no-loading" data-no-validate>
+    <div class="form-group">
+      <label for="clinica_id">Clínica</label>
+      <select id="clinica_id" name="clinica_id" required>
+        <option value="">Selecione…</option>
+        {% for c in clinicas %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Continuar</button>
+  </form>
+  {% else %}
+  <div class="empty-state mt-4"><p>Nenhuma clínica disponível para agendamento online no momento.</p></div>
+  {% endif %}
+
 {% else %}
-  <h2>Agendar consulta{% if portal_clinica %} — {{ portal_clinica.nome }}{% endif %}</h2>
-  <p class="muted">Escolha o profissional e o dia para ver os horários livres.</p>
+  <h2>Agendar consulta{% if clinica %} — {{ clinica.nome }}{% endif %}</h2>
+  <p class="muted">Filtre por especialidade (opcional), escolha o profissional e o dia.</p>
 
   <form method="GET" class="no-loading" data-no-validate>
+    {% if clinica and not portal_clinica %}<input type="hidden" name="clinica_id" value="{{ clinica.id }}">{% endif %}
+    {% if especialidades %}
+    <div class="form-group">
+      <label for="especialidade">Especialidade</label>
+      <select id="especialidade" name="especialidade">
+        <option value="">Todas</option>
+        {% for e in especialidades %}<option value="{{ e }}" {{ 'selected' if especialidade == e }}>{{ e }}</option>{% endfor %}
+      </select>
+      <small class="muted">Ao trocar a especialidade, clique em “Ver horários” para atualizar a lista de profissionais.</small>
+    </div>
+    {% endif %}
     <div class="form-group">
       <label for="profissional_id">Profissional</label>
       <select id="profissional_id" name="profissional_id" required>
@@ -33,10 +64,11 @@
     <button type="submit" class="btn btn-outline btn-block">Ver horários</button>
   </form>
 
-  {% if slots is not none %}
+  {% if slots is defined and slots is not none %}
     {% if slots %}
     <form method="POST" class="mt-4">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if clinica and not portal_clinica %}<input type="hidden" name="clinica_id" value="{{ clinica.id }}">{% endif %}
       <input type="hidden" name="profissional_id" value="{{ prof_sel.id }}">
       <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
       {# honeypot anti-bot: oculto; humano não preenche #}
@@ -53,16 +85,27 @@
         </div>
       </fieldset>
       <div class="form-group">
-        <label for="nome">Seu nome</label>
+        <label for="nome">Seu nome completo</label>
         <input id="nome" name="nome" required value="{{ form.nome or '' }}">
       </div>
       <div class="form-group">
-        <label for="telefone">Telefone / WhatsApp</label>
+        <label for="cpf">CPF</label>
+        <input id="cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00" required value="{{ form.cpf or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="data_nascimento">Data de nascimento</label>
+        <input type="date" id="data_nascimento" name="data_nascimento" required value="{{ form.data_nascimento or '' }}">
+      </div>
+      <div class="form-group">
+        <label for="telefone">WhatsApp</label>
         <input type="tel" inputmode="tel" id="telefone" name="telefone" required value="{{ form.telefone or '' }}">
       </div>
       <div class="form-group">
         <label for="convenio">Convênio (opcional)</label>
-        <input id="convenio" name="convenio" value="{{ form.convenio or '' }}">
+        <select id="convenio" name="convenio">
+          <option value="">Sem convênio / Particular</option>
+          {% for c in convenios %}<option value="{{ c }}" {{ 'selected' if form.convenio == c }}>{{ c }}</option>{% endfor %}
+        </select>
       </div>
       <div class="form-group">
         <label for="observacoes">Observações (opcional)</label>

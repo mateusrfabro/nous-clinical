@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import convenio_select with context %}
 {% block title %}{{ 'Editar' if paciente else 'Novo' }} paciente — Nous Clinical{% endblock %}
 {% block content %}
 {% set f = paciente if paciente else form %}
@@ -35,8 +36,8 @@
     </div>
     <div class="flex-form">
       <div class="form-group form-group-grow">
-        <label for="telefone">Telefone / WhatsApp</label>
-        <input type="tel" inputmode="tel" id="telefone" name="telefone" value="{{ (f.telefone or '') if paciente else form.get('telefone','') }}">
+        <label for="telefone">Telefone / WhatsApp *</label>
+        <input type="tel" inputmode="tel" id="telefone" name="telefone" required value="{{ (f.telefone or '') if paciente else form.get('telefone','') }}">
       </div>
       <div class="form-group form-group-grow">
         <label for="email">E-mail</label>
@@ -65,7 +66,7 @@
       </div>
       <div class="form-group form-group-grow">
         <label for="convenio">Convênio</label>
-        <input type="text" id="convenio" name="convenio" list="convenios" value="{{ (f.convenio or '') if paciente else form.get('convenio','') }}">
+        {{ convenio_select('convenio', (f.convenio or '') if paciente else form.get('convenio','')) }}
       </div>
     </div>
     <div class="form-group">

@@ -7,19 +7,24 @@
     <p class="muted">{{ ag.paciente.nome_completo }} · {{ ag.inicio|datetime_br }} · {{ ag.profissional.nome }}</p>
   </div>
   <div class="alert alert-info">Prontuário é dado sensível (LGPD). Registre só o necessário.</div>
-  <form method="POST" action="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="card">
+
+  {# Form ÚNICO: prontuário + exame no mesmo <form> (enctype multipart). O botão
+     "Anexar exame" usa formaction p/ a rota de upload, que persiste o rascunho
+     digitado ANTES de salvar o arquivo — assim anexar nunca apaga queixa/
+     evolução/prescrição (bug reportado). #}
+  <form method="POST" action="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" enctype="multipart/form-data" class="card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
       <label for="queixa">Queixa principal / anamnese</label>
-      <textarea id="queixa" name="queixa" rows="3">{{ registro.queixa if registro else '' }}</textarea>
+      <textarea id="queixa" name="queixa" rows="3">{{ (registro.queixa or '') if registro else '' }}</textarea>
     </div>
     <div class="form-group">
       <label for="evolucao">Evolução / conduta</label>
-      <textarea id="evolucao" name="evolucao" rows="4">{{ registro.evolucao if registro else '' }}</textarea>
+      <textarea id="evolucao" name="evolucao" rows="4">{{ (registro.evolucao or '') if registro else '' }}</textarea>
     </div>
     <div class="form-group">
       <label for="prescricao">Prescrição / receituário</label>
-      <textarea id="prescricao" name="prescricao" rows="4">{{ registro.prescricao if registro else '' }}</textarea>
+      <textarea id="prescricao" name="prescricao" rows="4">{{ (registro.prescricao or '') if registro else '' }}</textarea>
     </div>
 
     {% if procedimentos %}
@@ -60,20 +65,49 @@
       </div>
     </fieldset>
 
+    <fieldset class="form-fieldset">
+      <legend>Atestado médico (opcional)</legend>
+      <p class="muted text-sm mb-2">Preencha para emitir o PDF do atestado.</p>
+      <div class="flex-form">
+        <div class="form-group">
+          <label for="atestado_dias">Dias de afastamento</label>
+          <input type="number" id="atestado_dias" name="atestado_dias" min="1" max="365" class="w-input-num" value="{{ registro.atestado_dias if registro and registro.atestado_dias else '' }}">
+        </div>
+        <div class="form-group form-group-grow">
+          <label for="atestado_cid">CID</label>
+          <input type="text" id="atestado_cid" name="atestado_cid" maxlength="20" placeholder="Ex: J11" value="{{ (registro.atestado_cid or '') if registro else '' }}">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-fieldset">
+      <legend>Exames e documentos</legend>
+      <p class="muted text-sm mb-2">PDF, JPG, PNG ou WEBP (até 5MB). Anexar preserva o que já foi digitado acima.</p>
+      <div class="form-group">
+        <label for="arquivo">Arquivo</label>
+        <input type="file" id="arquivo" name="arquivo" accept=".pdf,.png,.jpg,.jpeg,.webp">
+      </div>
+      <button type="submit" class="btn btn-outline" formaction="{{ url_for('exames.upload', agendamento_id=ag.id) }}" formenctype="multipart/form-data">Anexar exame</button>
+    </fieldset>
+
     <button type="submit" class="btn btn-primary">Salvar atendimento</button>
     <a href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}" class="btn btn-outline">Voltar ao paciente</a>
   </form>
 
-  <div class="page-header section-title-mt"><h3>Exames e documentos</h3></div>
-  <form method="POST" action="{{ url_for('exames.upload', agendamento_id=ag.id) }}" enctype="multipart/form-data" class="card toolbar mb-2">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-group form-group-flex-main">
-      <label for="arquivo">Anexar exame (PDF, JPG, PNG ou WEBP — até 5MB)</label>
-      <input type="file" id="arquivo" name="arquivo" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
-    </div>
-    <button type="submit" class="btn btn-outline">Anexar</button>
-  </form>
+  {% if registro and (registro.prescricao or registro.atestado_dias) %}
+  <div class="card toolbar mt-2">
+    <span class="muted text-sm">Documentos:</span>
+    {% if registro.prescricao %}
+    <a href="{{ url_for('documentos.receita', agendamento_id=ag.id) }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">Exportar prescrição (PDF)</a>
+    {% endif %}
+    {% if registro.atestado_dias %}
+    <a href="{{ url_for('documentos.atestado', agendamento_id=ag.id) }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">Exportar atestado (PDF)</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if registro and registro.exames %}
+  <div class="table-wrapper mt-2">
   <table class="table">
     <thead><tr><th>Arquivo</th><th>Data</th><th>Ações</th></tr></thead>
     <tbody>
@@ -91,8 +125,7 @@
       {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <p class="muted text-sm mb-4">Nenhum exame anexado.</p>
+  </div>
   {% endif %}
 
   <div class="page-header section-title-mt"><h3>Histórico do paciente</h3></div>

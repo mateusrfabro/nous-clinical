@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import convenio_select with context %}
 {% block title %}Novo lançamento — Nous Clinical{% endblock %}
 {% block content %}
 <div class="w-narrow">
@@ -49,9 +50,9 @@
 
     <div class="flex-form">
       <div class="form-group form-group-grow">
-        <label for="forma_pagamento">Forma de pagamento</label>
-        <select id="forma_pagamento" name="forma_pagamento">
-          <option value="">—</option>
+        <label for="forma_pagamento">Forma de pagamento *</label>
+        <select id="forma_pagamento" name="forma_pagamento" required>
+          <option value="">Selecione…</option>
           {% for f in ['dinheiro','pix','cartao_credito','cartao_debito','convenio','boleto','transferencia'] %}
             <option value="{{ f }}" {{ 'selected' if form.get('forma_pagamento')==f }}>{{ f|forma_pgto_label }}</option>
           {% endfor %}
@@ -74,7 +75,7 @@
 
     <div class="form-group">
       <label for="convenio">Convênio (opcional)</label>
-      <input type="text" id="convenio" name="convenio" list="convenios" value="{{ form.get('convenio','') }}">
+      {{ convenio_select('convenio', form.get('convenio','')) }}
     </div>
 
     <button type="submit" class="btn btn-primary">Salvar lançamento</button>

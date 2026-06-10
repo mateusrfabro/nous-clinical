@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import convenio_select with context %}
 {% block title %}Preços por convênio — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -11,7 +12,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group form-group-flex-main">
     <label for="convenio">Convênio</label>
-    <input type="text" id="convenio" name="convenio" list="convenios" required placeholder="Ex: Unimed">
+    {{ convenio_select('convenio', '', required=true, prompt='Selecione um convênio…') }}
   </div>
   <div class="form-group">
     <label for="valor">Valor</label>

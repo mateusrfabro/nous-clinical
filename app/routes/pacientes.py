@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.auth_decorators import recepcao_ou_admin, equipe_required
-from app.models import Paciente, Agendamento, AuditLog
+from app.models import Paciente, Agendamento, Atendimento, Exame, AuditLog
 from app.services.audit import audit
 
 pacientes_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
@@ -66,12 +66,13 @@ def _valida_cpf(raw: str):
 
 
 def _valida_obrigatorios(form):
-    """Nome, CPF e Data de nascimento são obrigatórios (req. do sócio).
+    """Nome, CPF, Data de nascimento e Telefone são obrigatórios (req. do sócio).
 
     Retorna (nome, cpf_formatado, data, erro|None)."""
     nome = form.get("nome_completo", "").strip()
     cpf_raw = (form.get("cpf", "") or "").strip()
     data = _parse_data(form.get("data_nascimento", ""))
+    telefone = (form.get("telefone", "") or "").strip()
     if not nome:
         return nome, None, data, "Nome do paciente é obrigatório."
     if not cpf_raw:
@@ -81,6 +82,8 @@ def _valida_obrigatorios(form):
         return nome, None, data, "CPF inválido."
     if not data:
         return nome, cpf, None, "Data de nascimento é obrigatória."
+    if not telefone:
+        return nome, cpf, data, "Telefone é obrigatório."
     return nome, cpf, data, None
 
 
@@ -176,8 +179,19 @@ def detalhe(paciente_id):
         return redirect(url_for("pacientes.listar"))
     # Prontuario so aparece pra clinico (profissional/admin).
     pode_ver_prontuario = current_user.is_profissional or current_user.is_admin
+    # Histórico de anexos (exames) — dado sensível LGPD: só clínico. Médico vê
+    # apenas os exames dos seus atendimentos; admin vê todos os do paciente.
+    exames = []
+    if pode_ver_prontuario:
+        q = (select(Exame).where(Exame.paciente_id == paciente.id)
+             .order_by(Exame.criado_em.desc()))
+        if current_user.is_profissional and current_user.profissional:
+            q = (q.join(Atendimento, Exame.atendimento_id == Atendimento.id)
+                 .where(Atendimento.profissional_id == current_user.profissional.id))
+        exames = db.session.execute(q).scalars().all()
     return render_template("pacientes/detalhe.html", paciente=paciente,
-                           pode_ver_prontuario=pode_ver_prontuario)
+                           pode_ver_prontuario=pode_ver_prontuario,
+                           exames=exames)
 
 
 @pacientes_bp.route("/cep/<cep>")
