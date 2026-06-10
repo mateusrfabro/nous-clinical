@@ -35,6 +35,7 @@ ACAO_LABEL = {
     "agendamento_checkin": "Check-in",
     "agendamento_confirmado_publico": "Confirmação (link público)",
     "atendimento_registrado": "Atendimento registrado",
+    "atendimento_editado": "Prontuário editado",
     "profissional_criado": "Profissional criado",
     "profissional_editado": "Profissional editado",
     "clinica_criada": "Clínica criada",
@@ -43,12 +44,14 @@ ACAO_LABEL = {
     "lancamento_pago": "Lançamento pago",
     "lancamento_cancelado": "Lançamento cancelado",
     "procedimento_salvo": "Item/procedimento salvo",
+    "procedimento_excluido": "Item/procedimento excluído",
     "convenio_salvo": "Convênio salvo",
     "exame_anexado": "Exame anexado",
     "exame_removido": "Exame removido",
     "prontuario_visualizado": "Prontuário visualizado",
     "exame_baixado": "Exame baixado",
     "relatorio_exportado": "Relatório exportado",
+    "documento_emitido": "Documento emitido (PDF)",
 }
 
 

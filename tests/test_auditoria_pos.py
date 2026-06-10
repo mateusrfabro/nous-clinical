@@ -226,3 +226,15 @@ def test_reagendar_reseta_lembrete(client_admin):
         "profissional_id": ag.profissional_id, "dia": _amanha(), "hora": "10:00",
     }, follow_redirects=True)
     assert db.session.get(Agendamento, ag.id).lembrete_enviado_em is None
+
+
+def test_toda_acao_auditoria_tem_rotulo():
+    """Guarda: toda constante ACAO_* do AuditLog tem rótulo PT-BR na tela de
+    auditoria — senão o admin veria o código técnico cru. Pega ações novas
+    que esquecem o label (ex.: atendimento_editado, documento_emitido)."""
+    from app.models import AuditLog
+    from app.routes.auditoria import ACAO_LABEL
+    acoes = {v for k, v in vars(AuditLog).items()
+             if k.startswith("ACAO_") and isinstance(v, str)}
+    faltando = sorted(a for a in acoes if a not in ACAO_LABEL)
+    assert not faltando, f"Ações sem rótulo em ACAO_LABEL: {faltando}"
