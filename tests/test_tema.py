@@ -30,6 +30,20 @@ def test_admin_salva_tema(client_admin):
     assert c.tema == "violeta"
 
 
+def test_salvar_tema_remove_cor_personalizada(client_admin):
+    # "Ultima acao vence": salvar um tema limpa a cor personalizada que antes
+    # sobrescrevia a primaria (senao o tema "nao aplica").
+    c = Clinica.query.filter_by(slug="teste").first()
+    c.cor_primaria = "#0ea5a9"
+    db.session.commit()
+    cid = c.id
+    client_admin.post("/configuracoes/aparencia",
+                      data={"tema": "ambar"}, follow_redirects=True)
+    c = db.session.get(Clinica, cid)
+    assert c.tema == "ambar"
+    assert c.cor_primaria is None          # cor removida -> tema aplica
+
+
 def test_tema_invalido_rejeitado(client_admin):
     c = Clinica.query.filter_by(slug="teste").first()
     antes = c.tema

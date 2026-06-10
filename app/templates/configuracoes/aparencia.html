@@ -5,6 +5,10 @@
   <div class="page-header"><h2>Aparência da clínica</h2></div>
   <p class="muted mb-4">Escolha a cor de marca da <strong>{{ clinica.nome }}</strong>. Ela recolore botões, agenda, indicadores e destaques em todo o sistema — a sua identidade, não um template genérico.</p>
 
+  {% if clinica.cor_primaria %}
+  <div class="alert alert-info">Há uma <strong>cor personalizada</strong> ativa ({{ clinica.cor_primaria }}), que tem prioridade sobre o tema. <strong>Salvar um tema abaixo remove essa cor</strong> e aplica o tema.</div>
+  {% endif %}
+
   <form method="POST" action="{{ url_for('configuracoes.aparencia') }}" class="card" data-tema-form>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="tema-grid">

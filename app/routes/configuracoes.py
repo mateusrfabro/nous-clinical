@@ -60,11 +60,18 @@ def aparencia():
             flash("Tema inválido.", "error")
             return redirect(url_for("configuracoes.aparencia"))
         clinica.tema = tema
+        # "Última ação vence": escolher um tema remove a cor personalizada que
+        # antes sobrescrevia a primária — senão o tema parece "não aplicar".
+        tinha_cor = bool(clinica.cor_primaria)
+        clinica.cor_primaria = None
         db.session.commit()
         audit(AuditLog.ACAO_CLINICA_STATUS, recurso_tipo="clinica",
               recurso_id=clinica.id, detalhes=f"tema={tema}")
-        flash("Aparência atualizada — recarregue para ver em todo o sistema.",
-              "success")
+        msg = "Aparência atualizada — recarregue para ver em todo o sistema."
+        if tinha_cor:
+            msg = ("Tema aplicado (a cor personalizada foi removida) — "
+                   "recarregue para ver em todo o sistema.")
+        flash(msg, "success")
         return redirect(url_for("configuracoes.aparencia"))
 
     return render_template("configuracoes/aparencia.html",
