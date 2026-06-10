@@ -320,6 +320,14 @@ def create_app(config_name="default"):
         if _clinica_wl and _clinica_wl.cor_primaria:
             _tema_css_url = (_url_for("portal.tema_css", slug=_clinica_wl.slug)
                              if _portal else _url_for("configuracoes.tema_css"))
+        # Favicon: marca da clínica (portal/auth) ou o padrão Nous (plataforma).
+        _fav_v = (_clinica_wl.cor_primaria or _clinica_wl.tema) if _clinica_wl else None
+        if _clinica_wl and _portal:
+            _favicon_url = _url_for("portal.favicon", slug=_clinica_wl.slug, v=_fav_v)
+        elif _clinica_wl:
+            _favicon_url = _url_for("configuracoes.favicon", v=_fav_v)
+        else:
+            _favicon_url = _url_for("static", filename="favicon.svg")
 
         return {
             "whatsapp_url": url,
@@ -333,6 +341,7 @@ def create_app(config_name="default"):
             "tema_clinica": _tema,
             "clinica_logo_url": _logo_url,
             "tema_css_url": _tema_css_url,
+            "favicon_url": _favicon_url,
             # Clínica do portal público (None quando não é página de portal).
             "portal_clinica": _clinica_wl if _portal else None,
         }

@@ -72,5 +72,36 @@
       <button type="submit" class="btn btn-outline">Enviar</button>
     </form>
   </div>
+
+  <div class="page-header section-title-mt"><h3>Link público &amp; QR Code de agendamento</h3></div>
+  <p class="muted text-sm mb-2">O endereço que a clínica compartilha com os pacientes (recepção, Instagram, WhatsApp). Abre o agendamento com a sua marca.</p>
+  <div class="card">
+    <form method="POST" action="{{ url_for('configuracoes.slug_salvar') }}" class="toolbar mb-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group form-group-flex-main">
+        <label for="slug">Identificador público (slug)</label>
+        <input type="text" id="slug" name="slug" value="{{ clinica.slug or '' }}" placeholder="ex: clinica-centro" pattern="[a-z0-9-]+">
+      </div>
+      <button type="submit" class="btn btn-outline">Salvar</button>
+    </form>
+    {% if clinica.slug %}
+    {% set link_agendar = url_for('portal.agendar', slug=clinica.slug, _external=True) %}
+    {% set link_login = url_for('portal.entrar', slug=clinica.slug, _external=True) %}
+    <div class="form-group">
+      <label for="link-agendar">Link de agendamento</label>
+      <div class="flex-row-gap">
+        <input type="text" id="link-agendar" class="form-group-flex-main" value="{{ link_agendar }}" readonly>
+        <button type="button" class="btn btn-outline" data-copiar="link-agendar">Copiar</button>
+      </div>
+    </div>
+    <p class="muted text-sm mb-2">Login da equipe com a sua marca: <a href="{{ link_login }}" target="_blank" rel="noopener">{{ link_login }}</a></p>
+    <div class="qr-box">
+      <img class="qr-img" src="{{ url_for('configuracoes.qr_agendamento') }}" alt="QR Code do agendamento" width="180" height="180">
+      <a class="btn btn-outline btn-sm" href="{{ url_for('configuracoes.qr_agendamento') }}" download="qr-agendamento.svg">Baixar QR (SVG)</a>
+    </div>
+    {% else %}
+    <p class="muted text-sm">Defina um identificador acima para gerar o link e o QR Code.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

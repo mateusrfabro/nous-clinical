@@ -60,6 +60,39 @@ def cor_link(rgb):
     return _hex(cur)
 
 
+# Cor primária de cada tema curado (espelha os valores do style.css .tema-*).
+TEMA_PRIMARIA = {
+    "teal": "#43B8A5", "indigo": "#4F5BD5", "violeta": "#6D4DCB",
+    "verde": "#2E9E6B", "ambar": "#E08A3C", "petroleo": "#246A7B",
+}
+
+
+def cor_de_marca(clinica):
+    """Cor primária efetiva da clínica: a cor livre, senão a do tema, senão teal."""
+    if clinica is None:
+        return "#43B8A5"
+    if clinica.cor_primaria and hex_to_rgb(clinica.cor_primaria):
+        return _hex(hex_to_rgb(clinica.cor_primaria))
+    return TEMA_PRIMARIA.get(clinica.tema or "teal", "#43B8A5")
+
+
+def svg_favicon(letra, cor_hex):
+    """Favicon SVG: quadrado arredondado na cor de marca + inicial da clínica,
+    com texto em contraste WCAG. Sempre legível (não depende da logo)."""
+    import html
+    rgb = hex_to_rgb(cor_hex) or (67, 184, 165)
+    cor = _hex(rgb)
+    texto = texto_sobre(rgb)
+    inicial = html.escape(((letra or "N").strip()[:1] or "N").upper())
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+        f'<rect width="64" height="64" rx="14" fill="{cor}"/>'
+        f'<text x="32" y="34" font-family="Poppins,Segoe UI,Arial,sans-serif" '
+        f'font-size="38" font-weight="700" fill="{texto}" text-anchor="middle" '
+        f'dominant-baseline="central">{inicial}</text></svg>'
+    )
+
+
 def css_para_cor(hex_cor):
     """Bloco CSS (string) que sobrescreve os tokens de PRIMÁRIA pra `hex_cor`.
 

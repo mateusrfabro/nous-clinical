@@ -1595,6 +1595,9 @@ body.app {
 /* Preview da logo atual na tela de Aparência. */
 .logo-atual { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1rem; background: var(--bg-elevated-2); border-radius: var(--radius); margin-bottom: 0.75rem; }
 .logo-atual img { max-height: 48px; max-width: 200px; object-fit: contain; }
+/* Link público + QR Code de agendamento. */
+.qr-box { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+.qr-img { width: 180px; height: 180px; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 8px; }
 
 /* Tabelas largas no mobile: rolagem horizontal só na tabela (nao no body). */
 @media (max-width: 600px) {

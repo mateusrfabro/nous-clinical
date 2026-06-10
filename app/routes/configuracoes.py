@@ -9,13 +9,16 @@ from flask import (
 from flask_login import login_required, current_user
 
 from flask import Response
+from sqlalchemy import select
 
 from app import db
 from app.auth_decorators import admin_required
 from app.models import Clinica, AuditLog
 from app.services.audit import audit
 from app.services.storage import get_storage
-from app.services.cores import hex_to_rgb, css_para_cor
+from app.services.cores import (
+    hex_to_rgb, css_para_cor, cor_de_marca, svg_favicon,
+)
 
 configuracoes_bp = Blueprint("configuracoes", __name__,
                              url_prefix="/configuracoes")
@@ -157,6 +160,64 @@ def tema_css():
     resp = Response(css, mimetype="text/css")
     resp.headers["Cache-Control"] = "no-cache"
     return resp
+
+
+@configuracoes_bp.route("/favicon.svg")
+@login_required
+def favicon():
+    """Favicon SVG da clínica do usuário (cor de marca + inicial)."""
+    cl = _minha_clinica()
+    if not cl:
+        abort(404)
+    return Response(svg_favicon(cl.nome, cor_de_marca(cl)),
+                    mimetype="image/svg+xml")
+
+
+@configuracoes_bp.route("/slug", methods=["POST"])
+@login_required
+@admin_required
+def slug_salvar():
+    """Define/edita o identificador público (slug) da clínica — base do portal
+    /c/<slug>. Único na plataforma."""
+    import re
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+    bruto = (request.form.get("slug", "") or "").strip().lower()
+    slug = re.sub(r"[^a-z0-9-]+", "-", bruto).strip("-")
+    if len(slug) < 3:
+        flash("Identificador muito curto (mín. 3 letras/números).", "error")
+        return redirect(url_for("configuracoes.aparencia"))
+    existe = db.session.execute(
+        select(Clinica).where(Clinica.slug == slug, Clinica.id != clinica.id)
+        .execution_options(ignore_tenant=True)
+    ).scalar_one_or_none()
+    if existe:
+        flash("Esse identificador já está em uso por outra clínica.", "error")
+        return redirect(url_for("configuracoes.aparencia"))
+    clinica.slug = slug
+    db.session.commit()
+    flash("Endereço público atualizado.", "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/qr-agendamento.svg")
+@login_required
+@admin_required
+def qr_agendamento():
+    """QR Code (SVG) do link público de agendamento da clínica (/c/<slug>/agendar)."""
+    import io
+    import segno
+    clinica = _minha_clinica()
+    if not clinica or not clinica.slug:
+        abort(404)
+    url = url_for("portal.agendar", slug=clinica.slug, _external=True)
+    buf = io.BytesIO()
+    segno.make(url, error="m").save(buf, kind="svg", scale=6, border=2,
+                                    dark="#1e293b", light=None)
+    buf.seek(0)
+    return send_file(buf, mimetype="image/svg+xml")
 
 
 @configuracoes_bp.route("/logo/<int:clinica_id>")

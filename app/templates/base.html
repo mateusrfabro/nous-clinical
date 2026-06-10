@@ -6,6 +6,7 @@
     <title>{% block title %}Nous Clinical{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Nous Clinical — menos gestão, mais medicina. Agenda, pacientes, prontuário e financeiro com inteligência clínica.{% endblock %}">
     <meta name="theme-color" content="#FFFFFF">
+    <link rel="icon" type="image/svg+xml" href="{{ favicon_url }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&family=Sora:wght@500;600;700&display=swap">
@@ -204,5 +205,6 @@
     <script src="{{ url_for('static', filename='js/item-busca.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tema-preview.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tema-cor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/copiar.js') }}"></script>
 </body>
 </html>

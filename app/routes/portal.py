@@ -12,13 +12,13 @@ lógica existente de auth/agenda — sem duplicar regra de segurança.
 """
 import io
 
-from flask import Blueprint, g, abort, send_file
+from flask import Blueprint, g, abort, send_file, Response
 from sqlalchemy import select
 
 from app import db
 from app.models import Clinica
 from app.services.storage import get_storage
-from app.services.cores import css_para_cor
+from app.services.cores import css_para_cor, cor_de_marca, svg_favicon
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/c")
 
@@ -61,6 +61,14 @@ def logo(slug):
     except FileNotFoundError:
         abort(404)
     return send_file(io.BytesIO(dados), mimetype=cl.logo_mime or "image/png")
+
+
+@portal_bp.route("/<slug>/favicon.svg")
+def favicon(slug):
+    """Favicon da clínica (público) — cor de marca + inicial."""
+    cl = _clinica_por_slug(slug)
+    return Response(svg_favicon(cl.nome, cor_de_marca(cl)),
+                    mimetype="image/svg+xml")
 
 
 @portal_bp.route("/<slug>/tema.css")

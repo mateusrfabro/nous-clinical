@@ -103,3 +103,62 @@ def test_portal_tema_css_publico(client_admin, client):
     assert r.status_code == 200
     assert r.mimetype == "text/css"
     assert b"#8e44ad" in r.data
+
+
+# ---- Favicon por clínica ----
+
+def test_favicon_portal_publico(client):
+    r = client.get("/c/teste/favicon.svg")
+    assert r.status_code == 200
+    assert r.mimetype == "image/svg+xml"
+    assert b"<svg" in r.data and b">C</text>" in r.data   # inicial de "Clínica Teste"
+
+
+def test_favicon_autenticado(client_admin):
+    r = client_admin.get("/configuracoes/favicon.svg")
+    assert r.status_code == 200
+    assert r.mimetype == "image/svg+xml"
+
+
+def test_favicon_default_plataforma(client):
+    # página pública sem clínica aponta pro favicon padrão estático
+    assert b"/static/favicon.svg" in client.get("/login").data
+
+
+# ---- Slug público + QR ----
+
+def test_admin_define_slug(client_admin):
+    client_admin.post("/configuracoes/slug",
+                      data={"slug": "Minha Clínica!"}, follow_redirects=True)
+    c = Clinica.query.filter_by(nome="Clínica Teste").first()
+    assert c.slug and all(ch.isalnum() or ch == "-" for ch in c.slug)
+    assert c.slug.startswith("minha")
+
+
+def test_slug_duplicado_rejeitado(client_admin):
+    cb = Clinica(nome="Outra", slug="ocupado")
+    db.session.add(cb)
+    db.session.commit()
+    c = Clinica.query.filter_by(slug="teste").first()
+    client_admin.post("/configuracoes/slug",
+                      data={"slug": "ocupado"}, follow_redirects=True)
+    assert db.session.get(Clinica, c.id).slug == "teste"   # não trocou
+
+
+def test_qr_agendamento_svg(client_admin):
+    r = client_admin.get("/configuracoes/qr-agendamento.svg")
+    assert r.status_code == 200
+    assert r.mimetype == "image/svg+xml"
+    assert b"<svg" in r.data
+
+
+def test_qr_sem_slug_404(client_admin):
+    c = Clinica.query.filter_by(slug="teste").first()
+    c.slug = None
+    db.session.commit()
+    assert client_admin.get("/configuracoes/qr-agendamento.svg").status_code == 404
+
+
+def test_slug_so_admin(client_recepcao):
+    assert client_recepcao.post("/configuracoes/slug",
+                                data={"slug": "x"}).status_code in (301, 302)
