@@ -23,7 +23,7 @@ atendimento (prontuário), gestor acompanha operação e financeiro, e a platafo
 5. **Talisman** com a **CSP** (sem `unsafe-inline`; ver abaixo).
 6. `init_storage(app)` — storage de uploads.
 7. `before_request`: timeout de sessão por inatividade + **`_set_clinica_atual`** (popula `g.clinica_id`).
-8. Registra os **15 blueprints**.
+8. Registra os **16 blueprints**.
 9. Error handlers (400/403/404/413/429/500) + filtro que **redige tokens** dos logs de acesso.
 10. **Context processor** + **filtros Jinja** (datas BR, `brl`, status, white-label).
 
@@ -42,6 +42,7 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 | `procedimentos` | `/procedimentos` | "Cadastro de Itens" (itens faturáveis + convênios) | recepção/admin |
 | `relatorios` | `/relatorios` | BI sob demanda + export CSV | admin |
 | `exames` | `/exames` | anexos de exame (LGPD) | clínico |
+| `documentos` | `/documentos` | PDFs de receita/atestado (reportlab) | clínico |
 | `perfil` | `/perfil` | perfil do usuário, troca de senha | logado |
 | `clinicas` | `/clinicas` | gestão de tenants (cria clínica + admin) | superadmin |
 | `auditoria` | `/auditoria` | visualização da trilha de auditoria | admin |
@@ -53,6 +54,7 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 - **`audit.py`** — grava `AuditLog` (best-effort, captura IP/UA).
 - **`storage.py`** — abstração de arquivos (local hoje; interface p/ S3).
 - **`cores.py`** — luminância/contraste WCAG, CSS por cor, favicon SVG, cor de marca por tema.
+- **`documentos_pdf.py`** — PDFs A4 de receita/atestado (reportlab); logo da clínica ou wordmark Nous.
 - **`passwords.py`** — Argon2id (hash, verify, rehash-on-login, dummy anti-timing).
 - **`tokens.py`** — tokens assinados (itsdangerous) p/ confirmação pública de consulta.
 - **`lembretes.py`** — job de lembretes (e-mail/Telegram), idempotente.

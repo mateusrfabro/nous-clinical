@@ -50,9 +50,18 @@ login em `profissionais.novo`.
 **`atendido` só é setado pelo registro do prontuário**, nunca manualmente.
 
 ### `Atendimento` — prontuário (DADO SENSÍVEL LGPD)
-`queixa`/`evolucao`/`prescricao`, `retorno_em` (CRM recall), 1:1 com Agendamento.
-Acesso só por **profissional (o dono) ou admin**. Tem `itens` (ItemAtendimento) e
-`exames`. `total_itens` soma os itens em Decimal.
+`queixa`/`evolucao`/`prescricao`, `retorno_em` (CRM recall), **`atestado_dias`/
+`atestado_cid`** (atestado médico), 1:1 com Agendamento. Acesso só por
+**profissional (o dono) ou admin**. Tem `itens` (ItemAtendimento) e `exames`.
+`total_itens` soma os itens em Decimal. Edição registra `ACAO_ATENDIMENTO_EDITADO`
+na auditoria. Exporta **receita** e **atestado** em PDF (`app/routes/documentos.py`
++ `app/services/documentos_pdf.py`, reportlab A4 — logo da clínica ou wordmark Nous).
+
+> **Anexar exame sem perder o rascunho:** o prontuário e o upload de exame ficam no
+> **mesmo `<form>`** (`enctype=multipart`); o botão "Anexar" usa `formaction` p/
+> `exames.upload`, que **persiste o rascunho** (helper `aplicar_campos_prontuario`)
+> antes de salvar o arquivo — sem marcar a consulta como atendida. Corrige o bug em
+> que anexar apagava queixa/evolução/prescrição (viravam "none").
 
 ### `Procedimento` / `PrecoConvenio` / `ItemAtendimento`
 Catálogo de itens faturáveis ("Cadastro de Itens"). `Procedimento.valor_padrao`;

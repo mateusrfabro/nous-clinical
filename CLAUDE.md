@@ -38,16 +38,23 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 - **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id, clinica_id).
 - **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor,
   `duracao_padrao_min`, `comissao_percent`, **`sala`**.
-- **Paciente** — cadastro (nome/CPF/nascimento **obrigatórios no form**, contato, endereço
-  via CEP, convênio, observações).
+- **Paciente** — cadastro (nome/CPF/nascimento/**telefone** **obrigatórios no form**, contato,
+  endereço via CEP, convênio, observações). Cadastro só por recepção/admin (médico não cadastra).
 - **Agendamento** — paciente + profissional + início/fim + status + valor/convênio + **sala**
   (puxada do profissional) + checkin_em. Duração selecionável (30/60/90/120).
-- **Atendimento** — prontuário (queixa/evolução/prescrição). **Dado sensível LGPD.**
-- **LancamentoFinanceiro** — receita/despesa (categoria, valor, status, forma, vencimento,
-  pago_em). Liga opcional a paciente e a agendamento (1:1).
+- **Atendimento** — prontuário (queixa/evolução/prescrição, retorno CRM, **atestado:
+  `atestado_dias`/`atestado_cid`**). **Dado sensível LGPD.** Edição é auditada
+  (`ACAO_ATENDIMENTO_EDITADO`). Gera PDF de **receita** e **atestado** (`/documentos`,
+  reportlab — logo da clínica ou wordmark Nous). Anexar exame preserva o rascunho do
+  prontuário (form único + `formaction` p/ `exames.upload`).
+- **LancamentoFinanceiro** — receita/despesa (categoria, valor, status, **forma de pagamento
+  obrigatória ao pagar/dar baixa**, vencimento, pago_em). Liga opcional a paciente e a
+  agendamento (1:1).
 - **Procedimento/PrecoConvenio/ItemAtendimento** — itens faturáveis + preço por convênio.
-- **Convenio** — cadastro centralizado de convênios (master data, por clínica). Datalist
-  global `#convenios` injetado em `base.html` via `convenios_ativos()`.
+  Item pode ser **excluído** (preserva snapshot histórico: `ItemAtendimento.procedimento_id`→NULL).
+- **Convenio** — cadastro centralizado de convênios (master data, por clínica). Campos de
+  convênio são **`<select>` da lista cadastrada** (macro `convenio_select` em `_macros.html`;
+  sem digitação livre — req. do sócio), populado por `convenios_ativos()`.
 - **AuditLog** — trilha de auditoria (constantes `ACAO_*`). Tela admin em `/auditoria`.
 
 ## Fluxo principal
