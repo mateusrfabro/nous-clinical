@@ -8,3 +8,6 @@ instance/
 venv/
 *.log
 cf_tunnel.log
+.coverage
+.pytest_cache/
+htmlcov/
