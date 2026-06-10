@@ -72,11 +72,15 @@ def test_portal_agendar_rejeita_prof_de_outra_clinica(client):
     assert Agendamento.query.filter_by(profissional_id=pb.id).count() == antes
 
 
-def test_agendar_generico_multiclinica_redireciona(client):
-    # 2 clínicas ativas + sem slug -> não faz pooling, manda pro login.
+def test_agendar_generico_multiclinica_mostra_seletor(client):
+    # 2 clínicas ativas + sem slug -> NÃO faz pooling: mostra o seletor de
+    # clínica (req. do sócio: escolher a clínica antes de ver os profissionais).
     _clinica_b_com_prof()
     r = client.get("/agenda/agendar", follow_redirects=False)
-    assert r.status_code in (301, 302)
+    assert r.status_code == 200
+    assert b'name="clinica_id"' in r.data        # seletor de clínica
+    # não lista profissionais antes de escolher a clínica (sem pooling)
+    assert b'name="profissional_id"' not in r.data
 
 
 # ---- Logo e cor públicos (brand assets) ----

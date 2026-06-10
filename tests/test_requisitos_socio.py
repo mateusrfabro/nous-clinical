@@ -41,12 +41,14 @@ def test_recepcao_cadastra_item(client_recepcao):
     assert p is not None and p.valor_padrao == Decimal("120.00")
 
 
-def test_convenio_aparece_no_datalist(client_recepcao):
+def test_convenio_aparece_como_opcao(client_recepcao):
     client_recepcao.post("/procedimentos/adicionar",
                          data={"tipo": "convenio", "nome": "Amil"})
-    # datalist global no app shell (qualquer página logada renderiza)
+    # Convênio é lista CONTROLADA: aparece como <option> num <select> (sem
+    # digitação livre — req. do sócio).
     r = client_recepcao.get("/pacientes/novo")
-    assert b'list="convenios"' in r.data
+    assert b'name="convenio"' in r.data
+    assert b"<select" in r.data
     assert b"Amil" in r.data
 
 
@@ -61,7 +63,13 @@ def test_agendamento_puxa_sala_do_profissional(client_admin):
         "paciente_id": pac.id, "profissional_id": prof.id,
         "dia": _amanha_iso(), "hora": "09:00",
     }, follow_redirects=True)
-    ag = Agendamento.query.filter(Agendamento.inicio > datetime.now(timezone.utc)).first()
+    # order_by desc: pega o agendamento recém-criado (amanhã), não o do seed
+    # (hoje 12:00 UTC, que de madrugada ainda é "futuro" e quebraria o .first()).
+    ag = db.session.execute(
+        db.select(Agendamento)
+        .where(Agendamento.inicio > datetime.now(timezone.utc))
+        .order_by(Agendamento.inicio.desc())
+    ).scalars().first()
     assert ag is not None and ag.sala == "Sala 7"
 
 

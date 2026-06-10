@@ -61,7 +61,7 @@ def test_financeiro_novo_vincula_consulta(client_recepcao):
     db.session.commit()
     r = client_recepcao.post("/financeiro/novo", data={
         "tipo": "receita", "categoria": "consulta", "valor": "200,00",
-        "status": "pago", "paciente_id": ag.paciente_id,
+        "status": "pago", "forma_pagamento": "pix", "paciente_id": ag.paciente_id,
         "agendamento_id": ag.id, "descricao": "Consulta - teste",
     }, follow_redirects=True)
     assert r.status_code == 200
@@ -76,7 +76,7 @@ def test_cep_salva(client_recepcao):
     client_recepcao.post("/pacientes/novo", data={
         "nome_completo": "Paciente CEP", "cep": "86010-000",
         "cpf": "529.982.247-25", "data_nascimento": "1990-05-10",
-        "convenio": "Unimed",
+        "telefone": "(43) 90000-0000", "convenio": "Unimed",
     }, follow_redirects=True)
     p = Paciente.query.filter_by(nome_completo="Paciente CEP").first()
     assert p is not None

@@ -6,6 +6,9 @@ from app import db
 from app.models import Profissional, Paciente, Agendamento
 
 _BR = ZoneInfo("America/Sao_Paulo")
+# CPF válido + nascimento agora exigidos no agendamento online (req. do sócio).
+CPF_VALIDO = "529.982.247-25"
+NASC = "1990-05-10"
 
 
 def _proximo_dia_util():
@@ -41,6 +44,7 @@ def test_portal_cria_consulta_e_paciente(client):
     r = client.post("/agenda/agendar", data={
         "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "08:00",
         "nome": "Paciente Online", "telefone": "(43) 90000-2222",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert r.status_code == 200
     assert "solicitada".encode() in r.data.lower()
@@ -54,6 +58,7 @@ def test_portal_rejeita_data_passada(client):
     client.post("/agenda/agendar", data={
         "profissional_id": prof.id, "dia": "2020-01-01", "hora": "08:00",
         "nome": "Nome Valido", "telefone": "(43) 90000-3333",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert Agendamento.query.count() == antes
 
@@ -68,6 +73,7 @@ def test_online_nao_vaza_nem_sequestra_por_telefone(client):
     r = client.post("/agenda/agendar", data={
         "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "08:00",
         "nome": "Pessoa Nova", "telefone": "(11) 99999-0000",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert r.status_code == 200
     assert b"Maria Vitima Real" not in r.data          # não ecoa cadastro alheio
@@ -90,6 +96,7 @@ def test_online_hora_fora_dos_slots(client):
     client.post("/agenda/agendar", data={
         "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "03:00",
         "nome": "Fora Hora", "telefone": "11955554444",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert Agendamento.query.count() == antes
 
@@ -106,5 +113,6 @@ def test_online_telefone_invalido(client):
     client.post("/agenda/agendar", data={
         "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "08:00",
         "nome": "Tel Curto", "telefone": "123",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert Agendamento.query.count() == antes

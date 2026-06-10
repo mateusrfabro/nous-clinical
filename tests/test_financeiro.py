@@ -70,7 +70,8 @@ def test_pagamento_consulta_idempotente(client_admin):
     db.session.commit()
     ag_id = ag.id
     dados = {"tipo": "receita", "categoria": "consulta", "valor": "300,00",
-             "status": "pago", "paciente_id": ag.paciente_id,
+             "status": "pago", "forma_pagamento": "pix",
+             "paciente_id": ag.paciente_id,
              "agendamento_id": ag_id, "descricao": "Consulta - teste"}
 
     client_admin.post("/financeiro/novo", data=dados, follow_redirects=True)
@@ -89,7 +90,8 @@ def test_pagamento_bloqueado_para_consulta_agendada(client_admin):
     ag = Agendamento.query.first()
     r = client_admin.post("/financeiro/novo", data={
         "tipo": "receita", "categoria": "consulta", "valor": "100,00",
-        "status": "pago", "agendamento_id": ag.id, "descricao": "x",
+        "status": "pago", "forma_pagamento": "pix",
+        "agendamento_id": ag.id, "descricao": "x",
     }, follow_redirects=True)
     assert r.status_code == 200
     assert LancamentoFinanceiro.query.count() == 0
@@ -99,7 +101,7 @@ def test_valor_aceita_formato_br(client_admin):
     # Sem JS, o usuario pode digitar "1.234,56" (formato BR).
     client_admin.post("/financeiro/novo", data={
         "tipo": "receita", "valor": "1.234,56", "descricao": "Valor BR",
-        "status": "pago",
+        "status": "pago", "forma_pagamento": "dinheiro",
     })
     lanc = LancamentoFinanceiro.query.filter_by(descricao="Valor BR").first()
     assert lanc is not None
