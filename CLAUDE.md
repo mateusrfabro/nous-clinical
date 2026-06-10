@@ -14,6 +14,10 @@ atendimento (prontuário), gestor acompanha a operação e o financeiro. Nicho m
 com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 **Stack:** Flask + SQLAlchemy + Alembic + Jinja2 + CSS vanilla + JS vanilla CSP-safe.
 
+> **Documentação de desenvolvimento detalhada:** pasta [`docs/`](docs/README.md)
+> (arquitetura, setup, modelo de domínio, **multi-tenant & RBAC**, white-label,
+> deploy, convenções). Este CLAUDE.md é o resumo; o `docs/` é o detalhe pro handoff.
+
 ## Papéis do sistema (`Usuario.tipo`) — multi-tenant por `clinica_id`
 1. **superadmin** — plataforma, cross-tenant (sem `clinica_id`). Gerencia clínicas
    (`/clinicas`) e vê painel consolidado (totais cross-clínica). Não tem escopo.
