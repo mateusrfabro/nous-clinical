@@ -590,6 +590,10 @@ def agendar_online():
             return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
 
         convenio = request.form.get("convenio", "").strip() or None
+        # Rota pública (sem login): convênio só vale se for um da lista CONTROLADA
+        # da clínica. POST forjado com convênio arbitrário vira "particular".
+        if convenio and convenio not in convenios:
+            convenio = None
         paciente = _cria_ou_reusa_paciente(
             clinica, nome, telefone, cpf_fmt, data_nasc, convenio)
 

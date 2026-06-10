@@ -168,7 +168,11 @@ def excluir(procedimento_id):
     procedimento (procedimento_id -> NULL) antes de remover. Preços por
     convênio caem por cascade."""
     p = db.session.get(Procedimento, procedimento_id)
-    if not p:
+    # Guarda de posse explícita (defense-in-depth): além do escopo automático,
+    # confirma a clínica — session.get pode devolver do identity map sem
+    # reaplicar o critério. Mesmo padrão de excluir_preco.
+    cid = clinica_atual()
+    if not p or (cid is not None and p.clinica_id != cid):
         flash("Item não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
     # Desvincula os snapshots históricos (mantém descricao/valor preservados).
@@ -180,7 +184,7 @@ def excluir(procedimento_id):
     nome = p.nome
     db.session.delete(p)
     db.session.commit()
-    audit(AuditLog.ACAO_PROCEDIMENTO_SALVO, recurso_tipo="procedimento",
+    audit(AuditLog.ACAO_PROCEDIMENTO_EXCLUIDO, recurso_tipo="procedimento",
           recurso_id=procedimento_id, detalhes=f"excluido:{nome}")
     flash("Item excluído.", "success")
     return redirect(url_for("procedimentos.listar"))

@@ -63,7 +63,8 @@ def _registro_label(prof):
     if not reg:
         return ""
     # Se já vem com letras (CRM/CRO/...), mantém; senão prefixa CRM.
-    return reg if any(c.isalpha() for c in reg) else f"CRM {reg}"
+    texto = reg if any(c.isalpha() for c in reg) else f"CRM {reg}"
+    return _escape(texto)   # vai direto pro Paragraph (mini-HTML)
 
 
 def _logo_flowable(clinica):
@@ -91,10 +92,10 @@ def _cabecalho(story, estilos, clinica, prof, titulo):
         story.append(logo)
     else:
         nome = (clinica.nome if clinica and clinica.nome else "Nous Clinical")
-        story.append(Paragraph(nome, estilos["marca"]))
+        story.append(Paragraph(_escape(nome), estilos["marca"]))
     story.append(Paragraph(titulo, estilos["titulo"]))
     if prof and prof.nome:
-        story.append(Paragraph(prof.nome, estilos["medico"]))
+        story.append(Paragraph(_escape(prof.nome), estilos["medico"]))
     reg = _registro_label(prof)
     if reg:
         story.append(Paragraph(reg, estilos["muted"]))
@@ -117,7 +118,7 @@ def _rodape_assinatura(story, estilos, prof, data):
     story.append(Paragraph("_________________________________________",
                            estilos["assin"]))
     if prof and prof.nome:
-        story.append(Paragraph(prof.nome, estilos["assin"]))
+        story.append(Paragraph(_escape(prof.nome), estilos["assin"]))
     reg = _registro_label(prof)
     if reg:
         story.append(Paragraph(reg, estilos["muted"]))

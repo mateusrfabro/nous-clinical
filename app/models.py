@@ -498,6 +498,7 @@ class AuditLog(db.Model):
     ACAO_LANCAMENTO_PAGO = "lancamento_pago"
     ACAO_LANCAMENTO_CANCELADO = "lancamento_cancelado"
     ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
+    ACAO_PROCEDIMENTO_EXCLUIDO = "procedimento_excluido"
     ACAO_CONVENIO_SALVO = "convenio_salvo"
     ACAO_EXAME_ANEXADO = "exame_anexado"
     ACAO_EXAME_REMOVIDO = "exame_removido"

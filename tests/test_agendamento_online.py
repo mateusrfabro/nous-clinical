@@ -107,6 +107,21 @@ def test_online_fim_de_semana_sem_slots(client):
     assert b"slot-grid" not in r.data
 
 
+def test_online_convenio_forjado_e_descartado(client):
+    # Convênio fora da lista controlada da clínica (POST forjado) vira None.
+    from app.models import Convenio
+    prof = Profissional.query.first()
+    db.session.add(Convenio(nome="Unimed", clinica_id=prof.clinica_id))
+    db.session.commit()
+    client.post("/agenda/agendar", data={
+        "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "08:00",
+        "nome": "Conv Forjado", "telefone": "(43) 90000-8888",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC, "convenio": "ConvenioPirata",
+    }, follow_redirects=True)
+    p = Paciente.query.filter_by(nome_completo="Conv Forjado").first()
+    assert p is not None and p.convenio is None      # forjado descartado
+
+
 def test_online_telefone_invalido(client):
     prof = Profissional.query.first()
     antes = Agendamento.query.count()

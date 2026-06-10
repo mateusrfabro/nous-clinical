@@ -73,3 +73,26 @@ def test_excluir_preco_de_outra_clinica_bloqueado(client_admin):
     assert r.status_code == 200
     # o preço da clínica B continua existindo (exclusão foi barrada)
     assert db.session.get(PrecoConvenio, preco_id) is not None
+
+
+def test_excluir_item_de_outra_clinica_bloqueado(client_admin):
+    """IDOR cross-tenant: admin da clínica T NÃO pode excluir um item
+    (Procedimento) de outra clínica (guarda de posse explícita em excluir)."""
+    cb = Clinica(nome="Clínica B Item", slug="b-item")
+    db.session.add(cb)
+    db.session.flush()
+    proc = Procedimento(nome="Item da B", valor_padrao=Decimal("100.00"),
+                        clinica_id=cb.id)
+    db.session.add(proc)
+    db.session.commit()
+    proc_id = proc.id
+    db.session.expunge_all()        # espelha produção (sem identity map)
+
+    r = client_admin.post(f"/procedimentos/{proc_id}/excluir",
+                          follow_redirects=True)
+    assert r.status_code == 200
+    sem_escopo = db.session.execute(
+        db.select(Procedimento).where(Procedimento.id == proc_id)
+        .execution_options(ignore_tenant=True)
+    ).scalars().first()
+    assert sem_escopo is not None   # item da clínica B segue existindo
