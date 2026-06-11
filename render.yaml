@@ -17,6 +17,8 @@ services:
         generateValue: true            # Render gera uma chave forte e secreta
       - key: FLASK_ENV
         value: production
+      - key: WEB_WORKERS
+        value: "2"                     # free=512MB: poucos workers (+ --preload). Pago: 4.
       - key: RUN_SEED
         value: "true"                  # 1o deploy: cria logins demo. Depois troque p/ false.
       - key: PUBLIC_BASE_URL
