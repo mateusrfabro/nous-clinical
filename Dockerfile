@@ -15,8 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN chmod +x entrypoint.sh
 
-# Variavel de ambiente
+# Variaveis de ambiente. FLASK_APP e necessario pro `flask db upgrade` do
+# entrypoint achar a app (em deploy sem docker-compose, ex.: Render).
 ENV FLASK_ENV=production
+ENV FLASK_APP=run.py
 
 # Porta
 EXPOSE 5050

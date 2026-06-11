@@ -1,0 +1,33 @@
+# Render Blueprint — Nous Clinical (web via Docker + Postgres gerenciado).
+# Deploy: render.com -> New + -> Blueprint -> selecione este repositorio.
+# O Render le este arquivo e provisiona tudo. HTTPS e automatico.
+services:
+  - type: web
+    name: nous-clinical
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon          # US-West (sem regiao no Brasil; latencia ~150ms, ok)
+    plan: starter           # ~US$7/mes; troque para 'free' so para testar
+    healthCheckPath: /health
+    autoDeploy: true        # redeploy automatico a cada push na branch
+    branch: feat/nous-rebrand-financeiro
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true            # Render gera uma chave forte e secreta
+      - key: FLASK_ENV
+        value: production
+      - key: RUN_SEED
+        value: "true"                  # 1o deploy: cria logins demo. Depois troque p/ false.
+      - key: PUBLIC_BASE_URL
+        value: https://nousclinical.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nous-clinical-db
+          property: connectionString
+
+databases:
+  - name: nous-clinical-db
+    databaseName: nous
+    user: nous
+    region: oregon
+    plan: basic-256mb        # ~US$6/mes; 'free' expira em 90 dias (so p/ teste)
