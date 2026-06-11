@@ -7,7 +7,8 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     region: oregon          # US-West (sem regiao no Brasil; latencia ~150ms, ok)
-    plan: starter           # ~US$7/mes; troque para 'free' so para testar
+    plan: free              # VALIDACAO: gratis (site "dorme" apos 15min ocioso).
+                            # Pra producao, troque para 'starter' (~US$7/mes).
     healthCheckPath: /health
     autoDeploy: true        # redeploy automatico a cada push na branch
     branch: feat/nous-rebrand-financeiro
@@ -30,4 +31,5 @@ databases:
     databaseName: nous
     user: nous
     region: oregon
-    plan: basic-256mb        # ~US$6/mes; 'free' expira em 90 dias (so p/ teste)
+    plan: free               # VALIDACAO: gratis, porem EXPIRA em ~90 dias e perde
+                             # os dados. Antes do uso real, troque para 'basic-256mb'.
