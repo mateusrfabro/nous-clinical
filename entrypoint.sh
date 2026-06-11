@@ -16,16 +16,21 @@ else
 fi
 
 # Seed de VALIDACAO multi-clinica + super-admin (3 clinicas demo). Idempotente.
+# NAO-FATAL: se falhar, loga o erro mas deixa o app subir (set +e no bloco).
 # Desligue (RUN_DEMO=false) apos popular, pra nao rodar a cada deploy.
 if [ "$RUN_DEMO" = "true" ]; then
+    set +e
     echo "[nous] Rodando seed multi-clinica (validacao)..."
     python scripts/seed_demo_clinicas.py
+    if [ $? -ne 0 ]; then echo "[nous] WARN: seed multi-clinica FALHOU (erro acima)."; fi
     echo "[nous] Criando super-admin (visao consolidada)..."
     flask criar-superadmin \
         --email "${SUPERADMIN_EMAIL:-super@nous.com}" \
         --senha "${SUPERADMIN_SENHA:-123demo123}" \
-        --nome "Super Admin" || true
-    echo "[nous] Demo multi-clinica concluida. Mude RUN_DEMO=false."
+        --nome "Super Admin"
+    if [ $? -ne 0 ]; then echo "[nous] WARN: super-admin nao criado (erro acima)."; fi
+    set -e
+    echo "[nous] Bloco demo concluido. Mude RUN_DEMO=false depois de validar."
 fi
 
 # Default seguro p/ container pequeno. NAO usar 2*cpu+1: em PaaS o cpu_count()
