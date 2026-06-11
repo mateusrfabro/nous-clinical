@@ -15,6 +15,19 @@ else
     echo "[nous] Seed pulado (RUN_SEED != true)."
 fi
 
+# Seed de VALIDACAO multi-clinica + super-admin (3 clinicas demo). Idempotente.
+# Desligue (RUN_DEMO=false) apos popular, pra nao rodar a cada deploy.
+if [ "$RUN_DEMO" = "true" ]; then
+    echo "[nous] Rodando seed multi-clinica (validacao)..."
+    python scripts/seed_demo_clinicas.py
+    echo "[nous] Criando super-admin (visao consolidada)..."
+    flask criar-superadmin \
+        --email "${SUPERADMIN_EMAIL:-super@nous.com}" \
+        --senha "${SUPERADMIN_SENHA:-123demo123}" \
+        --nome "Super Admin" || true
+    echo "[nous] Demo multi-clinica concluida. Mude RUN_DEMO=false."
+fi
+
 # Default seguro p/ container pequeno. NAO usar 2*cpu+1: em PaaS o cpu_count()
 # reflete o host inteiro e sobe workers demais -> OOM. Ajuste via WEB_WORKERS.
 WORKERS=${WEB_WORKERS:-2}

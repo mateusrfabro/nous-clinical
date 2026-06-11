@@ -21,6 +21,8 @@ services:
         value: "2"                     # free=512MB: poucos workers (+ --preload). Pago: 4.
       - key: RUN_SEED
         value: "true"                  # 1o deploy: cria logins demo. Depois troque p/ false.
+      - key: RUN_DEMO
+        value: "true"                  # cria 3 clinicas demo + super-admin. Depois troque p/ false.
       - key: PUBLIC_BASE_URL
         value: https://nousclinical.com
       - key: DATABASE_URL

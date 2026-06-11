@@ -158,7 +158,9 @@ def seed_clinica(cfg, ordem):
 
 
 def main():
-    app = create_app("development")
+    # Respeita o ambiente (production no Render; development local).
+    ambiente = "production" if os.getenv("FLASK_ENV") == "production" else "development"
+    app = create_app(ambiente)
     with app.app_context():
         for i, cfg in enumerate(CLINICAS, start=1):
             seed_clinica(cfg, i)
