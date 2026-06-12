@@ -45,7 +45,7 @@ def test_criacao_herda_clinica_do_usuario(client_admin):
     client_admin.post("/pacientes/novo",
                       data={"nome_completo": "Novo Da T", "cpf": "529.982.247-25",
                             "data_nascimento": "1990-05-10",
-                            "telefone": "(43) 90000-0000"},
+                            "telefone": "(43) 90000-0000", "origem": "Google"},
                       follow_redirects=True)
     p = Paciente.query.filter_by(nome_completo="Novo Da T").first()
     c = Clinica.query.filter_by(slug="teste").first()

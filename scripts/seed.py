@@ -89,11 +89,13 @@ def seed():
         # Pacientes
         pacientes = [
             _get_or_create_paciente("Maria Oliveira", cpf="111.111.111-11",
-                                    telefone="(43) 98888-0001", convenio="Unimed"),
+                                    telefone="(43) 98888-0001", convenio="Unimed",
+                                    origem="Google"),
             _get_or_create_paciente("João Pereira", cpf="222.222.222-22",
-                                    telefone="(43) 98888-0002"),
+                                    telefone="(43) 98888-0002", origem="Indicação"),
             _get_or_create_paciente("Carla Mendes", cpf="333.333.333-33",
-                                    telefone="(43) 98888-0003", convenio="Bradesco Saúde"),
+                                    telefone="(43) 98888-0003", convenio="Bradesco Saúde",
+                                    origem="Instagram"),
         ]
 
         # Agendamentos de hoje (09:00, 09:30, 10:00)

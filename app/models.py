@@ -170,10 +170,17 @@ class Paciente(db.Model):
 
     convenio = db.Column(db.String(80))
     observacoes = db.Column(db.Text)
+    # "Como conheceu a clínica?" — inteligência comercial (origem do lead).
+    # Obrigatório no cadastro novo (form); legado/online pode ficar nulo/Site.
+    origem = db.Column(db.String(20))
 
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    # Origens de lead aceitas (pergunta "Como conheceu a clínica?").
+    ORIGENS = ("Google", "Instagram", "Facebook", "Indicação", "Site",
+               "Convênio", "Outdoor", "Rádio", "Outros")
     criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
     agendamentos = db.relationship(

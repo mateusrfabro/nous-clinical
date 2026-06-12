@@ -110,7 +110,9 @@ def seed_clinica(cfg, ordem):
         p = Paciente.query.filter_by(nome_completo=nome).first()
         if not p:
             p = Paciente(nome_completo=nome, telefone=f"(11) 9{ordem}{n}00-00{n}{n}",
-                         convenio=cfg["convenio"] if n == 1 else None, clinica_id=cid)
+                         convenio=cfg["convenio"] if n == 1 else None,
+                         origem=["Google", "Indicação", "Instagram"][n - 1],
+                         clinica_id=cid)
             db.session.add(p)
             db.session.flush()
         pacientes.append(p)

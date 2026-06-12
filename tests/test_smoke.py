@@ -51,6 +51,7 @@ def test_criar_paciente(client_admin, app):
     r = client_admin.post("/pacientes/novo", data={
         "nome_completo": "Novo Paciente", "telefone": "(43) 90000-0000",
         "cpf": "529.982.247-25", "data_nascimento": "1990-05-10",
+        "origem": "Indicação",
     }, follow_redirects=True)
     assert r.status_code == 200
     with app.app_context():

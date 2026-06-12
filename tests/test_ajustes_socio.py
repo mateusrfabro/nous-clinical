@@ -76,7 +76,7 @@ def test_cep_salva(client_recepcao):
     client_recepcao.post("/pacientes/novo", data={
         "nome_completo": "Paciente CEP", "cep": "86010-000",
         "cpf": "529.982.247-25", "data_nascimento": "1990-05-10",
-        "telefone": "(43) 90000-0000", "convenio": "Unimed",
+        "telefone": "(43) 90000-0000", "convenio": "Unimed", "origem": "Site",
     }, follow_redirects=True)
     p = Paciente.query.filter_by(nome_completo="Paciente CEP").first()
     assert p is not None

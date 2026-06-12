@@ -70,6 +70,16 @@
       </div>
     </div>
     <div class="form-group">
+      <label for="origem">Como conheceu a clínica? *</label>
+      {% set origem_atual = (paciente.origem if paciente else form.get('origem','')) %}
+      <select id="origem" name="origem" required>
+        <option value="">Selecione…</option>
+        {% for o in ['Google','Instagram','Facebook','Indicação','Site','Convênio','Outdoor','Rádio','Outros'] %}
+          <option value="{{ o }}" {{ 'selected' if origem_atual == o }}>{{ o }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
       <label for="observacoes">Observações</label>
       <textarea id="observacoes" name="observacoes" rows="3">{{ (f.observacoes or '') if paciente else form.get('observacoes','') }}</textarea>
     </div>

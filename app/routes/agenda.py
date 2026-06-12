@@ -501,6 +501,7 @@ def _cria_ou_reusa_paciente(clinica, nome, telefone, cpf_fmt, data_nasc, conveni
         nome_completo=nome, telefone=telefone, cpf=cpf_fmt,
         data_nascimento=data_nasc,
         convenio=convenio or None,
+        origem="Site",   # veio pelo agendamento online da clínica
         observacoes="Cadastro via agendamento online (a verificar).",
         clinica_id=clinica.id)
     db.session.add(paciente)

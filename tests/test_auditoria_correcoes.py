@@ -52,13 +52,13 @@ def test_cpf_duplicado_nao_quebra(client_admin):
     client_admin.post("/pacientes/novo",
                       data={"nome_completo": "Primeiro", "cpf": CPF_VALIDO,
                             "data_nascimento": "1990-05-10",
-                            "telefone": "(43) 90000-0000"},
+                            "telefone": "(43) 90000-0000", "origem": "Google"},
                       follow_redirects=True)
     antes = Paciente.query.count()
     r = client_admin.post("/pacientes/novo",
                           data={"nome_completo": "Segundo", "cpf": CPF_VALIDO,
                                 "data_nascimento": "1990-05-10",
-                                "telefone": "(43) 90000-1111"},
+                                "telefone": "(43) 90000-1111", "origem": "Google"},
                           follow_redirects=True)
     assert r.status_code == 200               # não vira 500
     assert "Já existe".encode() in r.data

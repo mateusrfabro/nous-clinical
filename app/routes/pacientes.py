@@ -132,6 +132,12 @@ def novo():
             flash(erro, "error")
             return render_template("pacientes/form.html", paciente=None,
                                    form=request.form)
+        # Origem ("Como conheceu a clínica?") é obrigatória no cadastro novo.
+        origem = request.form.get("origem", "").strip()
+        if origem not in Paciente.ORIGENS:
+            flash("Informe como o paciente conheceu a clínica.", "error")
+            return render_template("pacientes/form.html", paciente=None,
+                                   form=request.form)
 
         paciente = Paciente(
             nome_completo=nome,
@@ -145,6 +151,7 @@ def novo():
             bairro=request.form.get("bairro", "").strip() or None,
             cidade=request.form.get("cidade", "").strip() or None,
             convenio=request.form.get("convenio", "").strip() or None,
+            origem=origem,
             observacoes=request.form.get("observacoes", "").strip() or None,
             criado_por_id=current_user.id,
         )
@@ -255,6 +262,9 @@ def editar(paciente_id):
         paciente.bairro = request.form.get("bairro", "").strip() or None
         paciente.cidade = request.form.get("cidade", "").strip() or None
         paciente.convenio = request.form.get("convenio", "").strip() or None
+        # Origem: aceita só valores válidos; mantém o atual se vier vazio (legado).
+        origem = request.form.get("origem", "").strip()
+        paciente.origem = origem if origem in Paciente.ORIGENS else paciente.origem
         paciente.observacoes = request.form.get("observacoes", "").strip() or None
         try:
             db.session.commit()
