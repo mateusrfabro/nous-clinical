@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app import db
-from app.models import Paciente, Profissional, LancamentoFinanceiro
+from app.models import Paciente, Profissional, LancamentoFinanceiro, Clinica
 
 CPF_VALIDO = "529.982.247-25"
 _BR = ZoneInfo("America/Sao_Paulo")
@@ -130,3 +130,26 @@ def test_relatorio_auditoria_redireciona(client_admin):
                          follow_redirects=False)
     assert r.status_code in (301, 302)
     assert "auditoria" in r.headers.get("Location", "")
+
+
+# ---- Regressão: relatórios NÃO vazam dados de outra clínica (achado da auditoria) ----
+
+def test_relatorios_isolados_entre_clinicas(client_admin):
+    from datetime import datetime, timezone
+    cb = Clinica(nome="Clínica B Rel", slug="b-rel")
+    db.session.add(cb)
+    db.session.flush()
+    db.session.add(LancamentoFinanceiro(
+        tipo="receita", categoria="consulta", valor=99999, status="pago",
+        pago_em=datetime.now(timezone.utc), convenio="SegredoConvB",
+        clinica_id=cb.id))
+    db.session.commit()
+    db.session.expunge_all()                      # espelha produção (sem cache)
+
+    # admin da clínica "teste" gera relatórios -> escopo automático esconde a B
+    fat = client_admin.get("/relatorios/?gerar=1&tipo=faturamento").data
+    assert b"99.999" not in fat and b"99999" not in fat
+    dep = client_admin.get("/relatorios/?gerar=1&tipo=dependencia_convenio").data
+    assert b"SegredoConvB" not in dep
+    csv = client_admin.get("/relatorios/dependencia.csv").data
+    assert b"SegredoConvB" not in csv

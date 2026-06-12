@@ -148,9 +148,11 @@ def export_csv():
     fim = _parse_data(request.args.get("fim"))
     base = _base_filtrada(acao, ini, fim)
 
+    _LIMITE = 20000
     logs = db.session.execute(
-        base.order_by(AuditLog.criado_em.desc()).limit(5000)
+        base.order_by(AuditLog.criado_em.desc()).limit(_LIMITE)
     ).scalars().all()
+    truncado = len(logs) >= _LIMITE
 
     uids = {x.usuario_id for x in logs if x.usuario_id}
     usuarios = {}
@@ -182,8 +184,12 @@ def export_csv():
             _safe_csv(log.ip or ""),
         ])
 
+    if truncado:
+        # Sinaliza o truncamento na própria planilha (em vez de silencioso).
+        w.writerow([f"# AVISO: exportação limitada a {_LIMITE} linhas "
+                    "(mais antigas omitidas). Refine o período/ação."])
     audit(AuditLog.ACAO_RELATORIO_EXPORTADO,
-          detalhes=f"auditoria ({len(logs)} linhas)")
+          detalhes=f"auditoria ({len(logs)} linhas{' TRUNCADO' if truncado else ''})")
     conteudo = "﻿" + buf.getvalue()   # BOM p/ Excel reconhecer UTF-8
     return Response(
         conteudo, mimetype="text/csv; charset=utf-8",

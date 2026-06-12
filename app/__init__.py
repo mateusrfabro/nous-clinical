@@ -272,6 +272,7 @@ def create_app(config_name="default"):
         from app.permissions import tem_permissao
         from flask_login import current_user as _cu
         from flask import url_for as _url_for
+        from app.models import Paciente as _Paciente
 
         def _url_confirmacao(ag):
             from app.services.tokens import gerar_token_confirmacao
@@ -339,6 +340,8 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
+            # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
+            "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.
             "tema_clinica": _tema,
             "clinica_logo_url": _logo_url,
