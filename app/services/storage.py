@@ -105,12 +105,94 @@ class LocalStorage(Storage):
         return url_for("uploads.servir", key=key)
 
 
+class S3Storage(Storage):
+    """Storage de objetos S3-compatível (AWS S3, Cloudflare R2, Backblaze B2,
+    MinIO). Persiste arquivos FORA do container — essencial em PaaS de disco
+    efêmero (Render). O download continua passando por rota Flask autenticada
+    (read()), preservando o controle de acesso LGPD dos exames.
+    """
+
+    def __init__(self, bucket, endpoint_url=None, access_key=None,
+                 secret_key=None, region="auto"):
+        import boto3  # dep só carregada quando o backend S3 está ativo
+        from botocore.config import Config as BotoConfig
+        self.bucket = bucket
+        self._client = boto3.client(
+            "s3", endpoint_url=endpoint_url or None,
+            aws_access_key_id=access_key or None,
+            aws_secret_access_key=secret_key or None,
+            region_name=region or "auto",
+            config=BotoConfig(signature_version="s3v4",
+                              retries={"max_attempts": 3}))
+
+    def _key(self, subdir, original_name):
+        nome = secure_filename(original_name or "arquivo")
+        _, ext = os.path.splitext(nome)
+        ext = ext.lower() if ext else ""
+        sub = (subdir or "").strip("/").replace("..", "")
+        nome_final = f"{uuid.uuid4().hex}{ext}"
+        return f"{sub}/{nome_final}" if sub else nome_final
+
+    def save(self, file, subdir, original_name=None):
+        key = self._key(subdir, original_name or file.filename)
+        file.stream.seek(0)
+        extra = {}
+        if getattr(file, "mimetype", None):
+            extra["ContentType"] = file.mimetype
+        self._client.put_object(Bucket=self.bucket, Key=key,
+                                Body=file.stream.read(), **extra)
+        return key
+
+    def read(self, key):
+        from botocore.exceptions import ClientError
+        try:
+            obj = self._client.get_object(Bucket=self.bucket, Key=key)
+            return obj["Body"].read()
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code in ("NoSuchKey", "404", "NotFound"):
+                raise FileNotFoundError(key) from e
+            raise
+
+    def delete(self, key):
+        self._client.delete_object(Bucket=self.bucket, Key=key)
+
+    def exists(self, key):
+        from botocore.exceptions import ClientError
+        try:
+            self._client.head_object(Bucket=self.bucket, Key=key)
+            return True
+        except ClientError:
+            return False
+
+    def url_for_key(self, key):
+        # Servimos via rota Flask autenticada (não URL pública) -> preserva
+        # ownership/LGPD nos exames. A rota chama read(key).
+        return url_for("uploads.servir", key=key)
+
+
 _instance: Optional[Storage] = None
 
 
 def init_storage(app) -> None:
-    """Inicializa storage global a partir do config. Chamar dentro de create_app."""
+    """Inicializa storage global a partir do config. Chamar dentro de create_app.
+
+    Usa S3/R2 quando configurado (S3_BUCKET + credenciais); senão, disco local.
+    """
     global _instance
+    bucket = app.config.get("S3_BUCKET")
+    akey = app.config.get("S3_ACCESS_KEY_ID")
+    skey = app.config.get("S3_SECRET_ACCESS_KEY")
+    # Só ativa S3 com config COMPLETA; senão cai pro disco local (seguro).
+    if app.config.get("STORAGE_BACKEND") == "s3" and bucket and akey and skey:
+        _instance = S3Storage(
+            bucket=bucket,
+            endpoint_url=app.config.get("S3_ENDPOINT_URL"),
+            access_key=app.config.get("S3_ACCESS_KEY_ID"),
+            secret_key=app.config.get("S3_SECRET_ACCESS_KEY"),
+            region=app.config.get("S3_REGION") or "auto")
+        app.logger.info("[storage] backend=s3 bucket=%s", bucket)
+        return
     base = app.config.get("UPLOAD_FOLDER") or os.path.join(
         app.instance_path, "uploads"
     )

@@ -19,6 +19,16 @@ class Config:
     # Limite de upload (exames, documentos do paciente).
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 
+    # Storage de arquivos (logo, exames). "local" (disco) ou "s3" (R2/S3/B2).
+    # Em PaaS de disco efêmero (Render), use s3 — senão os arquivos somem no
+    # redeploy/spin-down. Veja docs/06-deploy.md.
+    STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
+    S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "")   # R2: https://<acc>.r2.cloudflarestorage.com
+    S3_BUCKET = os.getenv("S3_BUCKET", "")
+    S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "")
+    S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "")
+    S3_REGION = os.getenv("S3_REGION", "auto")
+
     # Username do bot Telegram (deep link t.me/<username>?start=...).
     # Canal opcional pra lembrete de consulta + reset de senha.
     TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "nousclinicalbot")

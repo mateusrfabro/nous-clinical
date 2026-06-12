@@ -25,6 +25,19 @@ services:
         value: "true"                  # cria 3 clinicas demo + super-admin. Depois troque p/ false.
       - key: PUBLIC_BASE_URL
         value: https://nousclinical.com
+      # Storage de arquivos (logo + exames). STORAGE_BACKEND=s3 + as 4 chaves
+      # abaixo (preenchidas no dashboard, sync:false=secretas). Enquanto vazias,
+      # cai pro disco local automaticamente (sem quebrar).
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: nous-clinical-db
