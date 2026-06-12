@@ -25,8 +25,8 @@ _BR_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 def _idade(nascimento, hoje):
-    """Idade em anos. None se sem data de nascimento."""
-    if not nascimento:
+    """Idade em anos. None se sem data ou se a data for futura (inválida)."""
+    if not nascimento or nascimento > hoje:
         return None
     return (hoje.year - nascimento.year
             - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day)))

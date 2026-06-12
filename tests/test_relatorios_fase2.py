@@ -74,6 +74,16 @@ def test_clientes_ticket_csv(client_admin):
     assert b"Cliente CSV" in r.data
 
 
+def test_clientes_ticket_csv_mascara_cpf(client_admin):
+    """LGPD/minimização: CSV analítico não expõe o CPF completo."""
+    p = _paciente("Cliente Sigilo", cpf=CPF_A)
+    _receita(150, paciente_id=p.id)
+    db.session.commit()
+    r = client_admin.get("/relatorios/clientes.csv")
+    assert CPF_A.encode() not in r.data          # CPF integral NÃO sai
+    assert b"529.***.***-25" in r.data            # mascarado (1º bloco + 2 últimos)
+
+
 # ---- 3.2 Pacientes por convênio ----
 
 def test_pacientes_por_convenio_filtra(client_admin):
@@ -157,6 +167,16 @@ def test_dre_csv(client_admin):
     r = client_admin.get("/relatorios/dre.csv")
     assert r.status_code == 200 and r.mimetype == "text/csv"
     assert "Resultado Operacional".encode("utf-8") in r.data
+
+
+# ---- Idade: data futura não vira idade negativa ----
+
+def test_idade_futura_nao_negativa():
+    from app.routes.relatorios import _idade
+    futuro = date(date.today().year + 5, 1, 1)
+    assert _idade(futuro) is None
+    assert _idade(None) is None
+    assert _idade(date(2000, 1, 1)) is not None and _idade(date(2000, 1, 1)) > 0
 
 
 # ---- Seletor lista os novos relatórios ----

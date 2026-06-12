@@ -88,7 +88,7 @@
     <span class="kpi-value {{ 'economia-pos' if saldo >= 0 else 'economia-neg' }}">{{ saldo|brl }}</span>
   </div>
   <div class="kpi-card">
-    <span class="kpi-label">Ticket médio</span>
+    <span class="kpi-label">Ticket médio (por recebimento)</span>
     <span class="kpi-value">{{ ticket|brl }}</span>
   </div>
   <div class="kpi-card">
@@ -117,7 +117,7 @@
   <div class="kpi-card card-hl-success"><span class="kpi-label">Faturamento</span><span class="kpi-value economia-pos">{{ receitas|brl }}</span></div>
   <div class="kpi-card card-hl-warning"><span class="kpi-label">Despesas</span><span class="kpi-value economia-neg">{{ despesas|brl }}</span></div>
   <div class="kpi-card card-hl-primary"><span class="kpi-label">Saldo</span><span class="kpi-value {{ 'economia-pos' if saldo >= 0 else 'economia-neg' }}">{{ saldo|brl }}</span></div>
-  <div class="kpi-card"><span class="kpi-label">Ticket médio</span><span class="kpi-value">{{ ticket|brl }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Ticket médio (por recebimento)</span><span class="kpi-value">{{ ticket|brl }}</span></div>
 </section>
 <details class="card mb-2" open>
   <summary><strong>Receita por médico</strong></summary>

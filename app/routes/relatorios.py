@@ -268,12 +268,26 @@ def _risco_evasao(limite_dias=180, maximo=50):
 
 
 def _idade(nascimento, hoje=None):
-    """Idade em anos a partir da data de nascimento. None se sem data."""
+    """Idade em anos a partir da data de nascimento. None se sem data ou se a
+    data for futura (cadastro inválido) — evita idade negativa na tela/CSV."""
     if not nascimento:
         return None
     hoje = hoje or datetime.now(_BR).date()
+    if nascimento > hoje:
+        return None
     return (hoje.year - nascimento.year
             - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day)))
+
+
+def _cpf_mascarado(cpf):
+    """Mascara o CPF para relatórios analíticos (minimização LGPD): mantém o
+    1º bloco e os 2 últimos dígitos (desambigua homônimos sem expor o PII)."""
+    if not cpf:
+        return ""
+    digitos = [c for c in cpf if c.isdigit()]
+    if len(digitos) < 11:
+        return "***"
+    return f"{''.join(digitos[:3])}.***.***-{''.join(digitos[-2:])}"
 
 
 def _gasto_por_paciente(ini, fim, prof_id=None):
@@ -311,8 +325,8 @@ def _clientes_ticket(ini, fim, prof_id=None):
         qtd = qtd or 0
         ticket = (Decimal(str(total)) / qtd).quantize(Decimal("0.01")) if qtd \
             else Decimal("0.00")
-        out.append({"id": pid, "nome": nome, "cpf": cpf, "sexo": sexo,
-                    "total": total, "qtd": qtd, "ticket": ticket})
+        out.append({"id": pid, "nome": nome, "cpf": _cpf_mascarado(cpf),
+                    "sexo": sexo, "total": total, "qtd": qtd, "ticket": ticket})
     return out
 
 
@@ -364,8 +378,9 @@ def _faixa_etaria(ini, fim, prof_id=None):
         idade = _idade(nasc, hoje)
         faixa = _faixa_de(idade)
         total = total or Decimal("0.00")
-        pacientes.append({"id": pid, "nome": nome, "cpf": cpf, "sexo": sexo,
-                          "idade": idade, "faixa": faixa, "total": total})
+        pacientes.append({"id": pid, "nome": nome, "cpf": _cpf_mascarado(cpf),
+                          "sexo": sexo, "idade": idade, "faixa": faixa,
+                          "total": total})
         r = resumo.setdefault(faixa, {"qtd": 0, "total": Decimal("0.00")})
         r["qtd"] += 1
         r["total"] += Decimal(str(total))
