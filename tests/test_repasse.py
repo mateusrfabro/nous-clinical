@@ -29,7 +29,7 @@ def test_repasse_calculado_no_relatorio(client_admin):
         status="pago", pago_em=datetime.now(timezone.utc),
         agendamento_id=ag.id, paciente_id=ag.paciente_id))
     db.session.commit()
-    r = client_admin.get("/relatorios/?gerar=1")
+    r = client_admin.get("/relatorios/?gerar=1&tipo=faturamento")
     assert r.status_code == 200
     assert "Repasse".encode() in r.data
     assert b"R$ 200,00" in r.data          # 20% de R$ 1.000,00
@@ -52,5 +52,5 @@ def test_repasse_zero_sem_comissao(client_admin):
         status="pago", pago_em=datetime.now(timezone.utc),
         agendamento_id=ag.id, paciente_id=ag.paciente_id))
     db.session.commit()
-    r = client_admin.get("/relatorios/?gerar=1")
+    r = client_admin.get("/relatorios/?gerar=1&tipo=faturamento")
     assert "Nenhum repasse no período".encode() in r.data
