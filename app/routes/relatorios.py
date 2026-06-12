@@ -141,7 +141,10 @@ def _agrega(ini, fim, prof_id=None):
         .group_by(L.convenio)
         .order_by(func.coalesce(func.sum(L.valor), 0).desc())
     ).all()
-    por_convenio = [{"convenio": c or "Sem convênio", "total": t}
+    # Dependência financeira (3.6): % de cada convênio sobre a receita total.
+    _tot_conv = sum(float(t or 0) for _, t in conv_rows) or 1.0
+    por_convenio = [{"convenio": c or "Sem convênio", "total": t,
+                     "percent": round(float(t or 0) / _tot_conv * 100, 1)}
                     for c, t in conv_rows]
 
     # Receita por médico (consultas pagas ligadas a agendamento).
@@ -334,6 +337,36 @@ def export_csv():
 
     nome = f"faturamento_{ini_d}_{fim_d}.csv"
     # BOM pro Excel reconhecer UTF-8 com acentos.
+    conteudo = "﻿" + buf.getvalue()
+    return Response(
+        conteudo, mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+    )
+
+
+@relatorios_bp.route("/dependencia.csv")
+@login_required
+@admin_required
+def dependencia_csv():
+    """Relatório de Dependência Financeira por Convênio (3.6): quanto cada
+    convênio representa da receita do período. Mede o risco de concentração."""
+    ini_d, fim_d, ini, fim = _periodo(request.args)
+    prof_id = request.args.get("profissional_id", type=int)
+    dados = _agrega(ini, fim, prof_id=prof_id)
+
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["Convênio", "Receita Gerada (R$)", "% da Receita Total"])
+    for r in dados["por_convenio"]:
+        c = r["convenio"]
+        if c and c[0] in ("=", "+", "-", "@", "\t", "\r"):
+            c = "'" + c
+        valor_br = f"{float(r['total'] or 0):.2f}".replace(".", ",")
+        w.writerow([c, valor_br, f"{r['percent']:.1f}".replace(".", ",")])
+
+    audit(AuditLog.ACAO_RELATORIO_EXPORTADO,
+          detalhes=f"dependencia_convenio {ini_d}..{fim_d}")
+    nome = f"dependencia_convenio_{ini_d}_{fim_d}.csv"
     conteudo = "﻿" + buf.getvalue()
     return Response(
         conteudo, mimetype="text/csv; charset=utf-8",

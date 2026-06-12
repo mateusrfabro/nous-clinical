@@ -148,13 +148,16 @@
 </details>
 
 <details class="card mb-2">
-  <summary><strong>Faturamento por convênio</strong></summary>
+  <summary><strong>Dependência financeira por convênio</strong></summary>
   <div class="mt-2">
+  <p class="muted text-sm mb-2">Quanto cada convênio representa da receita do período (risco de concentração).
+    <a href="{{ url_for('relatorios.dependencia_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn-link">Exportar CSV</a>
+  </p>
   {% if por_convenio %}
   <div class="table-wrapper">
   <table class="table">
-    <thead><tr><th>Convênio</th><th>Total recebido</th></tr></thead>
-    <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Convênio</th><th>Receita gerada</th><th>% da receita</th></tr></thead>
+    <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td><td>{{ '%.1f'|format(c.percent) }}%</td></tr>{% endfor %}</tbody>
   </table>
   </div>
   {% else %}<div class="empty-state"><p>Nenhum recebimento no período.</p></div>{% endif %}

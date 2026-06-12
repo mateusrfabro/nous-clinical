@@ -6,7 +6,8 @@ origem='Site' no agendamento online, e (futuro) os novos relatórios.
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app.models import Paciente, Profissional
+from app import db
+from app.models import Paciente, Profissional, LancamentoFinanceiro
 
 CPF_VALIDO = "529.982.247-25"
 _BR = ZoneInfo("America/Sao_Paulo")
@@ -87,3 +88,19 @@ def test_auditoria_export_csv(client_admin):
 def test_auditoria_export_so_admin(client_recepcao):
     r = client_recepcao.get("/auditoria/export.csv")
     assert r.status_code in (301, 302)                    # admin_required
+
+
+# ---- Dependência financeira por convênio (item 3.6) ----
+
+def test_dependencia_convenio_csv(client_admin):
+    from datetime import datetime, timezone
+    db.session.add(LancamentoFinanceiro(
+        tipo="receita", categoria="consulta", valor=500, status="pago",
+        pago_em=datetime.now(timezone.utc), convenio="Unimed", descricao="x"))
+    db.session.commit()
+    r = client_admin.get("/relatorios/dependencia.csv")
+    assert r.status_code == 200
+    assert r.mimetype == "text/csv"
+    assert "Convênio".encode("utf-8") in r.data
+    assert b"Unimed" in r.data
+    assert b"100,0" in r.data            # 1 convenio = 100% da receita
