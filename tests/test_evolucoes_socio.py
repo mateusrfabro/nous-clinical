@@ -66,3 +66,24 @@ def test_form_paciente_mostra_origem(client_admin):
     assert r.status_code == 200
     assert "Como conheceu".encode() in r.data
     assert b'name="origem"' in r.data
+
+
+# ---- Relatório de Auditoria CSV (item 3.7) ----
+
+def test_auditoria_export_csv(client_admin):
+    # gera alguma ação auditável primeiro
+    client_admin.post("/pacientes/novo", data={
+        "nome_completo": "Audit CSV", "cpf": CPF_VALIDO,
+        "data_nascimento": "1990-05-10", "telefone": "(43) 90000-0000",
+        "origem": "Site",
+    }, follow_redirects=True)
+    r = client_admin.get("/auditoria/export.csv")
+    assert r.status_code == 200
+    assert r.mimetype == "text/csv"
+    assert "Ação;Módulo".encode("utf-8") in r.data       # cabeçalho
+    assert b"paciente" in r.data                          # modulo do log
+
+
+def test_auditoria_export_so_admin(client_recepcao):
+    r = client_recepcao.get("/auditoria/export.csv")
+    assert r.status_code in (301, 302)                    # admin_required

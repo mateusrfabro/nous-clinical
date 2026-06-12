@@ -5,16 +5,19 @@ ações da própria clínica — escopo aplicado via join em Usuario.clinica_id
 (AuditLog não tem clinica_id próprio; o vínculo é pelo usuário que agiu).
 Superadmin (sem clínica) vê tudo.
 """
+import csv
+import io
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, Response
 from flask_login import login_required, current_user
 from sqlalchemy import select, func
 
 from app import db
 from app.auth_decorators import admin_required
 from app.models import AuditLog, Usuario
+from app.services.audit import audit
 
 auditoria_bp = Blueprint("auditoria", __name__, url_prefix="/auditoria")
 
@@ -62,15 +65,9 @@ def _parse_data(valor):
         return None
 
 
-@auditoria_bp.route("/")
-@login_required
-@admin_required
-def listar():
-    pagina = max(request.args.get("pagina", 1, type=int) or 1, 1)
-    acao = request.args.get("acao", "").strip()
-    ini = _parse_data(request.args.get("ini"))
-    fim = _parse_data(request.args.get("fim"))
-
+def _base_filtrada(acao, ini, fim):
+    """SELECT de AuditLog escopado por clínica + filtros (ação, período).
+    Reusado pela listagem e pelo export CSV."""
     base = select(AuditLog)
     # Escopo por clínica via usuário que agiu (AuditLog não é tenant-scoped).
     if not current_user.is_superadmin and current_user.clinica_id:
@@ -79,7 +76,6 @@ def listar():
                 Usuario.clinica_id == current_user.clinica_id)
         ).scalars().all()
         base = base.where(AuditLog.usuario_id.in_(ids))
-
     if acao:
         base = base.where(AuditLog.acao == acao)
     if ini:
@@ -89,6 +85,19 @@ def listar():
         fim_utc = datetime.combine(fim + timedelta(days=1), time.min,
                                    tzinfo=_BR).astimezone(timezone.utc)
         base = base.where(AuditLog.criado_em < fim_utc)
+    return base
+
+
+@auditoria_bp.route("/")
+@login_required
+@admin_required
+def listar():
+    pagina = max(request.args.get("pagina", 1, type=int) or 1, 1)
+    acao = request.args.get("acao", "").strip()
+    ini = _parse_data(request.args.get("ini"))
+    fim = _parse_data(request.args.get("fim"))
+
+    base = _base_filtrada(acao, ini, fim)
 
     total = db.session.execute(
         select(func.count()).select_from(base.subquery())
@@ -117,4 +126,66 @@ def listar():
         acao_sel=acao, ini=request.args.get("ini", ""),
         fim=request.args.get("fim", ""),
         pagina=pagina, paginas=paginas, total=total,
+    )
+
+
+def _safe_csv(v):
+    """Neutraliza CSV/formula injection (Excel/Calc)."""
+    s = "" if v is None else str(v)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
+@auditoria_bp.route("/export.csv")
+@login_required
+@admin_required
+def export_csv():
+    """Exporta a trilha de auditoria filtrada em CSV (req. do sócio 3.7).
+    Colunas: Data, Hora, Usuário, Ação, Módulo, Registro, Detalhes."""
+    acao = request.args.get("acao", "").strip()
+    ini = _parse_data(request.args.get("ini"))
+    fim = _parse_data(request.args.get("fim"))
+    base = _base_filtrada(acao, ini, fim)
+
+    logs = db.session.execute(
+        base.order_by(AuditLog.criado_em.desc()).limit(5000)
+    ).scalars().all()
+
+    uids = {x.usuario_id for x in logs if x.usuario_id}
+    usuarios = {}
+    if uids:
+        for u in db.session.execute(
+            select(Usuario).where(Usuario.id.in_(uids))
+        ).scalars().all():
+            usuarios[u.id] = u
+
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["Data", "Hora", "Usuário", "Ação", "Módulo", "Registro",
+                "Detalhes", "IP"])
+    for log in logs:
+        dt = log.criado_em
+        if dt is not None and dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        dt_br = dt.astimezone(_BR) if dt else None
+        u = usuarios.get(log.usuario_id)
+        quem = (u.email if u else (f"#{log.usuario_id}" if log.usuario_id else "—"))
+        w.writerow([
+            dt_br.strftime("%d/%m/%Y") if dt_br else "",
+            dt_br.strftime("%H:%M:%S") if dt_br else "",
+            _safe_csv(quem),
+            _safe_csv(ACAO_LABEL.get(log.acao, log.acao)),
+            _safe_csv(log.recurso_tipo or ""),
+            _safe_csv(log.recurso_id or ""),
+            _safe_csv(log.detalhes or ""),
+            _safe_csv(log.ip or ""),
+        ])
+
+    audit(AuditLog.ACAO_RELATORIO_EXPORTADO,
+          detalhes=f"auditoria ({len(logs)} linhas)")
+    conteudo = "﻿" + buf.getvalue()   # BOM p/ Excel reconhecer UTF-8
+    return Response(
+        conteudo, mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="auditoria.csv"'},
     )
