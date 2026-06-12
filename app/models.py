@@ -515,6 +515,7 @@ class AuditLog(db.Model):
     ACAO_EXAME_BAIXADO = "exame_baixado"
     ACAO_RELATORIO_EXPORTADO = "relatorio_exportado"
     ACAO_DOCUMENTO_EMITIDO = "documento_emitido"  # receita/atestado PDF
+    ACAO_CRM_INTERACAO = "crm_interacao"  # contato registrado (ex: aniversário)
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

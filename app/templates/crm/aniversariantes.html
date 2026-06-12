@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}CRM — Aniversariantes — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header"><h2>CRM — Aniversariantes</h2></div>
+
+<div class="filter-chips mb-3" role="group" aria-label="Seções do CRM">
+  <a class="chip" href="{{ url_for('crm.retornos') }}">Retornos</a>
+  <a class="chip chip-active" href="{{ url_for('crm.aniversariantes') }}">Aniversariantes</a>
+</div>
+
+<p class="muted mb-4">Aniversariantes de hoje ({{ hoje|data_br }}) — {{ linhas|length }} paciente(s). Envie os parabéns e registre o contato.</p>
+
+{% if linhas %}
+<div class="table-wrapper">
+<table class="table">
+  <thead>
+    <tr><th>Paciente</th><th>Idade</th><th>Telefone</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+    {% for l in linhas %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente.id) }}">{{ l.paciente.nome_completo }}</a></td>
+      <td>{{ (l.idade ~ ' anos') if l.idade is not none else '—' }}</td>
+      <td>{{ l.paciente.telefone or '—' }}</td>
+      <td>
+        <div class="flex-row-gap">
+          {% if l.whatsapp %}
+            <a href="{{ l.whatsapp }}" class="btn-link" target="_blank" rel="noopener">WhatsApp 🎉</a>
+          {% else %}
+            <span class="muted text-sm">sem telefone</span>
+          {% endif %}
+          <form method="POST" action="{{ url_for('crm.registrar_interacao', paciente_id=l.paciente.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-link">Registrar contato</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhum aniversariante hoje. 🎂</p></div>
+{% endif %}
+{% endblock %}

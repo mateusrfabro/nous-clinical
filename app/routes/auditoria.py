@@ -55,6 +55,7 @@ ACAO_LABEL = {
     "exame_baixado": "Exame baixado",
     "relatorio_exportado": "Relatório exportado",
     "documento_emitido": "Documento emitido (PDF)",
+    "crm_interacao": "Interação de CRM registrada",
 }
 
 

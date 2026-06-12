@@ -9,16 +9,27 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from urllib.parse import quote
 
-from flask import Blueprint, render_template, request
+from flask import (
+    Blueprint, render_template, request, redirect, url_for, flash, abort,
+)
 from flask_login import login_required
 from sqlalchemy import select
 
 from app import db
 from app.auth_decorators import recepcao_ou_admin
-from app.models import Atendimento, Agendamento
+from app.models import Atendimento, Agendamento, Paciente, AuditLog
+from app.services.audit import audit
 
 crm_bp = Blueprint("crm", __name__, url_prefix="/crm")
 _BR_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _idade(nascimento, hoje):
+    """Idade em anos. None se sem data de nascimento."""
+    if not nascimento:
+        return None
+    return (hoje.year - nascimento.year
+            - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day)))
 
 
 def _wa_url(telefone, texto):
@@ -110,3 +121,63 @@ def retornos():
     janela = max(0, min(janela, 365))
     linhas = _retornos_pendentes(janela)
     return render_template("crm/retornos.html", linhas=linhas, janela=janela)
+
+
+def _msg_aniversario(primeiro_nome):
+    """Mensagem padrão de felicitação (editável pela recepção no WhatsApp)."""
+    saudacao = f"Olá {primeiro_nome}! " if primeiro_nome else "Olá! "
+    return (f"{saudacao}🎉 A equipe da clínica Nous passa para desejar um "
+            "feliz aniversário e muita saúde! Conte com a gente.")
+
+
+def _aniversariantes_do_dia():
+    """Pacientes ativos que fazem aniversário hoje (fuso BR). Filtra em Python
+    por (mês, dia) — portável entre SQLite (dev) e Postgres (prod)."""
+    hoje = datetime.now(_BR_TZ).date()
+    pacientes = db.session.execute(
+        select(Paciente).where(
+            Paciente.ativo.is_(True),
+            Paciente.data_nascimento.is_not(None))
+    ).scalars().all()
+    linhas = []
+    for p in pacientes:
+        nasc = p.data_nascimento
+        if (nasc.month, nasc.day) != (hoje.month, hoje.day):
+            continue
+        primeiro_nome = p.nome_completo.split()[0] if p.nome_completo else ""
+        linhas.append({
+            "paciente": p,
+            "idade": _idade(nasc, hoje),
+            "whatsapp": _wa_url(p.telefone, _msg_aniversario(primeiro_nome)),
+        })
+    linhas.sort(key=lambda x: x["paciente"].nome_completo or "")
+    return linhas
+
+
+def contar_aniversariantes_hoje():
+    """KPI: nº de aniversariantes do dia (para badge no painel/menu)."""
+    return len(_aniversariantes_do_dia())
+
+
+@crm_bp.route("/aniversariantes")
+@login_required
+@recepcao_ou_admin
+def aniversariantes():
+    linhas = _aniversariantes_do_dia()
+    hoje = datetime.now(_BR_TZ).date()
+    return render_template("crm/aniversariantes.html", linhas=linhas, hoje=hoje)
+
+
+@crm_bp.route("/aniversariantes/<int:paciente_id>/interagir", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def registrar_interacao(paciente_id):
+    """Registra que a clínica felicitou o paciente (trilha de CRM/auditoria).
+    Escopo de clínica garantido pelo tenant loader (Paciente é escopado)."""
+    paciente = db.session.get(Paciente, paciente_id)
+    if paciente is None:
+        abort(404)
+    audit(AuditLog.ACAO_CRM_INTERACAO, recurso_tipo="paciente",
+          recurso_id=paciente.id, detalhes="Felicitação de aniversário")
+    flash(f"Interação registrada para {paciente.nome_completo}.", "success")
+    return redirect(url_for("crm.aniversariantes"))

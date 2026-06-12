@@ -3,6 +3,11 @@
 {% block content %}
 <div class="page-header"><h2>CRM — Retornos</h2></div>
 
+<div class="filter-chips mb-3" role="group" aria-label="Seções do CRM">
+  <a class="chip chip-active" href="{{ url_for('crm.retornos') }}">Retornos</a>
+  <a class="chip" href="{{ url_for('crm.aniversariantes') }}">Aniversariantes</a>
+</div>
+
 <div class="filter-chips mb-3" role="group" aria-label="Filtro de janela de retorno">
   {% for d, rotulo in [(0,'Vencidos'),(30,'Até 30 dias'),(60,'Até 60 dias'),(90,'Até 90 dias'),(180,'Até 180 dias')] %}
     <a class="chip {{ 'chip-active' if janela == d }}" href="{{ url_for('crm.retornos', dias=d) }}">{{ rotulo }}</a>
