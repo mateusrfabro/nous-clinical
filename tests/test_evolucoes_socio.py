@@ -6,8 +6,7 @@ origem='Site' no agendamento online, e (futuro) os novos relatórios.
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app import db
-from app.models import Paciente, Profissional, Agendamento
+from app.models import Paciente, Profissional
 
 CPF_VALIDO = "529.982.247-25"
 _BR = ZoneInfo("America/Sao_Paulo")
