@@ -104,3 +104,29 @@ def test_dependencia_convenio_csv(client_admin):
     assert "Convênio".encode("utf-8") in r.data
     assert b"Unimed" in r.data
     assert b"100,0" in r.data            # 1 convenio = 100% da receita
+
+
+# ---- Seletor de relatórios (item 2) ----
+
+def test_relatorio_seletor_mostra_tipos(client_admin):
+    r = client_admin.get("/relatorios/")
+    assert r.status_code == 200
+    assert b'name="tipo"' in r.data
+    assert b'name="formato"' in r.data
+    assert "Dependência financeira".encode() in r.data
+
+
+def test_relatorio_formato_csv_redireciona(client_admin):
+    # formato=csv num relatório com export -> redireciona pro .csv
+    r = client_admin.get(
+        "/relatorios/?gerar=1&tipo=dependencia_convenio&formato=csv",
+        follow_redirects=False)
+    assert r.status_code in (301, 302)
+    assert "dependencia.csv" in r.headers.get("Location", "")
+
+
+def test_relatorio_auditoria_redireciona(client_admin):
+    r = client_admin.get("/relatorios/?gerar=1&tipo=auditoria&formato=csv",
+                         follow_redirects=False)
+    assert r.status_code in (301, 302)
+    assert "auditoria" in r.headers.get("Location", "")

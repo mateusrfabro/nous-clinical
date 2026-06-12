@@ -12,7 +12,9 @@ from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, render_template, request, Response
+from flask import (
+    Blueprint, render_template, request, Response, redirect, url_for, flash,
+)
 from flask_login import login_required
 from sqlalchemy import select, func
 
@@ -265,26 +267,68 @@ def _risco_evasao(limite_dias=180, maximo=50):
             for i, n, tel, c, u in rows]
 
 
+# Catálogo de relatórios do seletor (req. do sócio item 2). (chave, rótulo).
+RELATORIOS = [
+    ("visao_geral", "Visão geral (KPIs + comparativo)"),
+    ("faturamento", "Faturamento e receita por médico"),
+    ("dependencia_convenio", "Dependência financeira por convênio"),
+    ("produtividade", "Produtividade por profissional"),
+    ("evasao", "Pacientes em risco de evasão"),
+    ("auditoria", "Trilha de auditoria"),
+]
+_RELATORIOS_CHAVES = {k for k, _ in RELATORIOS}
+# Relatórios que já têm export CSV próprio (formato=csv -> redireciona).
+_CSV_ROTA = {
+    "faturamento": "relatorios.export_csv",
+    "dependencia_convenio": "relatorios.dependencia_csv",
+    "auditoria": "auditoria.export_csv",
+}
+
+
 @relatorios_bp.route("/")
 @login_required
 @admin_required
 def index():
-    """Geração SOB DEMANDA (req. do sócio): só calcula quando o usuário define o
-    período e clica em "Gerar" (?gerar=1). Sem isso, mostra só o formulário.
-    Filtro opcional por profissional (?profissional_id=)."""
+    """Seletor de relatórios (req. do sócio item 2): escolhe UM relatório +
+    período + formato e clica em "Gerar". Geração SOB DEMANDA (só calcula em
+    ?gerar=1). CSV redireciona pro export do relatório; PDF/Excel = futuro."""
     ini_d, fim_d, ini, fim = _periodo(request.args)
-    gerado = request.args.get("gerar") is not None
+    tipo = request.args.get("tipo", "visao_geral")
+    if tipo not in _RELATORIOS_CHAVES:
+        tipo = "visao_geral"
+    formato = request.args.get("formato", "tela")
     prof_id = request.args.get("profissional_id", type=int)
+    gerado = request.args.get("gerar") is not None
     profissionais = db.session.execute(
         select(Profissional).where(Profissional.ativo.is_(True))
         .order_by(Profissional.nome)
     ).scalars().all()
+
+    if gerado:
+        # Auditoria tem tela própria (rica) — manda pra lá (ou pro CSV dela).
+        if tipo == "auditoria":
+            if formato == "csv":
+                return redirect(url_for("auditoria.export_csv", ini=ini_d, fim=fim_d))
+            return redirect(url_for("auditoria.listar", ini=ini_d, fim=fim_d))
+        if formato == "csv":
+            rota = _CSV_ROTA.get(tipo)
+            if rota:
+                return redirect(url_for(rota, ini=ini_d, fim=fim_d,
+                                        profissional_id=prof_id or None))
+            flash("Export CSV ainda não disponível para este relatório; "
+                  "exibindo em tela.", "info")
+        elif formato in ("pdf", "excel"):
+            flash("Exportação em PDF/Excel chega em breve; exibindo em tela.",
+                  "info")
+
     contexto = {"ini": ini_d.isoformat(), "fim": fim_d.isoformat(),
                 "gerado": gerado, "profissionais": profissionais,
-                "prof_id": prof_id}
+                "prof_id": prof_id, "tipo": tipo, "formato": formato,
+                "relatorios": RELATORIOS}
     if gerado:
         contexto.update(_agrega(ini, fim, prof_id=prof_id))
-        contexto["evasao"] = _risco_evasao()
+        if tipo == "evasao":
+            contexto["evasao"] = _risco_evasao()
     return render_template("relatorios/index.html", **contexto)
 
 

@@ -12,16 +12,19 @@
 {% endmacro %}
 
 {% block content %}
-<div class="page-header">
-  <h2>Relatórios</h2>
-  {% if gerado %}
-  <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline">Exportar CSV</a>
-  {% endif %}
-</div>
-<p class="muted mb-4">Defina o período (e, opcionalmente, o profissional) e clique em <strong>Gerar</strong>. Os relatórios são calculados sob demanda.</p>
+<div class="page-header"><h2>Relatórios</h2></div>
+<p class="muted mb-4">Escolha o <strong>relatório</strong>, o <strong>período</strong> e o <strong>formato</strong>, e clique em <strong>Gerar</strong>. Calculado sob demanda.</p>
 
 <form method="GET" class="toolbar no-loading mb-4">
   <input type="hidden" name="gerar" value="1">
+  <div class="form-group form-group-grow">
+    <label for="tipo">Relatório</label>
+    <select id="tipo" name="tipo">
+      {% for chave, rotulo in relatorios %}
+        <option value="{{ chave }}" {{ 'selected' if tipo==chave }}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
   <div class="form-group">
     <label for="ini">De</label>
     <input type="date" id="ini" name="ini" value="{{ ini }}">
@@ -30,7 +33,7 @@
     <label for="fim">Até</label>
     <input type="date" id="fim" name="fim" value="{{ fim }}">
   </div>
-  <div class="form-group form-group-grow">
+  <div class="form-group">
     <label for="profissional_id">Profissional</label>
     <select id="profissional_id" name="profissional_id">
       <option value="">Todos</option>
@@ -39,18 +42,28 @@
       {% endfor %}
     </select>
   </div>
+  <div class="form-group">
+    <label for="formato">Formato</label>
+    <select id="formato" name="formato">
+      <option value="tela" {{ 'selected' if formato=='tela' }}>Tela</option>
+      <option value="csv" {{ 'selected' if formato=='csv' }}>CSV</option>
+      <option value="pdf" {{ 'selected' if formato=='pdf' }}>PDF (em breve)</option>
+      <option value="excel" {{ 'selected' if formato=='excel' }}>Excel (em breve)</option>
+    </select>
+  </div>
   <button type="submit" class="btn btn-primary">Gerar relatório</button>
 </form>
-{% if gerado and prof_id %}
-<p class="muted text-sm mb-2">Filtrado por profissional. Despesas não se aplicam a um profissional específico (exibidas como R$ 0,00).</p>
+
+{% if gerado and prof_id and tipo in ['visao_geral','faturamento','dependencia_convenio'] %}
+<p class="muted text-sm mb-2">Filtrado por profissional. Despesas não se aplicam a um profissional específico (R$ 0,00).</p>
 {% endif %}
 
 {% if not gerado %}
 <div class="empty-state">
-  <p>Selecione o intervalo de datas e clique em <strong>Gerar relatório</strong> para ver os indicadores.</p>
+  <p>Selecione o relatório e o período e clique em <strong>Gerar relatório</strong>.</p>
 </div>
-{% else %}
 
+{% elif tipo == 'visao_geral' %}
 <section class="kpi-grid">
   <div class="kpi-card card-hl-success">
     <span class="kpi-label">Faturamento</span>
@@ -84,128 +97,99 @@
     <span class="kpi-delta">{{ delta(comparativo.d_novos) }} vs. período anterior</span>
   </div>
 </section>
-
 <p class="muted mb-4">{{ total_ags }} consulta(s) no período · {{ atendidos }} atendida(s) · {{ faltas }} falta(s) · {{ cancelados }} cancelada(s) · {{ n_receitas }} recebimento(s).</p>
 
+{% elif tipo == 'faturamento' %}
+<div class="page-header">
+  <h3>Faturamento e receita por médico</h3>
+  <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<section class="kpi-grid mb-4">
+  <div class="kpi-card card-hl-success"><span class="kpi-label">Faturamento</span><span class="kpi-value economia-pos">{{ receitas|brl }}</span></div>
+  <div class="kpi-card card-hl-warning"><span class="kpi-label">Despesas</span><span class="kpi-value economia-neg">{{ despesas|brl }}</span></div>
+  <div class="kpi-card card-hl-primary"><span class="kpi-label">Saldo</span><span class="kpi-value {{ 'economia-pos' if saldo >= 0 else 'economia-neg' }}">{{ saldo|brl }}</span></div>
+  <div class="kpi-card"><span class="kpi-label">Ticket médio</span><span class="kpi-value">{{ ticket|brl }}</span></div>
+</section>
 <details class="card mb-2" open>
   <summary><strong>Receita por médico</strong></summary>
   <div class="mt-2">
   {% if por_medico %}
-  <div class="table-wrapper">
-  <table class="table">
+  <div class="table-wrapper"><table class="table">
     <thead><tr><th>Profissional</th><th>Consultas pagas</th><th>Total recebido</th></tr></thead>
-    <tbody>
-      {% for m in por_medico %}<tr><td>{{ m.nome }}</td><td>{{ m.qtd }}</td><td>{{ m.total|brl }}</td></tr>{% endfor %}
-    </tbody>
-  </table>
-  </div>
+    <tbody>{% for m in por_medico %}<tr><td>{{ m.nome }}</td><td>{{ m.qtd }}</td><td>{{ m.total|brl }}</td></tr>{% endfor %}</tbody>
+  </table></div>
   {% else %}<div class="empty-state"><p>Nenhum recebimento de consulta no período.</p></div>{% endif %}
   </div>
 </details>
-
 <details class="card mb-2">
   <summary><strong>Repasse / comissão médica</strong></summary>
   <div class="mt-2">
-  <p class="muted text-sm mb-2">Comissão sobre a receita recebida de consultas no período (configurada no cadastro do profissional).</p>
   {% if repasse %}
-  <div class="table-wrapper">
-  <table class="table">
+  <div class="table-wrapper"><table class="table">
     <thead><tr><th>Profissional</th><th>Recebido</th><th>Comissão</th><th>Repasse</th></tr></thead>
     <tbody>
       {% for r in repasse %}<tr><td>{{ r.nome }}</td><td>{{ r.recebido|brl }}</td><td>{{ '%.1f'|format(r.percent) }}%</td><td>{{ r.repasse|brl }}</td></tr>{% endfor %}
       <tr><td><strong>Total a repassar</strong></td><td></td><td></td><td><strong>{{ total_repasse|brl }}</strong></td></tr>
     </tbody>
-  </table>
-  </div>
+  </table></div>
   {% else %}<div class="empty-state"><p>Nenhum repasse no período (defina a comissão no cadastro do profissional).</p></div>{% endif %}
   </div>
 </details>
 
-<details class="card mb-2">
-  <summary><strong>Produtividade por profissional</strong></summary>
-  <div class="mt-2">
-  <p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
-  {% if produtividade %}
-  <div class="table-wrapper">
-  <table class="table">
-    <thead><tr>
-      <th>Profissional</th><th>Agendadas</th><th>Atendidas</th>
-      <th>Faltas</th><th>Canceladas</th><th>Taxa de atend.</th>
-    </tr></thead>
-    <tbody>
-      {% for p in produtividade %}
-      <tr>
-        <td>{{ p.nome }}</td><td>{{ p.total }}</td><td>{{ p.atendidos }}</td>
-        <td>{{ p.faltas }}</td><td>{{ p.cancelados }}</td>
-        <td>{{ '%.0f'|format(p.taxa_atend) }}%</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  </div>
-  {% else %}<div class="empty-state"><p>Nenhuma consulta na agenda do período.</p></div>{% endif %}
-  </div>
-</details>
+{% elif tipo == 'dependencia_convenio' %}
+<div class="page-header">
+  <h3>Dependência financeira por convênio</h3>
+  <a href="{{ url_for('relatorios.dependencia_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">Quanto cada convênio representa da receita do período (risco de concentração).</p>
+{% if por_convenio %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Convênio</th><th>Receita gerada</th><th>% da receita</th></tr></thead>
+  <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td><td>{{ '%.1f'|format(c.percent) }}%</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<div class="empty-state"><p>Nenhum recebimento no período.</p></div>{% endif %}
 
-<details class="card mb-2">
-  <summary><strong>Dependência financeira por convênio</strong></summary>
-  <div class="mt-2">
-  <p class="muted text-sm mb-2">Quanto cada convênio representa da receita do período (risco de concentração).
-    <a href="{{ url_for('relatorios.dependencia_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn-link">Exportar CSV</a>
-  </p>
-  {% if por_convenio %}
-  <div class="table-wrapper">
-  <table class="table">
-    <thead><tr><th>Convênio</th><th>Receita gerada</th><th>% da receita</th></tr></thead>
-    <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td><td>{{ '%.1f'|format(c.percent) }}%</td></tr>{% endfor %}</tbody>
-  </table>
-  </div>
-  {% else %}<div class="empty-state"><p>Nenhum recebimento no período.</p></div>{% endif %}
-  </div>
-</details>
-
-<details class="card mb-2">
+{% elif tipo == 'produtividade' %}
+<div class="page-header"><h3>Produtividade por profissional</h3></div>
+<p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
+{% if produtividade %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Profissional</th><th>Agendadas</th><th>Atendidas</th><th>Faltas</th><th>Canceladas</th><th>Taxa de atend.</th></tr></thead>
+  <tbody>
+    {% for p in produtividade %}<tr><td>{{ p.nome }}</td><td>{{ p.total }}</td><td>{{ p.atendidos }}</td><td>{{ p.faltas }}</td><td>{{ p.cancelados }}</td><td>{{ '%.0f'|format(p.taxa_atend) }}%</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% else %}<div class="empty-state"><p>Nenhuma consulta na agenda do período.</p></div>{% endif %}
+<details class="card mb-2 mt-4">
   <summary><strong>Volume de procedimentos / exames</strong></summary>
   <div class="mt-2">
-  <p class="muted text-sm mb-2">Volume clínico registrado (itens marcados nos atendimentos do período) — não é faturamento.</p>
+  <p class="muted text-sm mb-2">Volume clínico registrado (itens marcados nos atendimentos) — não é faturamento.</p>
   {% if procedimentos %}
-  <div class="table-wrapper">
-  <table class="table">
+  <div class="table-wrapper"><table class="table">
     <thead><tr><th>Procedimento</th><th>Quantidade</th><th>Total</th></tr></thead>
     <tbody>{% for p in procedimentos %}<tr><td>{{ p.nome }}</td><td>{{ p.qtd }}</td><td>{{ p.total|brl }}</td></tr>{% endfor %}</tbody>
-  </table>
-  </div>
+  </table></div>
   {% else %}<div class="empty-state"><p>Nenhum procedimento registrado no período.</p></div>{% endif %}
   </div>
 </details>
 
-<details class="card mb-2">
-  <summary><strong>Pacientes em risco de evasão</strong></summary>
-  <div class="mt-2">
-  <p class="muted text-sm mb-2">Ativos sem atendimento há mais de 180 dias e sem consulta futura — candidatos a recall.</p>
-  {% if evasao %}
-  <div class="table-wrapper">
-  <table class="table">
-    <thead><tr><th>Paciente</th><th>Convênio</th><th>Último atendimento</th><th>Contato</th></tr></thead>
-    <tbody>
-      {% for p in evasao %}
-      <tr>
-        <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
-        <td>{{ p.convenio or '—' }}</td>
-        <td>{{ p.ultimo|data_br }}</td>
-        <td>
-          {% if p.telefone and p.telefone|wa_numero %}
-          <a href="https://wa.me/{{ p.telefone|wa_numero }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Lembrete</a>
-          {% else %}—{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  </div>
-  {% else %}<div class="empty-state"><p>Nenhum paciente em risco de evasão no momento.</p></div>{% endif %}
-  </div>
-</details>
-
+{% elif tipo == 'evasao' %}
+<div class="page-header"><h3>Pacientes em risco de evasão</h3></div>
+<p class="muted text-sm mb-2">Ativos sem atendimento há mais de 180 dias e sem consulta futura — candidatos a recall.</p>
+{% if evasao %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Paciente</th><th>Convênio</th><th>Último atendimento</th><th>Contato</th></tr></thead>
+  <tbody>
+    {% for p in evasao %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
+      <td>{{ p.convenio or '—' }}</td>
+      <td>{{ p.ultimo|data_br }}</td>
+      <td>{% if p.telefone and p.telefone|wa_numero %}<a href="https://wa.me/{{ p.telefone|wa_numero }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Lembrete</a>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<div class="empty-state"><p>Nenhum paciente em risco de evasão no momento.</p></div>{% endif %}
 {% endif %}
 {% endblock %}
