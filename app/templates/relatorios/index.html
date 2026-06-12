@@ -43,6 +43,15 @@
     </select>
   </div>
   <div class="form-group">
+    <label for="convenio">Convênio</label>
+    <select id="convenio" name="convenio">
+      <option value="">Todos</option>
+      {% for c in convenios_ativos() %}
+        <option value="{{ c.nome }}" {{ 'selected' if convenio_sel==c.nome }}>{{ c.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
     <label for="formato">Formato</label>
     <select id="formato" name="formato">
       <option value="tela" {{ 'selected' if formato=='tela' }}>Tela</option>
@@ -172,6 +181,128 @@
   {% else %}<div class="empty-state"><p>Nenhum procedimento registrado no período.</p></div>{% endif %}
   </div>
 </details>
+
+{% elif tipo == 'clientes_ticket' %}
+<div class="page-header">
+  <h3>Clientes e ticket médio</h3>
+  <a href="{{ url_for('relatorios.clientes_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">Quanto cada paciente gastou no período, nº de consultas pagas e ticket médio por consulta.</p>
+{% if clientes %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th>Total gasto</th><th>Consultas</th><th>Ticket médio</th></tr></thead>
+  <tbody>
+    {% for c in clientes %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=c.id) }}">{{ c.nome }}</a></td>
+      <td>{{ c.cpf or '—' }}</td>
+      <td>{{ c.sexo or '—' }}</td>
+      <td>{{ c.total|brl }}</td>
+      <td>{{ c.qtd }}</td>
+      <td>{{ c.ticket|brl }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<div class="empty-state"><p>Nenhum recebimento de paciente no período.</p></div>{% endif %}
+
+{% elif tipo == 'pacientes_convenio' %}
+<div class="page-header">
+  <h3>Pacientes por convênio</h3>
+  <a href="{{ url_for('relatorios.convenio_csv', convenio=convenio_sel or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">Base ativa de pacientes{% if convenio_sel %} do convênio <strong>{{ convenio_sel }}</strong>{% endif %} (foto atual da carteira, não depende do período).</p>
+{% if pac_conv %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Paciente</th><th>CPF</th><th>Convênio</th><th>Idade</th></tr></thead>
+  <tbody>
+    {% for p in pac_conv %}
+    <tr>
+      <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
+      <td>{{ p.cpf or '—' }}</td>
+      <td>{{ p.convenio }}</td>
+      <td>{{ p.idade if p.idade is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+<p class="muted text-sm mt-2">{{ pac_conv|length }} paciente(s).</p>
+{% else %}<div class="empty-state"><p>Nenhum paciente ativo{% if convenio_sel %} nesse convênio{% endif %}.</p></div>{% endif %}
+
+{% elif tipo == 'faixa_etaria' %}
+<div class="page-header">
+  <h3>Pacientes por faixa etária</h3>
+  <a href="{{ url_for('relatorios.faixa_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">Distribuição demográfica da base ativa e quanto cada faixa gastou no período.</p>
+{% if faixa_resumo %}
+<section class="kpi-grid mb-4">
+  {% for r in faixa_resumo %}
+  <div class="kpi-card">
+    <span class="kpi-label">{{ r.faixa }} anos</span>
+    <span class="kpi-value">{{ r.qtd }}</span>
+    <span class="kpi-delta">{{ r.total|brl }} no período</span>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% if faixas %}
+<details class="card mb-2">
+  <summary><strong>Pacientes ({{ faixas|length }})</strong></summary>
+  <div class="mt-2 table-wrapper"><table class="table">
+    <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th>Idade</th><th>Faixa</th><th>Total gasto</th></tr></thead>
+    <tbody>
+      {% for p in faixas %}
+      <tr>
+        <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
+        <td>{{ p.cpf or '—' }}</td>
+        <td>{{ p.sexo or '—' }}</td>
+        <td>{{ p.idade if p.idade is not none else '—' }}</td>
+        <td>{{ p.faixa }}</td>
+        <td>{{ p.total|brl }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</details>
+{% else %}<div class="empty-state"><p>Nenhum paciente ativo cadastrado.</p></div>{% endif %}
+
+{% elif tipo == 'origem_leads' %}
+<div class="page-header">
+  <h3>Origem de leads</h3>
+  <a href="{{ url_for('relatorios.leads_csv') }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">De onde vêm os pacientes da base ativa ("Como conheceu a clínica?") — inteligência comercial. Total: {{ leads_total }} paciente(s).</p>
+{% if leads %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Origem</th><th>Pacientes</th><th>% da base</th></tr></thead>
+  <tbody>
+    {% for r in leads %}
+    <tr>
+      <td>{{ r.origem }}</td>
+      <td>{{ r.qtd }}</td>
+      <td>{{ '%.1f'|format(r.percent) }}%</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<div class="empty-state"><p>Nenhum paciente ativo cadastrado.</p></div>{% endif %}
+
+{% elif tipo == 'dre' %}
+<div class="page-header">
+  <h3>DRE simplificado</h3>
+  <a href="{{ url_for('relatorios.dre_csv', ini=ini, fim=fim) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
+</div>
+<p class="muted text-sm mb-2">Resultado operacional do período (regime de caixa — lançamentos pagos).</p>
+<div class="table-wrapper"><table class="table table-dre">
+  <tbody>
+    <tr><td>Receita Bruta</td><td class="economia-pos">{{ dre.receita|brl }}</td></tr>
+    <tr><td>(−) Impostos</td><td class="economia-neg">{{ dre.impostos|brl }}</td></tr>
+    <tr><td>(−) Custos <span class="muted text-sm">(insumos)</span></td><td class="economia-neg">{{ dre.custos|brl }}</td></tr>
+    <tr><td>(−) Despesas <span class="muted text-sm">(aluguel, salário, demais)</span></td><td class="economia-neg">{{ dre.despesas|brl }}</td></tr>
+    <tr class="dre-total"><td><strong>= Resultado Operacional</strong></td><td><strong class="{{ 'economia-pos' if dre.resultado >= 0 else 'economia-neg' }}">{{ dre.resultado|brl }}</strong></td></tr>
+  </tbody>
+</table></div>
 
 {% elif tipo == 'evasao' %}
 <div class="page-header"><h3>Pacientes em risco de evasão</h3></div>

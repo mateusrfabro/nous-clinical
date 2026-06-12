@@ -267,20 +267,181 @@ def _risco_evasao(limite_dias=180, maximo=50):
             for i, n, tel, c, u in rows]
 
 
+def _idade(nascimento, hoje=None):
+    """Idade em anos a partir da data de nascimento. None se sem data."""
+    if not nascimento:
+        return None
+    hoje = hoje or datetime.now(_BR).date()
+    return (hoje.year - nascimento.year
+            - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day)))
+
+
+def _gasto_por_paciente(ini, fim, prof_id=None):
+    """Subquery: total gasto + nº de recebimentos por paciente no período.
+    Base dos relatórios 3.1 (ticket médio) e 3.4 (faixa etária)."""
+    L = LancamentoFinanceiro
+    A = Agendamento
+    rec_prof = ((L.agendamento_id.in_(
+        select(A.id).where(A.profissional_id == prof_id)),) if prof_id else ())
+    return (
+        select(L.paciente_id.label("pid"),
+               func.coalesce(func.sum(L.valor), 0).label("total"),
+               func.count(L.id).label("qtd"))
+        .where(L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
+               L.pago_em >= ini, L.pago_em < fim,
+               L.paciente_id.is_not(None), *rec_prof)
+        .group_by(L.paciente_id)
+        .subquery()
+    )
+
+
+def _clientes_ticket(ini, fim, prof_id=None):
+    """3.1 — Clientes e Ticket Médio: por paciente, total gasto, nº de
+    consultas pagas e ticket médio por consulta, no período."""
+    g = _gasto_por_paciente(ini, fim, prof_id)
+    rows = db.session.execute(
+        select(Paciente.id, Paciente.nome_completo, Paciente.cpf,
+               Paciente.sexo, g.c.total, g.c.qtd)
+        .join(g, g.c.pid == Paciente.id)
+        .order_by(g.c.total.desc())
+    ).all()
+    out = []
+    for pid, nome, cpf, sexo, total, qtd in rows:
+        total = total or Decimal("0.00")
+        qtd = qtd or 0
+        ticket = (Decimal(str(total)) / qtd).quantize(Decimal("0.01")) if qtd \
+            else Decimal("0.00")
+        out.append({"id": pid, "nome": nome, "cpf": cpf, "sexo": sexo,
+                    "total": total, "qtd": qtd, "ticket": ticket})
+    return out
+
+
+def _pacientes_por_convenio(convenio=None):
+    """3.2 — Pacientes por Convênio: lista a base ativa (nome, CPF, convênio,
+    idade), com filtro opcional por convênio. Foto da base, não do período."""
+    q = (select(Paciente.id, Paciente.nome_completo, Paciente.cpf,
+                Paciente.convenio, Paciente.data_nascimento)
+         .where(Paciente.ativo.is_(True)))
+    if convenio:
+        q = q.where(Paciente.convenio == convenio)
+    q = q.order_by(Paciente.convenio.is_(None), Paciente.convenio,
+                   Paciente.nome_completo)
+    hoje = datetime.now(_BR).date()
+    return [{"id": i, "nome": n, "cpf": c, "convenio": conv or "Sem convênio",
+             "idade": _idade(nasc, hoje)}
+            for i, n, c, conv, nasc in db.session.execute(q).all()]
+
+
+# Faixas etárias para o relatório 3.4 (rótulo, mín, máx inclusive; máx None=+).
+_FAIXAS = [("0–17", 0, 17), ("18–29", 18, 29), ("30–44", 30, 44),
+           ("45–59", 45, 59), ("60+", 60, None)]
+
+
+def _faixa_de(idade):
+    if idade is None:
+        return "Sem data"
+    for rotulo, lo, hi in _FAIXAS:
+        if idade >= lo and (hi is None or idade <= hi):
+            return rotulo
+    return "Sem data"
+
+
+def _faixa_etaria(ini, fim, prof_id=None):
+    """3.4 — Relatório por Faixa Etária: pacientes ativos com idade, sexo e
+    total gasto no período; mais um resumo agregado por faixa."""
+    g = _gasto_por_paciente(ini, fim, prof_id)
+    rows = db.session.execute(
+        select(Paciente.id, Paciente.nome_completo, Paciente.cpf,
+               Paciente.sexo, Paciente.data_nascimento,
+               func.coalesce(g.c.total, 0))
+        .join(g, g.c.pid == Paciente.id, isouter=True)
+        .where(Paciente.ativo.is_(True))
+        .order_by(Paciente.data_nascimento.is_(None), Paciente.data_nascimento)
+    ).all()
+    hoje = datetime.now(_BR).date()
+    pacientes, resumo = [], {}
+    for pid, nome, cpf, sexo, nasc, total in rows:
+        idade = _idade(nasc, hoje)
+        faixa = _faixa_de(idade)
+        total = total or Decimal("0.00")
+        pacientes.append({"id": pid, "nome": nome, "cpf": cpf, "sexo": sexo,
+                          "idade": idade, "faixa": faixa, "total": total})
+        r = resumo.setdefault(faixa, {"qtd": 0, "total": Decimal("0.00")})
+        r["qtd"] += 1
+        r["total"] += Decimal(str(total))
+    ordem = [f[0] for f in _FAIXAS] + ["Sem data"]
+    resumo_ord = [{"faixa": f, **resumo[f]} for f in ordem if f in resumo]
+    return pacientes, resumo_ord
+
+
+def _origem_leads():
+    """3.5 — Origem de Leads: distribuição da base ativa por origem (como
+    conheceu a clínica), com quantidade e % sobre o total. Inteligência
+    comercial: de onde vêm os pacientes."""
+    rows = db.session.execute(
+        select(Paciente.origem, func.count(Paciente.id))
+        .where(Paciente.ativo.is_(True))
+        .group_by(Paciente.origem)
+        .order_by(func.count(Paciente.id).desc())
+    ).all()
+    total = sum(q for _, q in rows) or 1
+    return ([{"origem": o or "Não informado", "qtd": q,
+              "percent": round(q / total * 100, 1)} for o, q in rows],
+            sum(q for _, q in rows))
+
+
+def _dre(ini, fim):
+    """3.3 — DRE Simplificado: Receita Bruta − Impostos − Custos − Despesas
+    = Resultado Operacional. Classifica as despesas pagas por categoria
+    (imposto / insumo=custos / demais=despesas operacionais)."""
+    L = LancamentoFinanceiro
+    pago = (L.status == L.STATUS_PAGO, L.pago_em >= ini, L.pago_em < fim)
+
+    def _soma(*w):
+        return db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0)).where(*w)
+        ).scalar_one()
+
+    receita = _soma(*pago, L.tipo == L.TIPO_RECEITA)
+    impostos = _soma(*pago, L.tipo == L.TIPO_DESPESA, L.categoria == "imposto")
+    custos = _soma(*pago, L.tipo == L.TIPO_DESPESA, L.categoria == "insumo")
+    desp_total = _soma(*pago, L.tipo == L.TIPO_DESPESA)
+    # Despesas operacionais = todas as despesas menos impostos e custos. Como
+    # residual, captura também categorias nulas/futuras -> o DRE sempre fecha.
+    despesas = Decimal(str(desp_total)) - Decimal(str(impostos)) \
+        - Decimal(str(custos))
+    resultado = (Decimal(str(receita)) - Decimal(str(desp_total)))
+    return {"receita": receita, "impostos": impostos, "custos": custos,
+            "despesas": despesas, "resultado": resultado}
+
+
 # Catálogo de relatórios do seletor (req. do sócio item 2). (chave, rótulo).
 RELATORIOS = [
     ("visao_geral", "Visão geral (KPIs + comparativo)"),
     ("faturamento", "Faturamento e receita por médico"),
+    ("clientes_ticket", "Clientes e ticket médio"),
+    ("pacientes_convenio", "Pacientes por convênio"),
+    ("faixa_etaria", "Pacientes por faixa etária"),
+    ("origem_leads", "Origem de leads (como conheceu)"),
     ("dependencia_convenio", "Dependência financeira por convênio"),
+    ("dre", "DRE simplificado (resultado operacional)"),
     ("produtividade", "Produtividade por profissional"),
     ("evasao", "Pacientes em risco de evasão"),
     ("auditoria", "Trilha de auditoria"),
 ]
 _RELATORIOS_CHAVES = {k for k, _ in RELATORIOS}
+# Relatórios cujos dados vêm de _agrega (KPIs financeiros/agenda do período).
+_AGREGA_TIPOS = {"visao_geral", "faturamento", "dependencia_convenio",
+                 "produtividade"}
 # Relatórios que já têm export CSV próprio (formato=csv -> redireciona).
 _CSV_ROTA = {
     "faturamento": "relatorios.export_csv",
     "dependencia_convenio": "relatorios.dependencia_csv",
+    "clientes_ticket": "relatorios.clientes_csv",
+    "pacientes_convenio": "relatorios.convenio_csv",
+    "faixa_etaria": "relatorios.faixa_csv",
+    "origem_leads": "relatorios.leads_csv",
+    "dre": "relatorios.dre_csv",
     "auditoria": "auditoria.export_csv",
 }
 
@@ -298,6 +459,7 @@ def index():
         tipo = "visao_geral"
     formato = request.args.get("formato", "tela")
     prof_id = request.args.get("profissional_id", type=int)
+    convenio_sel = (request.args.get("convenio") or "").strip()
     gerado = request.args.get("gerar") is not None
     profissionais = db.session.execute(
         select(Profissional).where(Profissional.ativo.is_(True))
@@ -314,7 +476,8 @@ def index():
             rota = _CSV_ROTA.get(tipo)
             if rota:
                 return redirect(url_for(rota, ini=ini_d, fim=fim_d,
-                                        profissional_id=prof_id or None))
+                                        profissional_id=prof_id or None,
+                                        convenio=convenio_sel or None))
             flash("Export CSV ainda não disponível para este relatório; "
                   "exibindo em tela.", "info")
         elif formato in ("pdf", "excel"):
@@ -324,11 +487,23 @@ def index():
     contexto = {"ini": ini_d.isoformat(), "fim": fim_d.isoformat(),
                 "gerado": gerado, "profissionais": profissionais,
                 "prof_id": prof_id, "tipo": tipo, "formato": formato,
-                "relatorios": RELATORIOS}
+                "convenio_sel": convenio_sel, "relatorios": RELATORIOS}
     if gerado:
-        contexto.update(_agrega(ini, fim, prof_id=prof_id))
-        if tipo == "evasao":
+        if tipo in _AGREGA_TIPOS:
+            contexto.update(_agrega(ini, fim, prof_id=prof_id))
+        elif tipo == "evasao":
             contexto["evasao"] = _risco_evasao()
+        elif tipo == "clientes_ticket":
+            contexto["clientes"] = _clientes_ticket(ini, fim, prof_id)
+        elif tipo == "pacientes_convenio":
+            contexto["pac_conv"] = _pacientes_por_convenio(convenio_sel or None)
+        elif tipo == "faixa_etaria":
+            contexto["faixas"], contexto["faixa_resumo"] = \
+                _faixa_etaria(ini, fim, prof_id)
+        elif tipo == "origem_leads":
+            contexto["leads"], contexto["leads_total"] = _origem_leads()
+        elif tipo == "dre":
+            contexto["dre"] = _dre(ini, fim)
     return render_template("relatorios/index.html", **contexto)
 
 
@@ -416,3 +591,114 @@ def dependencia_csv():
         conteudo, mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{nome}"'},
     )
+
+
+def _csv_safe(v):
+    """Neutraliza CSV/formula injection (Excel/Calc)."""
+    s = "" if v is None else str(v)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
+def _brl_csv(v):
+    """Número no formato pt-BR (vírgula decimal) para planilha."""
+    return f"{float(v or 0):.2f}".replace(".", ",")
+
+
+def _csv_response(nome, cabecalho, linhas, audit_detalhe):
+    """Monta uma resposta CSV (delimitador ;, BOM p/ Excel) e audita o export."""
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(cabecalho)
+    for linha in linhas:
+        w.writerow([_csv_safe(c) for c in linha])
+    audit(AuditLog.ACAO_RELATORIO_EXPORTADO, detalhes=audit_detalhe)
+    conteudo = "﻿" + buf.getvalue()
+    return Response(
+        conteudo, mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+    )
+
+
+@relatorios_bp.route("/clientes.csv")
+@login_required
+@admin_required
+def clientes_csv():
+    """3.1 — Clientes e ticket médio em CSV."""
+    ini_d, fim_d, ini, fim = _periodo(request.args)
+    prof_id = request.args.get("profissional_id", type=int)
+    dados = _clientes_ticket(ini, fim, prof_id)
+    linhas = [[c["nome"], c["cpf"] or "", c["sexo"] or "", _brl_csv(c["total"]),
+               c["qtd"], _brl_csv(c["ticket"])] for c in dados]
+    return _csv_response(
+        f"clientes_ticket_{ini_d}_{fim_d}.csv",
+        ["Nome", "CPF", "Sexo", "Valor Total Gasto (R$)",
+         "Qtd. Consultas", "Ticket Médio (R$)"],
+        linhas, f"clientes_ticket {ini_d}..{fim_d} ({len(linhas)} linhas)")
+
+
+@relatorios_bp.route("/pacientes_convenio.csv")
+@login_required
+@admin_required
+def convenio_csv():
+    """3.2 — Pacientes por convênio em CSV."""
+    convenio = (request.args.get("convenio") or "").strip() or None
+    dados = _pacientes_por_convenio(convenio)
+    linhas = [[p["nome"], p["cpf"] or "", p["convenio"],
+               p["idade"] if p["idade"] is not None else ""] for p in dados]
+    return _csv_response(
+        "pacientes_por_convenio.csv",
+        ["Nome", "CPF", "Convênio", "Idade"],
+        linhas, f"pacientes_convenio ({convenio or 'todos'}, {len(linhas)})")
+
+
+@relatorios_bp.route("/faixa_etaria.csv")
+@login_required
+@admin_required
+def faixa_csv():
+    """3.4 — Pacientes por faixa etária em CSV."""
+    ini_d, fim_d, ini, fim = _periodo(request.args)
+    prof_id = request.args.get("profissional_id", type=int)
+    pacientes, _ = _faixa_etaria(ini, fim, prof_id)
+    linhas = [[p["nome"], p["cpf"] or "", p["sexo"] or "",
+               p["idade"] if p["idade"] is not None else "", p["faixa"],
+               _brl_csv(p["total"])] for p in pacientes]
+    return _csv_response(
+        f"faixa_etaria_{ini_d}_{fim_d}.csv",
+        ["Nome", "CPF", "Sexo", "Idade", "Faixa", "Valor Total Gasto (R$)"],
+        linhas, f"faixa_etaria {ini_d}..{fim_d} ({len(linhas)} linhas)")
+
+
+@relatorios_bp.route("/leads.csv")
+@login_required
+@admin_required
+def leads_csv():
+    """3.5 — Origem de leads em CSV."""
+    leads, _ = _origem_leads()
+    linhas = [[r["origem"], r["qtd"], f"{r['percent']:.1f}".replace(".", ",")]
+              for r in leads]
+    return _csv_response(
+        "origem_leads.csv",
+        ["Origem do Lead", "Qtd. de Pacientes", "% da Base Total"],
+        linhas, f"origem_leads ({len(linhas)} origens)")
+
+
+@relatorios_bp.route("/dre.csv")
+@login_required
+@admin_required
+def dre_csv():
+    """3.3 — DRE simplificado em CSV."""
+    ini_d, fim_d, ini, fim = _periodo(request.args)
+    d = _dre(ini, fim)
+    linhas = [
+        ["Receita Bruta", _brl_csv(d["receita"])],
+        ["(-) Impostos", _brl_csv(d["impostos"])],
+        ["(-) Custos", _brl_csv(d["custos"])],
+        ["(-) Despesas", _brl_csv(d["despesas"])],
+        ["= Resultado Operacional", _brl_csv(d["resultado"])],
+    ]
+    return _csv_response(
+        f"dre_{ini_d}_{fim_d}.csv",
+        ["Classificação", "Valor (R$)"],
+        linhas, f"dre {ini_d}..{fim_d}")
