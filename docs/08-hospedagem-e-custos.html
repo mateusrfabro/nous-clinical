@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nous Clinical — Estudo de Hospedagem, Banco e Storage</title>
+<meta name="description" content="Onde hospedar o Nous Clinical, com qual banco e storage, quanto custa cada caminho e como migrar sem retrabalho.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#43B8A5; --teal-deep:#2F9486; --sage:#6FB59C; --lilas:#B7A7F5;
+    --navy:#1E293B; --navy-2:#0F1A2A; --ink:#1E293B;
+    --bg:#F8FAF8; --bg-2:#EDF2F1; --card:#FFFFFF;
+    --line:#DCE5E3; --muted:#5B6B72; --soft:#7C8A90;
+    --ok:#2F9486; --warn:#C8861A; --bad:#C2554B;
+    --shadow:0 1px 2px rgba(30,41,59,.05), 0 12px 32px -12px rgba(30,41,59,.18);
+    --shadow-sm:0 1px 2px rgba(30,41,59,.06), 0 6px 18px -10px rgba(30,41,59,.14);
+    --r:18px; --r-sm:12px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:
+      radial-gradient(1100px 520px at 88% -8%, rgba(67,184,165,.10), transparent 60%),
+      radial-gradient(900px 460px at 4% 4%, rgba(183,167,245,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px 96px}
+  h1,h2,h3,h4{font-family:"Sora",sans-serif; line-height:1.18; color:var(--navy); margin:0}
+  h2{font-size:clamp(1.4rem,2.6vw,1.95rem); font-weight:700; letter-spacing:-.02em}
+  h3{font-size:1.12rem; font-weight:700}
+  p{margin:.5rem 0}
+  a{color:var(--teal-deep); text-decoration:none}
+  .eyebrow{font-family:"Sora",sans-serif; font-weight:700; font-size:.72rem; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--teal-deep)}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    position:relative; overflow:hidden; color:#EAF6F3;
+    background:
+      radial-gradient(700px 360px at 82% 0%, rgba(67,184,165,.30), transparent 60%),
+      radial-gradient(620px 340px at 10% 120%, rgba(183,167,245,.22), transparent 60%),
+      linear-gradient(160deg,#16263B 0%, var(--navy) 60%, #16222F 100%);
+    border-radius:0 0 32px 32px; box-shadow:var(--shadow);
+    padding:64px 0 56px; margin-bottom:56px;
+  }
+  header.hero .wrap{padding-bottom:0}
+  .brand{display:flex; align-items:center; gap:14px; margin-bottom:38px}
+  .mark{width:42px; height:42px; flex:0 0 auto}
+  .brand .name{font-family:"Sora",sans-serif; font-weight:700; letter-spacing:.02em; color:#fff; font-size:1.05rem}
+  .brand .name b{color:var(--teal)}
+  .brand .tag{display:block; font-size:.64rem; letter-spacing:.34em; color:#9FB3B0; font-weight:600; margin-top:2px}
+  .hero h1{color:#fff; font-size:clamp(2rem,4.6vw,3.2rem); font-weight:800; letter-spacing:-.025em; max-width:18ch}
+  .hero .sub{color:#B8CBC7; font-size:clamp(1.02rem,2vw,1.22rem); max-width:62ch; margin-top:18px}
+  .hero .meta{display:flex; flex-wrap:wrap; gap:10px; margin-top:30px}
+  .pill{display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:999px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+    font-size:.82rem; color:#D6E5E2; font-weight:500}
+  .pill b{color:var(--teal); font-weight:700}
+
+  /* ---------- SECTIONS ---------- */
+  section{margin-top:56px}
+  .sec-head{margin-bottom:22px}
+  .sec-head h2{margin-top:6px}
+  .lead{color:var(--muted); max-width:70ch; font-size:1.04rem}
+
+  /* ---------- PRINCIPLE CALLOUT ---------- */
+  .principle{
+    background:linear-gradient(135deg,#fff, #F3FAF8);
+    border:1px solid var(--line); border-left:5px solid var(--teal);
+    border-radius:var(--r); padding:26px 28px; box-shadow:var(--shadow-sm);
+  }
+  .principle h3{display:flex; align-items:center; gap:10px}
+  .principle ul{margin:14px 0 0; padding:0; list-style:none; display:grid; gap:10px}
+  .principle li{display:flex; gap:11px; align-items:flex-start; color:var(--ink)}
+  .principle li svg{flex:0 0 auto; margin-top:3px}
+  .principle .kicker{margin-top:18px; padding:13px 16px; background:var(--navy); color:#EAF6F3;
+    border-radius:var(--r-sm); font-weight:600; font-size:.96rem}
+  .principle .kicker b{color:var(--teal)}
+
+  /* ---------- 3 PEÇAS ---------- */
+  .pecas{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .peca{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:22px; box-shadow:var(--shadow-sm); position:relative}
+  .peca .ico{width:46px; height:46px; border-radius:12px; display:grid; place-items:center;
+    background:rgba(67,184,165,.12); color:var(--teal-deep); margin-bottom:14px}
+  .peca:nth-child(2) .ico{background:rgba(111,181,156,.14); color:#3f8a72}
+  .peca:nth-child(3) .ico{background:rgba(183,167,245,.16); color:#6d5bb8}
+  .peca h4{font-size:1.02rem; margin-bottom:6px}
+  .peca p{color:var(--muted); font-size:.92rem; margin:0}
+  .peca .num{position:absolute; top:18px; right:20px; font-family:"Sora",sans-serif;
+    font-weight:800; font-size:1.4rem; color:var(--bg-2)}
+
+  /* ---------- FLOWCHART ---------- */
+  .flow{background:linear-gradient(180deg,#fff,#F6FAF9); border:1px solid var(--line);
+    border-radius:24px; padding:34px 26px 30px; box-shadow:var(--shadow-sm)}
+  .flow-q{max-width:520px; margin:0 auto 8px; text-align:center; background:var(--navy);
+    color:#fff; padding:16px 22px; border-radius:14px; font-family:"Sora",sans-serif;
+    font-weight:700; font-size:1.05rem; box-shadow:0 10px 24px -12px rgba(30,41,59,.5)}
+  .stem{width:2px; height:26px; background:var(--line); margin:0 auto}
+  .branches{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; position:relative; margin-top:0}
+  .branches::before{content:""; position:absolute; top:-26px; left:16.66%; right:16.66%;
+    height:2px; background:var(--line)}
+  .branch{display:flex; flex-direction:column; align-items:center; position:relative; padding-top:26px}
+  .branch::before{content:""; position:absolute; top:0; width:2px; height:26px; background:var(--line)}
+  .crit{background:rgba(67,184,165,.10); border:1px solid rgba(67,184,165,.35); color:var(--teal-deep);
+    font-weight:700; font-size:.82rem; padding:8px 14px; border-radius:999px; text-align:center; font-family:"Sora",sans-serif}
+  .branch .down{width:2px; height:18px; background:var(--line)}
+  .node{width:100%; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px; text-align:center; box-shadow:var(--shadow-sm)}
+  .node .prov{font-family:"Sora",sans-serif; font-weight:700; color:var(--navy); font-size:1.02rem}
+  .node .role{font-size:.78rem; color:var(--soft); margin-top:2px}
+  .node .cost{margin-top:10px; font-family:"Sora",sans-serif; font-weight:800; color:var(--teal-deep); font-size:1.05rem}
+  .node .effort{margin-top:8px; display:inline-block; font-size:.72rem; padding:3px 10px; border-radius:999px;
+    font-weight:600}
+  .ef-low{background:rgba(47,148,134,.12); color:var(--ok)}
+  .ef-mid{background:rgba(200,134,26,.14); color:var(--warn)}
+  .ef-high{background:rgba(194,85,75,.12); color:var(--bad)}
+  .leads{margin-top:12px; font-size:.78rem; color:var(--muted)}
+  .leads b{color:var(--navy)}
+  .branch.star .node{border-color:var(--teal); box-shadow:0 0 0 3px rgba(67,184,165,.14), var(--shadow-sm)}
+  .ribbon{position:absolute; top:-11px; right:14px; background:var(--teal); color:#06302a;
+    font-family:"Sora",sans-serif; font-weight:700; font-size:.66rem; letter-spacing:.08em;
+    padding:4px 10px; border-radius:999px; text-transform:uppercase}
+
+  /* ---------- TABLES ---------- */
+  .tbl-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    overflow:hidden; box-shadow:var(--shadow-sm); margin-top:16px}
+  .tbl-card>.cap{display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(67,184,165,.08), transparent)}
+  .tbl-card>.cap .dot{width:26px; height:26px; border-radius:8px; background:var(--navy); color:#fff;
+    display:grid; place-items:center; font-family:"Sora",sans-serif; font-weight:700; font-size:.85rem; flex:0 0 auto}
+  .tbl-card>.cap h3{font-size:1.04rem}
+  table{width:100%; border-collapse:collapse; font-size:.9rem}
+  th,td{padding:12px 16px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-family:"Sora",sans-serif; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--soft); font-weight:700; background:var(--bg-2)}
+  tr:last-child td{border-bottom:none}
+  td .prov{font-weight:700; color:var(--navy)}
+  .cost-cell{font-family:"Sora",sans-serif; font-weight:700; color:var(--teal-deep); white-space:nowrap}
+  .row-star{background:rgba(67,184,165,.06)}
+  .row-no td{color:var(--soft)}
+  .badge{display:inline-block; font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:999px;
+    margin-left:6px; vertical-align:middle; font-family:"Sora",sans-serif; letter-spacing:.04em}
+  .b-star{background:var(--teal); color:#06302a}
+  .b-here{background:var(--lilas); color:#2b2150}
+  .b-no{background:rgba(194,85,75,.12); color:var(--bad)}
+  .tag{display:inline-block; font-size:.7rem; font-weight:600; padding:3px 9px; border-radius:999px}
+  .t-low{background:rgba(47,148,134,.12); color:var(--ok)}
+  .t-mid{background:rgba(200,134,26,.14); color:var(--warn)}
+  .t-high{background:rgba(194,85,75,.12); color:var(--bad)}
+
+  .note{margin-top:14px; display:flex; gap:11px; align-items:flex-start; background:#FFF8EC;
+    border:1px solid #F1DCB0; border-radius:var(--r-sm); padding:14px 16px; color:#7a5a16; font-size:.9rem}
+  .note svg{flex:0 0 auto; margin-top:2px}
+
+  /* ---------- SCENARIOS ---------- */
+  .scen-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:18px}
+  .scen{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:24px;
+    box-shadow:var(--shadow-sm); position:relative; display:flex; flex-direction:column}
+  .scen.feat{border:1.5px solid var(--teal); box-shadow:0 0 0 4px rgba(67,184,165,.10), var(--shadow)}
+  .scen .top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px}
+  .scen .cn{font-family:"Sora",sans-serif; font-weight:800; font-size:.78rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--soft)}
+  .scen.feat .cn{color:var(--teal-deep)}
+  .scen h3{margin:6px 0 4px; font-size:1.18rem}
+  .scen .who{color:var(--muted); font-size:.9rem; min-height:38px}
+  .scen .stack{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0}
+  .chip{font-size:.74rem; font-weight:600; padding:4px 10px; border-radius:8px; background:var(--bg-2); color:var(--navy)}
+  .scen .total{margin-top:auto; padding-top:16px; border-top:1px dashed var(--line)}
+  .scen .total .lbl{font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); font-weight:700}
+  .scen .total .val{font-family:"Sora",sans-serif; font-weight:800; font-size:1.7rem; color:var(--navy); line-height:1.1}
+  .scen.feat .total .val{color:var(--teal-deep)}
+  .scen .total .val small{font-size:.9rem; font-weight:600; color:var(--soft)}
+  .feat-ribbon{position:absolute; top:-12px; left:24px; background:var(--teal); color:#06302a;
+    font-family:"Sora",sans-serif; font-weight:700; font-size:.68rem; letter-spacing:.08em;
+    padding:5px 13px; border-radius:999px; text-transform:uppercase; box-shadow:var(--shadow-sm)}
+
+  /* ---------- JOURNEY ---------- */
+  .journey{position:relative; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:8px}
+  .stage{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:22px;
+    box-shadow:var(--shadow-sm); position:relative}
+  .stage .step{font-family:"Sora",sans-serif; font-weight:800; font-size:.74rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--teal-deep)}
+  .stage h4{margin:8px 0 6px; font-size:1.06rem}
+  .stage p{font-size:.88rem; color:var(--muted); margin:0}
+  .stage .price{margin-top:12px; font-family:"Sora",sans-serif; font-weight:800; color:var(--navy); font-size:1.15rem}
+  .jarrow{position:absolute; right:-13px; top:50%; transform:translateY(-50%); z-index:2; color:var(--teal);
+    background:var(--bg); border-radius:50%}
+  .stage:last-child .jarrow{display:none}
+
+  /* ---------- COMPARE / DECISION ---------- */
+  .cmp{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+  .cmp .c{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:20px; box-shadow:var(--shadow-sm); text-align:center}
+  .cmp .c .axis{font-size:.82rem; color:var(--muted); min-height:42px; display:flex; align-items:center; justify-content:center}
+  .cmp .c .win{font-family:"Sora",sans-serif; font-weight:800; color:var(--navy); font-size:1.12rem; margin-top:8px}
+  .cmp .c .win span{display:block; font-size:.74rem; color:var(--teal-deep); font-weight:600; margin-top:2px}
+  .cmp .c.hl{background:linear-gradient(160deg,#fff,#F1FAF8); border-color:var(--teal)}
+
+  /* ---------- AVOID ---------- */
+  .avoid{background:#FCF1F0; border:1px solid #F1C9C4; border-radius:var(--r); padding:24px 26px}
+  .avoid h3{color:var(--bad); display:flex; align-items:center; gap:10px}
+  .avoid ul{margin:12px 0 0; padding-left:0; list-style:none; display:grid; gap:10px}
+  .avoid li{display:flex; gap:11px; align-items:flex-start; color:#7a3b35; font-size:.94rem}
+  .avoid li svg{flex:0 0 auto; margin-top:3px}
+
+  /* ---------- FINAL REC ---------- */
+  .final{background:linear-gradient(160deg,#16263B,#1E293B); color:#EAF6F3; border-radius:24px;
+    padding:40px 34px; box-shadow:var(--shadow)}
+  .final h2{color:#fff}
+  .final .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:22px}
+  .frec{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:18px 20px}
+  .frec .when{font-family:"Sora",sans-serif; font-weight:700; color:var(--teal); font-size:.82rem; letter-spacing:.04em}
+  .frec h4{color:#fff; font-size:1.04rem; margin:6px 0 4px}
+  .frec p{color:#B8CBC7; font-size:.88rem; margin:0}
+  .final .keymsg{margin-top:24px; padding:18px 22px; background:rgba(67,184,165,.12);
+    border:1px solid rgba(67,184,165,.3); border-radius:14px; font-size:1rem; color:#DDF1ED}
+  .final .keymsg b{color:#fff}
+
+  footer{margin-top:64px; text-align:center; color:var(--soft); font-size:.84rem}
+  footer .mark{width:30px; height:30px; opacity:.7; margin-bottom:8px}
+
+  @media (max-width:860px){
+    .pecas,.scen-grid,.cmp,.journey,.final .grid{grid-template-columns:1fr}
+    .branches{grid-template-columns:1fr; gap:30px}
+    .branches::before{display:none}
+    .branch::before, .branch{padding-top:0}
+    .branch::before{display:none}
+    .jarrow{display:none}
+    .principle ul{grid-template-columns:1fr}
+  }
+  @media print{
+    body{background:#fff}
+    header.hero{border-radius:0; box-shadow:none}
+    .flow,.scen,.peca,.tbl-card,.stage,.cmp .c{box-shadow:none}
+    section{break-inside:avoid}
+    .final{background:#1E293B !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="24" cy="24" r="21" stroke="#43B8A5" stroke-width="2.5" opacity=".5"/>
+        <circle cx="24" cy="12" r="3.4" fill="#43B8A5"/>
+        <circle cx="13" cy="30" r="3.4" fill="#6FB59C"/>
+        <circle cx="35" cy="30" r="3.4" fill="#B7A7F5"/>
+        <path d="M24 12 L13 30 M24 12 L35 30 M13 30 L35 30" stroke="#43B8A5" stroke-width="1.6" opacity=".7"/>
+        <circle cx="24" cy="24" r="2.2" fill="#fff"/>
+      </svg>
+      <div>
+        <span class="name">Nous <b>Clinical</b></span>
+        <span class="tag">INTELIGÊNCIA CLÍNICA</span>
+      </div>
+    </div>
+    <span class="eyebrow" style="color:#7FD4C5">Estudo para decisão · Sócio</span>
+    <h1>Onde hospedar o Nous Clinical</h1>
+    <p class="sub">As opções de servidor, banco e storage — quanto custa cada caminho, qual recomendamos para lançar, e por que <b>não ficamos presos a nenhum fornecedor</b>.</p>
+    <div class="meta">
+      <span class="pill">🐳 Roda em <b>Docker</b></span>
+      <span class="pill">🐘 Banco <b>PostgreSQL</b></span>
+      <span class="pill">📦 Storage <b>S3-compatível</b></span>
+      <span class="pill">🌐 Domínio <b>nousclinical.com</b> (nosso)</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- PRINCÍPIO -->
+  <section style="margin-top:0">
+    <div class="principle">
+      <h3>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#2F9486" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        O princípio que destrava a decisão: o sistema é portátil
+      </h3>
+      <p class="lead" style="margin-top:6px">A escolha de hoje <b>não é definitiva</b>. Começamos no caminho mais fácil e migramos pro mais barato quando crescer — sem reescrever nada.</p>
+      <ul>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#E3F4F0"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#2F9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>A aplicação roda em <b>qualquer</b> servidor ou PaaS que aceite Docker.</span></li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#E3F4F0"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#2F9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>O banco se move com <code>pg_dump</code>/restore — muda <b>1 variável</b> (<code>DATABASE_URL</code>).</span></li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#E3F4F0"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#2F9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Os arquivos (logo/exames) trocam entre R2/S3/B2 <b>sem mexer no código</b>.</span></li>
+        <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#E3F4F0"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#2F9486" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>O domínio só <b>reaponta</b> (DNS) — já é nosso.</span></li>
+      </ul>
+      <div class="kicker">➡️ Trocar de fornecedor é <b>cópia de dados + reapontar o domínio</b> — não recomeçar o projeto.</div>
+    </div>
+  </section>
+
+  <!-- 3 PEÇAS -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">A arquitetura</span>
+      <h2>O sistema precisa de 3 peças</h2>
+      <p class="lead">Podem vir de fornecedores diferentes. O domínio (4ª peça) já temos — fica na HostGator e só aponta.</p>
+    </div>
+    <div class="pecas">
+      <div class="peca">
+        <span class="num">01</span>
+        <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h4>Hospedagem da aplicação</h4>
+        <p>Onde o código Python (Flask) roda e responde aos usuários.</p>
+      </div>
+      <div class="peca">
+        <span class="num">02</span>
+        <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="1.8"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" stroke="currentColor" stroke-width="1.8"/></svg></div>
+        <h4>Banco de dados</h4>
+        <p>PostgreSQL — pacientes, agenda, prontuário, financeiro.</p>
+      </div>
+      <div class="peca">
+        <span class="num">03</span>
+        <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7l8-4 8 4v10l-8 4-8-4V7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+        <h4>Storage de arquivos</h4>
+        <p>Logo da clínica + exames anexados (dado sensível, LGPD).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLUXOGRAMA -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Como escolher</span>
+      <h2>Fluxograma de decisão</h2>
+      <p class="lead">Tudo parte de uma pergunta: qual é a prioridade do sócio? Cada caminho leva a um fornecedor e a um cenário de custo.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-q">Qual a prioridade ao hospedar?</div>
+      <div class="stem"></div>
+      <div class="branches">
+        <!-- Render -->
+        <div class="branch star">
+          <span class="ribbon">Recomendado</span>
+          <div class="crit">“Quero simplicidade,<br>sem administrar servidor”</div>
+          <div class="down"></div>
+          <div class="node">
+            <div class="prov">Render</div>
+            <div class="role">PaaS gerenciado · deploy do GitHub</div>
+            <div class="cost">Free · US$7 · US$25</div>
+            <span class="effort ef-low">Esforço baixo</span>
+            <div class="leads">leva ao <b>Cenário 1</b> (grátis) → <b>Cenário 2</b> (lançar)</div>
+          </div>
+        </div>
+        <!-- Hetzner -->
+        <div class="branch">
+          <div class="crit">“Quero o<br>mais barato”</div>
+          <div class="down"></div>
+          <div class="node">
+            <div class="prov">Hetzner VPS</div>
+            <div class="role">Servidor próprio · Docker via SSH</div>
+            <div class="cost">~€5 / R$35</div>
+            <span class="effort ef-high">Esforço alto*</span>
+            <div class="leads">leva ao <b>Cenário 3</b> (econômico)</div>
+          </div>
+        </div>
+        <!-- HostGator -->
+        <div class="branch">
+          <div class="crit">“Tudo em BR,<br>suporte em português”</div>
+          <div class="down"></div>
+          <div class="node">
+            <div class="prov">HostGator VPS</div>
+            <div class="role">Fornecedor BR · cobra em real</div>
+            <div class="cost">~R$120–250</div>
+            <span class="effort ef-high">Esforço alto*</span>
+            <div class="leads">leva ao <b>Cenário 4</b> (tudo num lugar)</div>
+          </div>
+        </div>
+      </div>
+      <p style="text-align:center; color:var(--soft); font-size:.82rem; margin:22px 0 0">* O trabalho de servidor (atualizações, backup, monitoramento) é nosso — deixamos automatizado. Os 3 caminhos usam <b>Cloudflare R2</b> para os arquivos.</p>
+    </div>
+  </section>
+
+  <!-- TABELAS DE CUSTO -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Custo peça por peça</span>
+      <h2>As opções e seus preços</h2>
+    </div>
+
+    <!-- A) Hospedagem -->
+    <div class="tbl-card">
+      <div class="cap"><span class="dot">A</span><h3>Hospedagem da aplicação</h3></div>
+      <table>
+        <thead><tr><th>Opção</th><th>Fornecedor</th><th>Custo/mês aprox.</th><th>Esforço</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr class="row-star"><td><span class="prov">PaaS gerenciado</span><span class="badge b-star">★ Recomendado</span><span class="badge b-here">Estamos aqui</span></td><td>Render</td><td class="cost-cell">Free · US$7 · US$25</td><td><span class="tag t-low">Baixo</span></td><td>HTTPS automático, zero servidor. Cobra em US$.</td></tr>
+          <tr><td>PaaS</td><td>Railway</td><td class="cost-cell">~US$5 + uso</td><td><span class="tag t-low">Baixo</span></td><td>Simples, bom para começar.</td></tr>
+          <tr><td>PaaS</td><td>Fly.io</td><td class="cost-cell">~US$5–10</td><td><span class="tag t-mid">Médio</span></td><td>Rápido/edge, um pouco mais técnico.</td></tr>
+          <tr><td><span class="prov">VPS</span></td><td>Hetzner (CX22)</td><td class="cost-cell">~€5 (~R$30)</td><td><span class="tag t-high">Alto</span></td><td>Muito barato e potente. Nós administramos.</td></tr>
+          <tr><td>VPS</td><td>DigitalOcean</td><td class="cost-cell">US$6</td><td><span class="tag t-high">Alto</span></td><td>Padrão de mercado.</td></tr>
+          <tr><td>VPS</td><td>HostGator BR</td><td class="cost-cell">~R$120–250</td><td><span class="tag t-high">Alto</span></td><td>Tudo em BR, suporte PT. Confirmar VPS <b>com root</b> (não cPanel).</td></tr>
+          <tr class="row-no"><td>Compartilhado</td><td>HostGator cPanel</td><td class="cost-cell">—</td><td>—</td><td><span class="badge b-no">✗ Não usar</span> Ambiente PHP/MySQL, hostil a Flask.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- B) Banco -->
+    <div class="tbl-card">
+      <div class="cap"><span class="dot">B</span><h3>Banco de dados (PostgreSQL)</h3></div>
+      <table>
+        <thead><tr><th>Fornecedor</th><th>Custo/mês aprox.</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr class="row-star"><td><span class="prov">Render Postgres</span><span class="badge b-here">Estamos aqui</span></td><td class="cost-cell">Free (90d) · US$6</td><td>Fica junto da app no Render.</td></tr>
+          <tr><td><span class="prov">Neon</span></td><td class="cost-cell">Free · US$19</td><td>Serverless (escala a zero). Ótimo e barato pra começar.</td></tr>
+          <tr><td>Supabase</td><td class="cost-cell">Free · US$25</td><td>Postgres + extras.</td></tr>
+          <tr><td>No próprio VPS</td><td class="cost-cell">incluso</td><td>Você administra + cuida do backup (<code>pg_dump</code>).</td></tr>
+          <tr class="row-no"><td>HostGator MySQL</td><td class="cost-cell">incluso</td><td><span class="badge b-no">✗ Evitar</span> Exigiria migrar de Postgres p/ MySQL (trabalho + risco).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- C) Storage -->
+    <div class="tbl-card">
+      <div class="cap"><span class="dot">C</span><h3>Storage de arquivos (logo + exames)</h3></div>
+      <table>
+        <thead><tr><th>Fornecedor</th><th>Custo/mês aprox.</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr class="row-star"><td><span class="prov">Cloudflare R2</span><span class="badge b-star">★ Recomendado</span></td><td class="cost-cell">Free até 10GB</td><td>S3-compatível, <b>sem taxa de saída (egress)</b>. +US$0,015/GB depois.</td></tr>
+          <tr><td>AWS S3</td><td class="cost-cell">US$0,023/GB + egress</td><td>Padrão, mas cobra saída de dados.</td></tr>
+          <tr><td>Backblaze B2</td><td class="cost-cell">US$0,006/GB</td><td>Mais barato em storage puro.</td></tr>
+          <tr><td>Disco no VPS</td><td class="cost-cell">incluso</td><td>Só se a app estiver num VPS; você cuida do backup.</td></tr>
+          <tr><td>Render Persistent Disk</td><td class="cost-cell">US$0,25/GB</td><td>Simples se já no Render (exige plano pago).</td></tr>
+        </tbody>
+      </table>
+      <div style="padding:0 20px 18px">
+        <div class="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L1 21h22L12 2z" stroke="#C8861A" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9v5M12 17.5v.5" stroke="#C8861A" stroke-width="2" stroke-linecap="round"/></svg>
+          <span><b>Por que importa:</b> no plano grátis do Render o disco é efêmero — a logo e os <b>exames somem</b> quando a instância dorme ou redeploya. Por isso o storage <b>tem</b> que ser externo (R2) em produção. <b>O código já está pronto para R2.</b></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CENÁRIOS -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Combos prontos</span>
+      <h2>Cenários recomendados, com custo total</h2>
+      <p class="lead">Cada cenário junta as 3 peças num pacote, com o custo somado.</p>
+    </div>
+    <div class="scen-grid">
+      <div class="scen">
+        <div class="top"><span class="cn">Cenário 1</span></div>
+        <h3>Validação / MVP <span style="font-size:.8rem; color:var(--lilas); font-weight:700">· atual</span></h3>
+        <p class="who">Homologação com o sócio. Não para dado real de paciente (app “dorme”, banco expira em 90 dias).</p>
+        <div class="stack"><span class="chip">Render Free</span><span class="chip">Postgres Free</span><span class="chip">R2 Free</span></div>
+        <div class="total"><span class="lbl">Custo total</span><div class="val">~US$ 0 <small>/mês</small></div></div>
+      </div>
+
+      <div class="scen feat">
+        <span class="feat-ribbon">★ Recomendado p/ lançar</span>
+        <div class="top"><span class="cn">Cenário 2</span></div>
+        <h3>Produção pequena, gerenciada</h3>
+        <p class="who">Zero administração, HTTPS automático, deploy do GitHub. Melhor custo × sossego para começar de verdade.</p>
+        <div class="stack"><span class="chip">Render Starter US$7</span><span class="chip">Postgres Basic US$6</span><span class="chip">R2 ~US$0–1</span></div>
+        <div class="total"><span class="lbl">Custo total</span><div class="val">~R$ 75 <small>/mês (~US$13–14)</small></div></div>
+      </div>
+
+      <div class="scen">
+        <div class="top"><span class="cn">Cenário 3</span></div>
+        <h3>Produção econômica em VPS</h3>
+        <p class="who">Bem mais barato. Em troca, administração do servidor (nós montamos e automatizamos: updates, backup, monitor).</p>
+        <div class="stack"><span class="chip">Hetzner CX22 ~€5</span><span class="chip">Postgres no VPS</span><span class="chip">R2 ~US$0–1</span></div>
+        <div class="total"><span class="lbl">Custo total</span><div class="val">~R$ 35 <small>/mês (~€5–6)</small></div></div>
+      </div>
+
+      <div class="scen">
+        <div class="top"><span class="cn">Cenário 4</span></div>
+        <h3>Tudo na HostGator (BR)</h3>
+        <p class="who">A favor: tudo num lugar, suporte PT, cobra em real. Contra: mais caro pelas specs e mesmo trabalho de SSH/Docker do VPS.</p>
+        <div class="stack"><span class="chip">HostGator VPS root</span><span class="chip">Postgres no VPS</span><span class="chip">R2 ou disco</span></div>
+        <div class="total"><span class="lbl">Custo total</span><div class="val">~R$ 120–250 <small>/mês</small></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JORNADA -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">O caminho no tempo</span>
+      <h2>A jornada recomendada</h2>
+      <p class="lead">Não precisa decidir tudo de uma vez. Evoluímos conforme o produto cresce — cada salto é uma migração simples, sem reescrever o sistema.</p>
+    </div>
+    <div class="journey">
+      <div class="stage">
+        <span class="step">Agora</span>
+        <h4>Homologar</h4>
+        <p>Cenário 1 — já rodando, custo zero. Sócio testa o SaaS por inteiro.</p>
+        <div class="price">~US$ 0/mês</div>
+        <svg class="jarrow" width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#E3F4F0"/><path d="M9 7l5 5-5 5" stroke="#2F9486" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="stage">
+        <span class="step">Para lançar</span>
+        <h4>Produção gerenciada</h4>
+        <p>Cenário 2 — Render pago + R2. Sem dor de cabeça, rápido de ativar.</p>
+        <div class="price">~R$ 75/mês</div>
+        <svg class="jarrow" width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#E3F4F0"/><path d="M9 7l5 5-5 5" stroke="#2F9486" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="stage">
+        <span class="step">Quando escalar</span>
+        <h4>Otimizar custo</h4>
+        <p>Cenário 3 — migrar pra Hetzner. Nós fazemos: app + dump do banco + bucket.</p>
+        <div class="price">~R$ 35/mês</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARAÇÃO -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Resumo decisório</span>
+      <h2>Quem vence em cada eixo</h2>
+    </div>
+    <div class="cmp">
+      <div class="c"><div class="axis">Mais fácil (sem servidor)</div><div class="win">Render<span>PaaS gerenciado</span></div></div>
+      <div class="c"><div class="axis">Mais barato</div><div class="win">Hetzner<span>VPS</span></div></div>
+      <div class="c"><div class="axis">Tudo em BR / suporte PT / real</div><div class="win">HostGator<span>VPS root</span></div></div>
+      <div class="c hl"><div class="axis">Melhor para lançar agora</div><div class="win">Cenário 2<span>Render pago + R2</span></div></div>
+    </div>
+  </section>
+
+  <!-- O QUE NÃO RECOMENDAMOS -->
+  <section>
+    <div class="avoid">
+      <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#C2554B" stroke-width="1.8"/><path d="M8 8l8 8M16 8l-8 8" stroke="#C2554B" stroke-width="2" stroke-linecap="round"/></svg>O que NÃO recomendamos</h3>
+      <ul>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#F3D3CF"/><path d="M8 8l8 8M16 8l-8 8" stroke="#C2554B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Hospedagem compartilhada (cPanel)</b> para a app — é ambiente PHP/MySQL, hostil a Python; e banco/storage compartilhado é ruim para dado médico (LGPD).</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#F3D3CF"/><path d="M8 8l8 8M16 8l-8 8" stroke="#C2554B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Migrar para MySQL</b> só para usar o banco incluso da HostGator — trabalho e risco sem ganho real.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- RECOMENDAÇÃO FINAL -->
+  <section>
+    <div class="final">
+      <span class="eyebrow" style="color:#7FD4C5">Nossa recomendação</span>
+      <h2 style="margin-top:6px">O caminho que sugerimos</h2>
+      <div class="grid">
+        <div class="frec"><span class="when">1 · Agora</span><h4>Homologação</h4><p>Cenário 1 — já está rodando, custo zero.</p></div>
+        <div class="frec"><span class="when">2 · Lançar de verdade</span><h4>Cenário 2 (Render pago + R2)</h4><p>~R$ 75/mês, sem dor de cabeça, rápido de ativar.</p></div>
+        <div class="frec"><span class="when">3 · Quando o volume justificar</span><h4>Migrar p/ Cenário 3 (Hetzner)</h4><p>~R$ 35/mês; nós fazemos a migração completa.</p></div>
+        <div class="frec"><span class="when">Alternativa</span><h4>HostGator</h4><p>Só se a prioridade for “um fornecedor BR, suporte PT, tudo num lugar” e o orçamento aceitar o custo maior.</p></div>
+      </div>
+      <div class="keymsg">💬 <b>Mensagem-chave:</b> não estamos presos a ninguém. Começamos barato e fácil (Render + R2) e trocamos de fornecedor quando fizer sentido — é cópia de dados + reapontar o domínio, <b>não recomeçar o projeto</b>.</div>
+    </div>
+  </section>
+
+  <footer>
+    <svg class="mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="24" cy="24" r="21" stroke="#43B8A5" stroke-width="2.5" opacity=".5"/>
+      <circle cx="24" cy="12" r="3.4" fill="#43B8A5"/><circle cx="13" cy="30" r="3.4" fill="#6FB59C"/><circle cx="35" cy="30" r="3.4" fill="#B7A7F5"/>
+      <path d="M24 12 L13 30 M24 12 L35 30 M13 30 L35 30" stroke="#43B8A5" stroke-width="1.6" opacity=".7"/>
+    </svg>
+    <div><b>Nous Clinical</b> — Menos gestão. Mais medicina.</div>
+    <div style="margin-top:4px">Estudo de hospedagem · valores aproximados (2025), confirmar na contratação · ~R$5,50/US$ · ~R$6,00/€</div>
+  </footer>
+
+</div>
+</body>
+</html>
