@@ -64,7 +64,7 @@
            data-top="{{ ev.top }}" data-height="{{ ev.height }}"
            data-left="{{ ev.left }}" data-width="{{ ev.width }}"
            data-accent="{{ ev.accent }}">
-          <span class="ag-ev-time">{{ ev.ini_br|hora_br }}</span>
+          <span class="ag-ev-time"><span class="ag-ev-dot"></span>{{ ev.ini_br|hora_br }}</span>
           <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
           <span class="ag-ev-prof">{{ ev.ag.profissional.nome }}{% if ev.ag.sala %} · {{ ev.ag.sala }}{% endif %}</span>
         </a>

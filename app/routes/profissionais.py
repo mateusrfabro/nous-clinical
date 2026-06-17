@@ -73,13 +73,16 @@ def _aplica_disponibilidade(prof, form):
     hf = _parse_horario(form.get("hora_fim"))
     ii = _parse_horario(form.get("intervalo_inicio"))
     iff = _parse_horario(form.get("intervalo_fim"))
+    dias = _parse_dias(form)
+    if not dias:
+        return "Selecione ao menos um dia de atendimento."
     if hi and hf and hf <= hi:
         return "O horário final deve ser maior que o inicial."
     if (ii and not iff) or (iff and not ii):
         return "Informe início e fim do intervalo (ou deixe ambos vazios)."
     if ii and iff and iff <= ii:
         return "O fim do intervalo deve ser maior que o início."
-    prof.dias_atendimento = _parse_dias(form)
+    prof.dias_atendimento = dias
     prof.hora_inicio = hi or Profissional.DISP_HORA_INI_PADRAO
     prof.hora_fim = hf or Profissional.DISP_HORA_FIM_PADRAO
     prof.intervalo_inicio = ii

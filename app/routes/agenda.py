@@ -131,6 +131,16 @@ def _msg_bloqueio(bloq):
             "Escolha outro horário.")
 
 
+def _meu_prof_id():
+    """ID do profissional do usuário logado para escopar a agenda à PRÓPRIA.
+    Retorna -1 (id inexistente) para um profissional SEM cadastro vinculado
+    (órfão) — assim ele não herda a visão de admin: cai num filtro vazio.
+    None quando o usuário não é profissional (admin/recepção veem tudo)."""
+    if current_user.is_profissional:
+        return current_user.profissional.id if current_user.profissional else -1
+    return None
+
+
 @agenda_bp.route("/")
 @login_required
 def listar():
@@ -146,8 +156,9 @@ def listar():
     # Profissional ve so a propria agenda. Recepcao/admin veem tudo, com
     # filtro opcional por profissional.
     filtro_prof = request.args.get("profissional_id", type=int)
-    if current_user.is_profissional and current_user.profissional:
-        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        q = q.where(Agendamento.profissional_id == meu_prof)
     elif filtro_prof:
         q = q.where(Agendamento.profissional_id == filtro_prof)
 
@@ -196,8 +207,9 @@ def semana():
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
-    if current_user.is_profissional and current_user.profissional:
-        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        q = q.where(Agendamento.profissional_id == meu_prof)
     elif filtro_prof:
         q = q.where(Agendamento.profissional_id == filtro_prof)
     ags = db.session.execute(q).scalars().all()
@@ -266,10 +278,41 @@ def semana():
             })
         colunas.append(coluna)
 
+    # Faixas de bloqueio por dia (recortadas à janela visível de cada coluna).
+    bq = (select(Bloqueio).where(Bloqueio.inicio < fim, Bloqueio.fim > ini)
+          .order_by(Bloqueio.inicio))
+    if meu_prof is not None:
+        bq = bq.where(Bloqueio.profissional_id == meu_prof)
+    elif filtro_prof:
+        bq = bq.where(Bloqueio.profissional_id == filtro_prof)
+    blqs = db.session.execute(bq).scalars().all()
+    blocos_semana = []
+    for di in range(7):
+        wi = datetime.combine(dias[di], time(_SEMANA_HORA_INI, 0),
+                              tzinfo=_BR_TZ).astimezone(timezone.utc)
+        wf = datetime.combine(dias[di], time(_SEMANA_HORA_FIM, 0),
+                              tzinfo=_BR_TZ).astimezone(timezone.utc)
+        faixas = []
+        for b in blqs:
+            bs = max(_aware(b.inicio), wi)
+            be = min(_aware(b.fim), wf)
+            if be <= bs:
+                continue
+            s_min = (bs - wi).total_seconds() / 60
+            e_min = (be - wi).total_seconds() / 60
+            faixas.append({
+                "top": round(s_min * _SEMANA_PX_HORA / 60),
+                "height": max(16, round((e_min - s_min) * _SEMANA_PX_HORA / 60) - 2),
+                "motivo": b.motivo or "Bloqueio",
+                "prof": b.profissional.nome if b.profissional else "",
+            })
+        blocos_semana.append(faixas)
+
     hoje_br = datetime.now(_BR_TZ).date()
     return render_template(
         "agenda/semana.html",
         dias=dias, dias_label=_SEMANA_DIAS, colunas=colunas,
+        blocos_semana=blocos_semana,
         horas=list(range(_SEMANA_HORA_INI, _SEMANA_HORA_FIM)),
         px_hora=_SEMANA_PX_HORA, altura_grade=janela_min * _SEMANA_PX_HORA // 60,
         hoje=hoje_br, profissionais=profissionais, filtro_prof=filtro_prof,
@@ -323,8 +366,9 @@ def dia_grade():
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
-    if current_user.is_profissional and current_user.profissional:
-        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        q = q.where(Agendamento.profissional_id == meu_prof)
     elif filtro_prof:
         q = q.where(Agendamento.profissional_id == filtro_prof)
     ags = db.session.execute(q).scalars().all()
@@ -344,8 +388,10 @@ def dia_grade():
     for ag in ags:
         ini_br = _aware(ag.inicio).astimezone(_BR_TZ)
         fim_br = _aware(ag.fim).astimezone(_BR_TZ)
-        s = (ini_br.hour - _SEMANA_HORA_INI) * 60 + ini_br.minute
-        e = (fim_br.hour - _SEMANA_HORA_INI) * 60 + fim_br.minute
+        # Offset por subtração UTC aware contra a janela (robusto a evento que
+        # cruza a meia-noite — não depende de fim_br.hour virar 0).
+        s = (_aware(ag.inicio) - win_ini).total_seconds() / 60
+        e = (_aware(ag.fim) - win_ini).total_seconds() / 60
         s = max(0, min(s, janela_min))
         e = max(0, min(e, janela_min))
         if e <= s:
@@ -368,8 +414,9 @@ def dia_grade():
     # bloqueio de dia inteiro/multidias).
     bq = (select(Bloqueio).where(Bloqueio.inicio < fim, Bloqueio.fim > ini)
           .order_by(Bloqueio.inicio))
-    if current_user.is_profissional and current_user.profissional:
-        bq = bq.where(Bloqueio.profissional_id == current_user.profissional.id)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        bq = bq.where(Bloqueio.profissional_id == meu_prof)
     elif filtro_prof:
         bq = bq.where(Bloqueio.profissional_id == filtro_prof)
     blocos = []
@@ -538,8 +585,9 @@ def checkin(agendamento_id):
 def _profissionais_para_bloqueio():
     """Profissionais que o usuário atual pode bloquear: profissional só a si
     mesmo; admin/recepção veem todos os ativos da clínica (RF-06)."""
-    if current_user.is_profissional and current_user.profissional:
-        return [current_user.profissional]
+    if current_user.is_profissional:
+        # Profissional órfão (sem cadastro) não pode bloquear ninguém.
+        return [current_user.profissional] if current_user.profissional else []
     return db.session.execute(
         select(Profissional).where(Profissional.ativo.is_(True))
         .order_by(Profissional.nome)
@@ -607,8 +655,12 @@ def bloqueios():
     agora = datetime.now(timezone.utc)
     q = (select(Bloqueio).where(Bloqueio.fim >= agora)
          .order_by(Bloqueio.inicio))
-    if current_user.is_profissional and current_user.profissional:
-        q = q.where(Bloqueio.profissional_id == current_user.profissional.id)
+    meu_prof = _meu_prof_id()
+    filtro_prof = request.args.get("profissional_id", type=int)
+    if meu_prof is not None:
+        q = q.where(Bloqueio.profissional_id == meu_prof)
+    elif filtro_prof:
+        q = q.where(Bloqueio.profissional_id == filtro_prof)
     lista = db.session.execute(q).scalars().all()
     return render_template("agenda/bloqueios.html", bloqueios=lista,
                            profissionais=profissionais,
@@ -625,8 +677,9 @@ def remover_bloqueio(bloqueio_id):
     if not bloq:
         flash("Bloqueio não encontrado.", "error")
         return redirect(url_for("agenda.bloqueios"))
-    if (current_user.is_profissional and current_user.profissional
-            and bloq.profissional_id != current_user.profissional.id):
+    if current_user.is_profissional and (
+            not current_user.profissional
+            or bloq.profissional_id != current_user.profissional.id):
         flash("Você só pode remover bloqueios da sua agenda.", "error")
         return redirect(url_for("agenda.bloqueios"))
     bid = bloq.id

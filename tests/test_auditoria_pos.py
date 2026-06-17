@@ -168,6 +168,7 @@ def test_admin_cria_profissional(client_admin):
     r = client_admin.post("/profissionais/novo", data={
         "nome": "Dra. Nova", "email": "dra.nova@test.com",
         "senha": "senha1234", "especialidade": "Clínica Geral",
+        "dias": ["0", "1", "2", "3", "4"],
     }, follow_redirects=True)
     assert r.status_code == 200
     u = Usuario.query.filter_by(email="dra.nova@test.com").first()

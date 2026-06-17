@@ -202,3 +202,49 @@ def test_grade_mostra_bloqueio(client_admin):
     db.session.commit()
     r = client_admin.get(f"/agenda/grade?dia={dia.isoformat()}")
     assert b"ag-block" in r.data and b"ReuniaoGradeX" in r.data
+
+
+def test_semana_mostra_bloqueio(client_admin):
+    prof = _prof()
+    dia = datetime.now(_BR).date()
+    ini = datetime.combine(dia, time(9, 0), tzinfo=_BR).astimezone(timezone.utc)
+    fim = datetime.combine(dia, time(10, 0), tzinfo=_BR).astimezone(timezone.utc)
+    db.session.add(Bloqueio(profissional_id=prof.id, inicio=ini, fim=fim,
+                            motivo="SemanaBloqX"))
+    db.session.commit()
+    r = client_admin.get(f"/agenda/semana?ref={dia.isoformat()}")
+    assert b"ag-block" in r.data and b"SemanaBloqX" in r.data
+
+
+# ---------- Correções da auditoria ----------
+
+def test_disponibilidade_exige_ao_menos_um_dia(client_admin):
+    prof = _prof()
+    r = client_admin.post(f"/profissionais/{prof.id}/editar", data={
+        "nome": "Dr. Teste", "duracao_padrao_min": "30", "comissao_percent": "0",
+        "ativo": "on", "hora_inicio": "08:00", "hora_fim": "18:00",
+        # sem nenhum 'dias' marcado
+    }, follow_redirects=True)
+    assert "ao menos um dia".encode() in r.data
+
+
+def test_profissional_orfao_nao_ve_agenda_de_todos(app):
+    """Profissional sem cadastro Profissional vinculado (órfão) NÃO herda a
+    visão de admin: a agenda fica vazia em vez de mostrar tudo da clínica."""
+    import hashlib
+    from app.models import Usuario, Clinica
+    from app.services.passwords import hash_senha
+    u = Usuario(email="orfao@test.com", senha_hash=hash_senha("x123x123"),
+                nome_responsavel="Órfão", tipo="profissional",
+                clinica_id=db.session.execute(db.select(Clinica)).scalars()
+                .first().id)
+    db.session.add(u)
+    db.session.commit()
+    c = app.test_client()
+    sid = hashlib.sha512(f"test-{u.id}".encode()).hexdigest()
+    with c.session_transaction() as s:
+        s["_user_id"], s["_fresh"], s["_id"], s["_permanent"] = \
+            str(u.id), True, sid, True
+    r = c.get("/agenda/")
+    assert r.status_code == 200
+    assert b"Paciente Teste" not in r.data        # não vê a agenda dos outros

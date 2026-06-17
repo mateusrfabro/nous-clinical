@@ -11,6 +11,7 @@ def test_editar_profissional_seta_comissao(client_admin):
     r = client_admin.post(f"/profissionais/{prof.id}/editar", data={
         "nome": prof.nome, "comissao_percent": "15",
         "duracao_padrao_min": "30", "ativo": "on",
+        "dias": ["0", "1", "2", "3", "4"],
     }, follow_redirects=True)
     assert r.status_code == 200
     assert db.session.get(Profissional, prof.id).comissao_percent == Decimal("15")

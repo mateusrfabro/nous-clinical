@@ -53,6 +53,12 @@
       </div>
       {% for d in range(7) %}
       <div class="week-col {{ 'is-today' if dias[d] == hoje }}" data-grid-height="{{ altura_grade }}">
+        {% for b in blocos_semana[d] %}
+        <div class="ag-block" data-top="{{ b.top }}" data-height="{{ b.height }}"
+             title="Bloqueio: {{ b.motivo }}{% if b.prof %} ({{ b.prof }}){% endif %}">
+          <span>🔒 {{ b.motivo }}</span>
+        </div>
+        {% endfor %}
         {% for ev in colunas[d] %}
         <a class="ag-event {{ ev.ag.status|status_class }}"
            href="{% if current_user.is_profissional %}{{ url_for('agenda.atendimento', agendamento_id=ev.ag.id) }}{% else %}{{ url_for('agenda.editar', agendamento_id=ev.ag.id) }}{% endif %}"
@@ -62,7 +68,7 @@
            data-accent="{{ ev.accent }}">
           {# Exibe apenas o nome do paciente (req. do sócio); horário e
              profissional ficam no tooltip (title) do evento. #}
-          <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
+          <span class="ag-ev-pac"><span class="ag-ev-dot"></span>{{ ev.ag.paciente.nome_completo }}</span>
         </a>
         {% endfor %}
       </div>
@@ -77,5 +83,6 @@
   <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>
   <span class="leg-item"><span class="leg-dot tag-edit"></span>Faltou</span>
   <span class="leg-item"><span class="leg-dot tag-danger"></span>Cancelado</span>
+  <span class="leg-item"><span class="leg-dot leg-dot-bloqueio"></span>Bloqueio</span>
 </div>
 {% endblock %}
