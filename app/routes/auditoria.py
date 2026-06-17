@@ -56,6 +56,8 @@ ACAO_LABEL = {
     "relatorio_exportado": "Relatório exportado",
     "documento_emitido": "Documento emitido (PDF)",
     "crm_interacao": "Interação de CRM registrada",
+    "bloqueio_criado": "Bloqueio de agenda criado",
+    "bloqueio_removido": "Bloqueio de agenda removido",
 }
 
 

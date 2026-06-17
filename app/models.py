@@ -9,7 +9,7 @@ Convencoes herdadas da plataforma:
 Dados de saude sao "dados sensiveis" pela LGPD (art. 5, II). Prontuario
 (Atendimento) so e acessivel por profissional/admin — nunca pela recepcao.
 """
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 
 from flask_login import UserMixin
 from sqlalchemy import Numeric
@@ -141,12 +141,46 @@ class Profissional(db.Model):
     sala = db.Column(db.String(40))
     # % de repasse/comissão sobre a receita recebida das consultas (0..100).
     comissao_percent = db.Column(Numeric(5, 2), nullable=False, default=0)
+    # --- Disponibilidade / horário de atendimento (RF-02) ---
+    # Dias de atendimento: CSV de weekday() (0=Seg .. 6=Dom). NULL (legado) =
+    # seg-sex via dias_atendimento_set(). Horários e pausa em hora LOCAL (BR).
+    dias_atendimento = db.Column(db.String(20), default="0,1,2,3,4")
+    hora_inicio = db.Column(db.Time, default=time(8, 0))
+    hora_fim = db.Column(db.Time, default=time(18, 0))
+    # Intervalo = pausa/almoço (janela em que NÃO há slots). Opcional.
+    intervalo_inicio = db.Column(db.Time)
+    intervalo_fim = db.Column(db.Time)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
     clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     usuario = db.relationship("Usuario", back_populates="profissional")
     agendamentos = db.relationship("Agendamento", back_populates="profissional")
+
+    # Defaults usados quando o profissional não configurou disponibilidade
+    # (cadastro legado). Mantém o comportamento antigo (seg-sex 08–18).
+    DISP_DIAS_PADRAO = "0,1,2,3,4"
+    DISP_HORA_INI_PADRAO = time(8, 0)
+    DISP_HORA_FIM_PADRAO = time(18, 0)
+
+    def dias_atendimento_set(self):
+        """Set de weekday() (0=Seg) em que o profissional atende.
+        NULL = fallback seg-sex (legado). String vazia = nenhum dia."""
+        raw = self.dias_atendimento
+        if raw is None:
+            raw = self.DISP_DIAS_PADRAO
+        out = set()
+        for parte in raw.split(","):
+            parte = parte.strip()
+            if parte.isdigit() and 0 <= int(parte) <= 6:
+                out.add(int(parte))
+        return out
+
+    def disp_hora_inicio(self):
+        return self.hora_inicio or self.DISP_HORA_INI_PADRAO
+
+    def disp_hora_fim(self):
+        return self.hora_fim or self.DISP_HORA_FIM_PADRAO
 
     def __repr__(self):
         return f"<Profissional {self.id} {self.nome}>"
@@ -249,6 +283,32 @@ class Agendamento(db.Model):
 
     def __repr__(self):
         return f"<Agendamento {self.id} pac={self.paciente_id} {self.status}>"
+
+
+class Bloqueio(db.Model):
+    """Bloqueio de agenda de um profissional (RF-05): férias, congresso,
+    reunião, ausência. Impede agendamentos no intervalo [inicio, fim).
+    Datas em UTC (display BR). Escopado por clínica. Criação/remoção auditadas.
+    """
+    __tablename__ = "bloqueios"
+
+    MOTIVOS = ("Férias", "Congresso", "Reunião", "Ausência", "Outros")
+
+    id = db.Column(db.Integer, primary_key=True)
+    profissional_id = db.Column(
+        db.Integer, db.ForeignKey("profissionais.id"), nullable=False, index=True
+    )
+    inicio = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    fim = db.Column(db.DateTime(timezone=True), nullable=False)
+    motivo = db.Column(db.String(120))
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    profissional = db.relationship("Profissional")
+
+    def __repr__(self):
+        return f"<Bloqueio {self.id} prof={self.profissional_id}>"
 
 
 class Atendimento(db.Model):
@@ -516,6 +576,8 @@ class AuditLog(db.Model):
     ACAO_RELATORIO_EXPORTADO = "relatorio_exportado"
     ACAO_DOCUMENTO_EMITIDO = "documento_emitido"  # receita/atestado PDF
     ACAO_CRM_INTERACAO = "crm_interacao"  # contato registrado (ex: aniversário)
+    ACAO_BLOQUEIO_CRIADO = "bloqueio_criado"      # bloqueio de agenda (RF-05/07)
+    ACAO_BLOQUEIO_REMOVIDO = "bloqueio_removido"  # desbloqueio de agenda
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
