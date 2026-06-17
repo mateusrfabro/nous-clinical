@@ -17,3 +17,20 @@
   {% endif %}
 </select>
 {% endmacro %}
+
+{% macro sala_select(name, atual, prompt='Sem sala definida', prof_aware=false) %}
+{# Sala é lista CONTROLADA (RF-03): seleção da lista cadastrada, sem texto
+   livre. Preserva valor legado fora da lista como opção marcada.
+   prof_aware=true marca o select com data-prof-sala (agenda-prefill.js
+   pré-seleciona a sala padrão do profissional). #}
+{% set lista = salas_ativas() %}
+<select id="{{ name }}" name="{{ name }}"{% if prof_aware %} data-prof-sala{% endif %}>
+  <option value="">{{ prompt }}</option>
+  {% for s in lista %}
+  <option value="{{ s }}" {{ 'selected' if atual and atual == s }}>{{ s }}</option>
+  {% endfor %}
+  {% if atual and atual not in lista %}
+  <option value="{{ atual }}" selected>{{ atual }} (não cadastrada)</option>
+  {% endif %}
+</select>
+{% endmacro %}

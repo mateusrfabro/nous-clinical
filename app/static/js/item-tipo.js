@@ -7,10 +7,10 @@
     if (!form) return;
     var valorWrap = form.querySelector("[data-item-valor]");
     if (!valorWrap) return;
-    var ehConvenio = sel.value === "convenio";
-    valorWrap.hidden = ehConvenio;
+    var semValor = sel.value !== "item";   // convênio e sala não têm valor
+    valorWrap.hidden = semValor;
     var input = valorWrap.querySelector("input");
-    if (input) input.disabled = ehConvenio;
+    if (input) input.disabled = semValor;
   }
   document.addEventListener("DOMContentLoaded", function () {
     var sels = document.querySelectorAll("[data-item-tipo]");

@@ -38,10 +38,12 @@ def init_tenant(db):
     from app.models import (
         Paciente, Profissional, Agendamento, Atendimento,
         LancamentoFinanceiro, Procedimento, Exame, Convenio, Usuario, Bloqueio,
+        Sala,
     )
     # Escopo de LEITURA (sem Usuario — auth precisa de lookup global).
     escopados = [Paciente, Profissional, Agendamento, Atendimento,
-                 LancamentoFinanceiro, Procedimento, Exame, Convenio, Bloqueio]
+                 LancamentoFinanceiro, Procedimento, Exame, Convenio, Bloqueio,
+                 Sala]
     # Recebem clinica_id na CRIAÇÃO (inclui Usuario).
     donos = tuple(escopados + [Usuario])
 

@@ -75,6 +75,30 @@ class Convenio(db.Model):
         return f"<Convenio {self.id} {self.nome}>"
 
 
+class Sala(db.Model):
+    """Cadastro de salas/consultórios da clínica (master data, RF-03).
+
+    Lista controlada (sem digitação livre, igual a Convenio). O agendamento
+    passa a escolher a sala desta lista, e a agenda bloqueia duas consultas
+    na MESMA sala no mesmo horário. Agendamento.sala segue como texto (snapshot
+    histórico), populado a partir desta lista.
+    """
+    __tablename__ = "salas"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "nome", name="uq_sala_clinica_nome"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(60), nullable=False)
+    ativo = db.Column(db.Boolean, nullable=False, default=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    def __repr__(self):
+        return f"<Sala {self.id} {self.nome}>"
+
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = "usuarios"
 
@@ -567,6 +591,7 @@ class AuditLog(db.Model):
     ACAO_PROCEDIMENTO_SALVO = "procedimento_salvo"
     ACAO_PROCEDIMENTO_EXCLUIDO = "procedimento_excluido"
     ACAO_CONVENIO_SALVO = "convenio_salvo"
+    ACAO_SALA_SALVA = "sala_salva"  # cadastro de sala/consultório (RF-03)
     ACAO_EXAME_ANEXADO = "exame_anexado"
     ACAO_EXAME_REMOVIDO = "exame_removido"
     # Acesso a dado sensivel (LGPD art. 37 — registro de operacoes de

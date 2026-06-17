@@ -49,6 +49,7 @@ ACAO_LABEL = {
     "procedimento_salvo": "Item/procedimento salvo",
     "procedimento_excluido": "Item/procedimento excluído",
     "convenio_salvo": "Convênio salvo",
+    "sala_salva": "Sala salva",
     "exame_anexado": "Exame anexado",
     "exame_removido": "Exame removido",
     "prontuario_visualizado": "Prontuário visualizado",

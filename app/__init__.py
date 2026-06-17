@@ -294,6 +294,21 @@ def create_app(config_name="default"):
             except Exception:
                 return []
 
+        def _salas_ativas():
+            """Lista de nomes de salas ativas da clínica (master data, RF-03).
+            Lazy: só consulta quando o template chama. [] se deslogado."""
+            from sqlalchemy import select as _select
+            from app.models import Sala
+            if not getattr(_cu, "is_authenticated", False):
+                return []
+            try:
+                return db.session.execute(
+                    _select(Sala.nome).where(Sala.ativo.is_(True))
+                    .order_by(Sala.nome)
+                ).scalars().all()
+            except Exception:
+                return []
+
         # White-label: identidade da clínica. Logado -> a clínica do usuário.
         # Público no portal /c/<slug> -> a clínica do slug (g.portal_clinica).
         from flask import g as _g
@@ -340,6 +355,8 @@ def create_app(config_name="default"):
             "url_confirmacao": _url_confirmacao,
             # Convênios cadastrados (datalist de sugestão nos forms).
             "convenios_ativos": _convenios_ativos,
+            # Salas cadastradas (select controlado no agendamento, RF-03).
+            "salas_ativas": _salas_ativas,
             # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
             "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.

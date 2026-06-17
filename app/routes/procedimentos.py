@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from app import db
 from app.auth_decorators import recepcao_ou_admin
 from app.models import (
-    Procedimento, PrecoConvenio, Convenio, ItemAtendimento, AuditLog,
+    Procedimento, PrecoConvenio, Convenio, ItemAtendimento, AuditLog, Sala,
 )
 from app.services.audit import audit
 from app.services.tenant import clinica_atual
@@ -52,8 +52,12 @@ def listar():
     convenios = db.session.execute(
         select(Convenio).order_by(Convenio.ativo.desc(), Convenio.nome)
     ).scalars().all()
+    salas = db.session.execute(
+        select(Sala).order_by(Sala.ativo.desc(), Sala.nome)
+    ).scalars().all()
     return render_template("procedimentos/listar.html",
-                           procedimentos=procedimentos, convenios=convenios)
+                           procedimentos=procedimentos, convenios=convenios,
+                           salas=salas)
 
 
 @procedimentos_bp.route("/adicionar", methods=["POST"])
@@ -87,6 +91,26 @@ def adicionar():
         flash("Convênio cadastrado.", "success")
         return redirect(url_for("procedimentos.listar"))
 
+    if tipo == "sala":
+        existe = db.session.execute(
+            select(Sala).where(Sala.nome == nome)
+        ).scalar_one_or_none()
+        if existe:
+            flash("Esta sala já está cadastrada.", "error")
+            return redirect(url_for("procedimentos.listar"))
+        s = Sala(nome=nome[:60])
+        db.session.add(s)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("Esta sala já está cadastrada.", "error")
+            return redirect(url_for("procedimentos.listar"))
+        audit(AuditLog.ACAO_SALA_SALVA, recurso_tipo="sala",
+              recurso_id=s.id, detalhes="criada")
+        flash("Sala cadastrada.", "success")
+        return redirect(url_for("procedimentos.listar"))
+
     # tipo == item (default)
     valor = _parse_valor(request.form.get("valor", ""))
     if valor is None:
@@ -114,6 +138,22 @@ def convenio_toggle(convenio_id):
     audit(AuditLog.ACAO_CONVENIO_SALVO, recurso_tipo="convenio",
           recurso_id=c.id, detalhes=f"ativo={c.ativo}")
     flash("Convênio atualizado.", "success")
+    return redirect(url_for("procedimentos.listar"))
+
+
+@procedimentos_bp.route("/salas/<int:sala_id>/toggle", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def sala_toggle(sala_id):
+    s = db.session.get(Sala, sala_id)
+    if not s:
+        flash("Sala não encontrada.", "error")
+        return redirect(url_for("procedimentos.listar"))
+    s.ativo = not s.ativo
+    db.session.commit()
+    audit(AuditLog.ACAO_SALA_SALVA, recurso_tipo="sala",
+          recurso_id=s.id, detalhes=f"ativo={s.ativo}")
+    flash("Sala atualizada.", "success")
     return redirect(url_for("procedimentos.listar"))
 
 

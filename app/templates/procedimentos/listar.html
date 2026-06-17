@@ -11,6 +11,7 @@
     <select id="tipo" name="tipo" data-item-tipo>
       <option value="item">Item faturável</option>
       <option value="convenio">Convênio</option>
+      <option value="sala">Sala / consultório</option>
     </select>
   </div>
   <div class="form-group form-group-flex-main">
@@ -73,5 +74,31 @@
 </div>
 {% else %}
 <div class="empty-state"><p>Nenhum convênio cadastrado. Use "Adicionar → Convênio" acima.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Salas / consultórios</h3></div>
+<p class="muted text-sm mb-2">Lista controlada — usada no agendamento. A agenda impede duas consultas na mesma sala no mesmo horário.</p>
+{% if salas %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Sala</th><th>Status</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for s in salas %}
+    <tr>
+      <td>{{ s.nome }}</td>
+      <td><span class="tag {{ 'tag-success' if s.ativo else 'tag-danger' }}">{{ 'Ativa' if s.ativo else 'Inativa' }}</span></td>
+      <td>
+        <form method="POST" action="{{ url_for('procedimentos.sala_toggle', sala_id=s.id) }}" class="inline-form no-loading">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link">{{ 'Desativar' if s.ativo else 'Ativar' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhuma sala cadastrada. Use "Adicionar → Sala / consultório" acima.</p></div>
 {% endif %}
 {% endblock %}
