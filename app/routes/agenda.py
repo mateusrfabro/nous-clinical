@@ -13,10 +13,12 @@ from flask_login import login_required, current_user
 from sqlalchemy import select
 
 from app import db, limiter
-from app.auth_decorators import recepcao_ou_admin, clinico_required
+from app.auth_decorators import (
+    recepcao_ou_admin, clinico_required, equipe_required,
+)
 from app.models import (
     Agendamento, Atendimento, Paciente, Profissional, AuditLog,
-    Procedimento, ItemAtendimento, Clinica, Convenio,
+    Procedimento, ItemAtendimento, Clinica, Convenio, Bloqueio,
 )
 from app.routes.pacientes import _valida_cpf, _parse_data
 from app.services.audit import audit
@@ -107,6 +109,26 @@ def _msg_conflito(conflito):
     fim_br = conflito.fim.astimezone(_BR_TZ).strftime("%H:%M")
     nome = conflito.profissional.nome if conflito.profissional else "O profissional"
     return f"Conflito de horário: {nome} já tem consulta das {ini_br} às {fim_br}."
+
+
+def _bloqueio_conflito(profissional_id, inicio, fim):
+    """1º bloqueio de agenda que cobre [inicio, fim) do profissional (RF-05).
+    Escopado por clínica (Bloqueio é tenant-scoped quando logado)."""
+    return db.session.execute(
+        select(Bloqueio).where(
+            Bloqueio.profissional_id == profissional_id,
+            Bloqueio.inicio < fim,
+            Bloqueio.fim > inicio,
+        )
+    ).scalars().first()
+
+
+def _msg_bloqueio(bloq):
+    ini_br = _aware(bloq.inicio).astimezone(_BR_TZ).strftime("%d/%m %H:%M")
+    fim_br = _aware(bloq.fim).astimezone(_BR_TZ).strftime("%d/%m %H:%M")
+    motivo = (bloq.motivo or "indisponível").strip()
+    return (f"Agenda bloqueada nesse horário ({motivo}, de {ini_br} a {fim_br}). "
+            "Escolha outro horário.")
 
 
 @agenda_bp.route("/")
@@ -258,6 +280,124 @@ def semana():
     )
 
 
+def _lane_packing(evs):
+    """Distribui eventos sobrepostos em pistas lado a lado (Google Calendar).
+    Muta cada ev adicionando 'lane' e 'n' (nº de pistas do cluster)."""
+    evs.sort(key=lambda x: (x["s"], x["e"]))
+    i = 0
+    while i < len(evs):
+        cluster = [evs[i]]
+        max_e = evs[i]["e"]
+        j = i + 1
+        while j < len(evs) and evs[j]["s"] < max_e:
+            cluster.append(evs[j])
+            max_e = max(max_e, evs[j]["e"])
+            j += 1
+        lanes = []
+        for ev in cluster:
+            colocado = False
+            for li, last_e in enumerate(lanes):
+                if ev["s"] >= last_e:
+                    ev["lane"], lanes[li], colocado = li, ev["e"], True
+                    break
+            if not colocado:
+                ev["lane"] = len(lanes)
+                lanes.append(ev["e"])
+        for ev in cluster:
+            ev["n"] = len(lanes)
+        i = j
+    return evs
+
+
+@agenda_bp.route("/grade")
+@login_required
+def dia_grade():
+    """Grade DIÁRIA visual (RF-01): coluna de horários com os agendamentos
+    posicionados por horário (estilo Google Calendar/Teams) e faixas de
+    bloqueio. Reusa o motor de posicionamento de agenda-week.js (data-*)."""
+    dia = _parse_dia(request.args.get("dia", ""))
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+
+    q = (select(Agendamento)
+         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
+         .order_by(Agendamento.inicio))
+    filtro_prof = request.args.get("profissional_id", type=int)
+    if current_user.is_profissional and current_user.profissional:
+        q = q.where(Agendamento.profissional_id == current_user.profissional.id)
+    elif filtro_prof:
+        q = q.where(Agendamento.profissional_id == filtro_prof)
+    ags = db.session.execute(q).scalars().all()
+
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    janela_min = (_SEMANA_HORA_FIM - _SEMANA_HORA_INI) * 60
+    win_ini = datetime.combine(dia, time(_SEMANA_HORA_INI, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+    win_fim = datetime.combine(dia, time(_SEMANA_HORA_FIM, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+
+    evs = []
+    for ag in ags:
+        ini_br = _aware(ag.inicio).astimezone(_BR_TZ)
+        fim_br = _aware(ag.fim).astimezone(_BR_TZ)
+        s = (ini_br.hour - _SEMANA_HORA_INI) * 60 + ini_br.minute
+        e = (fim_br.hour - _SEMANA_HORA_INI) * 60 + fim_br.minute
+        s = max(0, min(s, janela_min))
+        e = max(0, min(e, janela_min))
+        if e <= s:
+            e = min(s + 20, janela_min)
+        evs.append({"ag": ag, "s": s, "e": e, "ini_br": ini_br, "fim_br": fim_br})
+    _lane_packing(evs)
+    eventos = []
+    for ev in evs:
+        n, lane, ag = ev["n"], ev["lane"], ev["ag"]
+        cor = (ag.profissional.cor_agenda if ag.profissional else None) or "#43B8A5"
+        eventos.append({
+            "ag": ag, "ini_br": ev["ini_br"], "fim_br": ev["fim_br"],
+            "top": round(ev["s"] * _SEMANA_PX_HORA / 60),
+            "height": max(22, round((ev["e"] - ev["s"]) * _SEMANA_PX_HORA / 60) - 2),
+            "left": round(lane * 100 / n, 2), "width": round(100 / n, 2),
+            "accent": cor,
+        })
+
+    # Faixas de bloqueio do dia (recortadas à janela visível — robusto p/
+    # bloqueio de dia inteiro/multidias).
+    bq = (select(Bloqueio).where(Bloqueio.inicio < fim, Bloqueio.fim > ini)
+          .order_by(Bloqueio.inicio))
+    if current_user.is_profissional and current_user.profissional:
+        bq = bq.where(Bloqueio.profissional_id == current_user.profissional.id)
+    elif filtro_prof:
+        bq = bq.where(Bloqueio.profissional_id == filtro_prof)
+    blocos = []
+    for b in db.session.execute(bq).scalars().all():
+        bs = max(_aware(b.inicio), win_ini)
+        be = min(_aware(b.fim), win_fim)
+        if be <= bs:
+            continue
+        s_min = (bs - win_ini).total_seconds() / 60
+        e_min = (be - win_ini).total_seconds() / 60
+        blocos.append({
+            "bloq": b,
+            "top": round(s_min * _SEMANA_PX_HORA / 60),
+            "height": max(16, round((e_min - s_min) * _SEMANA_PX_HORA / 60) - 2),
+        })
+
+    return render_template(
+        "agenda/dia_grade.html",
+        dia=dia, eventos=eventos, blocos=blocos,
+        horas=list(range(_SEMANA_HORA_INI, _SEMANA_HORA_FIM)),
+        px_hora=_SEMANA_PX_HORA, altura_grade=janela_min * _SEMANA_PX_HORA // 60,
+        profissionais=profissionais, filtro_prof=filtro_prof,
+        hoje=datetime.now(_BR_TZ).date(),
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+    )
+
+
 @agenda_bp.route("/novo", methods=["GET", "POST"])
 @login_required
 @recepcao_ou_admin
@@ -302,6 +442,13 @@ def novo():
         conflito = _conflito_horario(profissional.id, inicio, fim)
         if conflito:
             flash(_msg_conflito(conflito), "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
+        bloq = _bloqueio_conflito(profissional.id, inicio, fim)
+        if bloq:
+            flash(_msg_bloqueio(bloq), "error")
             return render_template("agenda/form.html",
                                    profissionais=profissionais,
                                    pacientes=pacientes, form=request.form,
@@ -388,7 +535,106 @@ def checkin(agendamento_id):
     return redirect(url_for("agenda.listar", dia=dia))
 
 
-_PUB_HORA_INI, _PUB_HORA_FIM = 8, 18   # janela de horários do agendamento online
+def _profissionais_para_bloqueio():
+    """Profissionais que o usuário atual pode bloquear: profissional só a si
+    mesmo; admin/recepção veem todos os ativos da clínica (RF-06)."""
+    if current_user.is_profissional and current_user.profissional:
+        return [current_user.profissional]
+    return db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+
+@agenda_bp.route("/bloqueios", methods=["GET", "POST"])
+@login_required
+@equipe_required
+def bloqueios():
+    """Bloqueio de agenda (RF-05/06): férias, congresso, reunião, ausência.
+    Todos os perfis da equipe podem bloquear; o profissional só a própria
+    agenda. Criação auditada (RF-07)."""
+    profissionais = _profissionais_para_bloqueio()
+    ids_permitidos = {p.id for p in profissionais}
+
+    if request.method == "POST":
+        prof_id = request.form.get("profissional_id", type=int)
+        # Profissional só bloqueia a própria agenda (ignora o que vier no form).
+        if current_user.is_profissional and current_user.profissional:
+            prof_id = current_user.profissional.id
+        profissional = db.session.get(Profissional, prof_id) if prof_id else None
+        if not profissional or profissional.id not in ids_permitidos:
+            flash("Selecione um profissional válido.", "error")
+            return redirect(url_for("agenda.bloqueios"))
+
+        data_ini = _parse_data(request.form.get("data_inicio", ""))
+        data_fim = _parse_data(request.form.get("data_fim", "")) or data_ini
+        hora_ini = request.form.get("hora_inicio", "").strip()
+        hora_fim = request.form.get("hora_fim", "").strip()
+        motivo = (request.form.get("motivo", "").strip() or "Ausência")[:120]
+
+        if not data_ini:
+            flash("Informe a data do bloqueio.", "error")
+            return redirect(url_for("agenda.bloqueios"))
+
+        if hora_ini and hora_fim:
+            # Faixa de horário num dia (ex.: reunião 14:00–16:00).
+            inicio = _br_para_utc(data_ini, hora_ini)
+            fim = _br_para_utc(data_ini, hora_fim)
+            if not inicio or not fim or fim <= inicio:
+                flash("Horário do bloqueio inválido (fim deve ser após o início).",
+                      "error")
+                return redirect(url_for("agenda.bloqueios"))
+        else:
+            # Dia(s) inteiro(s) (ex.: férias, congresso).
+            if data_fim < data_ini:
+                flash("A data final deve ser igual ou após a inicial.", "error")
+                return redirect(url_for("agenda.bloqueios"))
+            inicio = datetime.combine(data_ini, time.min,
+                                      tzinfo=_BR_TZ).astimezone(timezone.utc)
+            fim = datetime.combine(data_fim + timedelta(days=1), time.min,
+                                   tzinfo=_BR_TZ).astimezone(timezone.utc)
+
+        bloq = Bloqueio(profissional_id=profissional.id, inicio=inicio, fim=fim,
+                        motivo=motivo, criado_por_id=current_user.id)
+        db.session.add(bloq)
+        db.session.commit()
+        audit(AuditLog.ACAO_BLOQUEIO_CRIADO, recurso_tipo="bloqueio",
+              recurso_id=bloq.id, detalhes=f"prof={profissional.id} {motivo}")
+        flash("Bloqueio criado.", "success")
+        return redirect(url_for("agenda.bloqueios"))
+
+    # GET — lista os bloqueios vigentes/futuros (fim >= agora).
+    agora = datetime.now(timezone.utc)
+    q = (select(Bloqueio).where(Bloqueio.fim >= agora)
+         .order_by(Bloqueio.inicio))
+    if current_user.is_profissional and current_user.profissional:
+        q = q.where(Bloqueio.profissional_id == current_user.profissional.id)
+    lista = db.session.execute(q).scalars().all()
+    return render_template("agenda/bloqueios.html", bloqueios=lista,
+                           profissionais=profissionais,
+                           motivos=Bloqueio.MOTIVOS,
+                           hoje=datetime.now(_BR_TZ).date().isoformat())
+
+
+@agenda_bp.route("/bloqueios/<int:bloqueio_id>/remover", methods=["POST"])
+@login_required
+@equipe_required
+def remover_bloqueio(bloqueio_id):
+    """Desbloqueia a agenda (RF-05/07). Profissional só remove os próprios."""
+    bloq = db.session.get(Bloqueio, bloqueio_id)   # auto-escopado por clínica
+    if not bloq:
+        flash("Bloqueio não encontrado.", "error")
+        return redirect(url_for("agenda.bloqueios"))
+    if (current_user.is_profissional and current_user.profissional
+            and bloq.profissional_id != current_user.profissional.id):
+        flash("Você só pode remover bloqueios da sua agenda.", "error")
+        return redirect(url_for("agenda.bloqueios"))
+    bid = bloq.id
+    db.session.delete(bloq)
+    db.session.commit()
+    audit(AuditLog.ACAO_BLOQUEIO_REMOVIDO, recurso_tipo="bloqueio", recurso_id=bid)
+    flash("Bloqueio removido.", "success")
+    return redirect(url_for("agenda.bloqueios"))
 
 
 def _normalizar_tel(t):
@@ -431,29 +677,55 @@ def _clinica_publica():
 _portal_clinica = _clinica_publica
 
 
-def _slots_livres(profissional, dia):
-    """Horários livres ('HH:MM') do profissional no dia (passo = duração padrão).
+def _intervalo_utc(profissional, dia):
+    """Janela de pausa/almoço do profissional no dia, em UTC. None se sem pausa."""
+    ii, iff = profissional.intervalo_inicio, profissional.intervalo_fim
+    if not (ii and iff):
+        return None
+    a = datetime.combine(dia, ii, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    b = datetime.combine(dia, iff, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    return (a, b)
 
-    Dias de fim de semana não têm slots (clínica fecha sáb/dom)."""
-    if dia.weekday() >= 5:
+
+def _bloqueios_no_intervalo(profissional_id, ini_utc, fim_utc):
+    """Bloqueios do profissional que tocam [ini_utc, fim_utc)."""
+    return db.session.execute(
+        select(Bloqueio).where(
+            Bloqueio.profissional_id == profissional_id,
+            Bloqueio.inicio < fim_utc, Bloqueio.fim > ini_utc)
+    ).scalars().all()
+
+
+def _slots_livres(profissional, dia):
+    """Horários livres ('HH:MM') do profissional no dia, respeitando a
+    disponibilidade configurada (RF-03/04): dias de atendimento, horário de
+    início/fim, pausa (almoço), agendamentos existentes e bloqueios de agenda.
+    Passo = duração padrão do profissional."""
+    if dia.weekday() not in profissional.dias_atendimento_set():
         return []
     passo = profissional.duracao_padrao_min or 30
-    ini_dia = datetime.combine(dia, time(_PUB_HORA_INI, 0),
+    ini_dia = datetime.combine(dia, profissional.disp_hora_inicio(),
                                tzinfo=_BR_TZ).astimezone(timezone.utc)
-    fim_dia = datetime.combine(dia, time(_PUB_HORA_FIM, 0),
+    fim_dia = datetime.combine(dia, profissional.disp_hora_fim(),
                                tzinfo=_BR_TZ).astimezone(timezone.utc)
+    pausa = _intervalo_utc(profissional, dia)
     ocupados = db.session.execute(
         select(Agendamento).where(
             Agendamento.profissional_id == profissional.id,
             Agendamento.status != Agendamento.STATUS_CANCELADO,
             Agendamento.inicio < fim_dia, Agendamento.fim > ini_dia)
     ).scalars().all()
+    bloqueios = _bloqueios_no_intervalo(profissional.id, ini_dia, fim_dia)
     agora = datetime.now(timezone.utc)
     livres, t = [], ini_dia
     while t + timedelta(minutes=passo) <= fim_dia:
         fimslot = t + timedelta(minutes=passo)
-        if t >= agora and not any(
-                _aware(o.inicio) < fimslot and _aware(o.fim) > t for o in ocupados):
+        na_pausa = bool(pausa) and t < pausa[1] and fimslot > pausa[0]
+        ocupado = any(_aware(o.inicio) < fimslot and _aware(o.fim) > t
+                      for o in ocupados)
+        bloqueado = any(_aware(b.inicio) < fimslot and _aware(b.fim) > t
+                        for b in bloqueios)
+        if t >= agora and not na_pausa and not ocupado and not bloqueado:
             livres.append(t.astimezone(_BR_TZ).strftime("%H:%M"))
         t = fimslot
     return livres
@@ -587,7 +859,8 @@ def agendar_online():
 
         inicio = _br_para_utc(dia, hora)
         fim = inicio + timedelta(minutes=profissional.duracao_padrao_min or 30)
-        if not inicio or _conflito_horario(profissional.id, inicio, fim):
+        if (not inicio or _conflito_horario(profissional.id, inicio, fim)
+                or _bloqueio_conflito(profissional.id, inicio, fim)):
             return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
 
         convenio = request.form.get("convenio", "").strip() or None
@@ -695,6 +968,11 @@ def editar(agendamento_id):
         conflito = _conflito_horario(profissional.id, inicio, fim, excluir_id=ag.id)
         if conflito:
             flash(_msg_conflito(conflito), "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
+        bloq = _bloqueio_conflito(profissional.id, inicio, fim)
+        if bloq:
+            flash(_msg_bloqueio(bloq), "error")
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)
 
