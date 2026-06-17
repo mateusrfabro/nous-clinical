@@ -41,6 +41,36 @@
       </div>
     </div>
     <hr class="mt-4 mb-4">
+    <h3 class="mb-2">Disponibilidade de atendimento</h3>
+    <div class="form-group">
+      <label>Dias de atendimento</label>
+      <div class="flex-row-gap">
+        {% for v, lbl in dias_semana %}
+        <label class="check-inline"><input type="checkbox" name="dias" value="{{ v }}" {{ 'checked' if v in disp.dias }}> {{ lbl }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="flex-form">
+      <div class="form-group">
+        <label for="hora_inicio">Início</label>
+        <input type="time" id="hora_inicio" name="hora_inicio" value="{{ disp.hora_inicio }}">
+      </div>
+      <div class="form-group">
+        <label for="hora_fim">Fim</label>
+        <input type="time" id="hora_fim" name="hora_fim" value="{{ disp.hora_fim }}">
+      </div>
+      <div class="form-group">
+        <label for="intervalo_inicio">Pausa — início</label>
+        <input type="time" id="intervalo_inicio" name="intervalo_inicio" value="{{ disp.intervalo_inicio }}">
+      </div>
+      <div class="form-group">
+        <label for="intervalo_fim">Pausa — fim</label>
+        <input type="time" id="intervalo_fim" name="intervalo_fim" value="{{ disp.intervalo_fim }}">
+      </div>
+    </div>
+    <p class="muted text-sm">A agenda e o auto-agendamento geram os horários livres com base nisso. A duração padrão define o tamanho do slot; a pausa (almoço) fica de fora.</p>
+
+    <hr class="mt-4 mb-4">
     <h3 class="mb-2">Acesso</h3>
     <div class="flex-form">
       <div class="form-group form-group-grow">
