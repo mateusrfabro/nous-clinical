@@ -1,20 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Agenda (semana) — Nous Clinical{% endblock %}
+{% block title %}Agenda (grade do dia) — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2>Agenda — semana de {{ dias[0]|data_br }}</h2>
+  <h2>Agenda — {{ dia|data_br }}</h2>
   {% if current_user.is_admin or current_user.is_recepcao %}
-    <a href="{{ url_for('agenda.novo', dia=semana_atual) }}" class="btn btn-primary">+ Agendar consulta</a>
+    <a href="{{ url_for('agenda.novo', dia=dia.isoformat()) }}" class="btn btn-primary">+ Agendar consulta</a>
   {% endif %}
 </div>
 
 <form method="GET" class="toolbar no-loading mb-4">
   <div class="view-switch" role="group" aria-label="Modo de visualização">
-    <a href="{{ url_for('agenda.listar', dia=ref) }}" class="btn btn-outline btn-sm">Dia</a>
-    <a href="{{ url_for('agenda.dia_grade', dia=ref) }}" class="btn btn-outline btn-sm">Grade</a>
-    <span class="btn btn-primary btn-sm is-active" aria-current="true">Semana</span>
+    <a href="{{ url_for('agenda.listar', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Dia</a>
+    <span class="btn btn-primary btn-sm is-active" aria-current="true">Grade</span>
+    <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
   </div>
   <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <div class="form-group">
+    <label for="dia">Dia</label>
+    <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
+  </div>
   {% if not current_user.is_profissional %}
   <div class="form-group form-group-grow">
     <label for="profissional_id">Profissional</label>
@@ -26,47 +30,46 @@
     </select>
   </div>
   {% endif %}
-  <input type="hidden" name="ref" value="{{ ref }}">
   <button type="submit" class="btn btn-outline">Filtrar</button>
-  <a href="{{ url_for('agenda.semana', ref=semana_anterior, profissional_id=filtro_prof or '') }}" class="btn btn-outline">← Semana anterior</a>
-  <a href="{{ url_for('agenda.semana', profissional_id=filtro_prof or '') }}" class="btn btn-outline">Hoje</a>
-  <a href="{{ url_for('agenda.semana', ref=semana_seguinte, profissional_id=filtro_prof or '') }}" class="btn btn-outline">Próxima semana →</a>
+  <a href="{{ url_for('agenda.dia_grade', dia=dia_anterior, profissional_id=filtro_prof or '') }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('agenda.dia_grade', profissional_id=filtro_prof or '') }}" class="btn btn-outline">Hoje</a>
+  <a href="{{ url_for('agenda.dia_grade', dia=dia_seguinte, profissional_id=filtro_prof or '') }}" class="btn btn-outline">Próximo →</a>
 </form>
 
 <div class="week-scroll">
-  <div class="week">
+  <div class="week week--single">
     <div class="week-head">
       <div class="week-corner"></div>
-      {% for d in range(7) %}
-      <div class="week-dayhead {{ 'is-today' if dias[d] == hoje }}">
-        <span class="wd-name">{{ dias_label[d] }}</span>
-        <span class="wd-date">{{ '%02d/%02d'|format(dias[d].day, dias[d].month) }}</span>
+      <div class="week-dayhead {{ 'is-today' if dia == hoje }}">
+        <span class="wd-name">{{ dia|data_br }}</span>
       </div>
-      {% endfor %}
     </div>
-
     <div class="week-body">
       <div class="week-hours" data-grid-height="{{ altura_grade }}">
         {% for h in horas %}
         <div class="week-hour"><span>{{ '%02d:00'|format(h) }}</span></div>
         {% endfor %}
       </div>
-      {% for d in range(7) %}
-      <div class="week-col {{ 'is-today' if dias[d] == hoje }}" data-grid-height="{{ altura_grade }}">
-        {% for ev in colunas[d] %}
+      <div class="week-col {{ 'is-today' if dia == hoje }}" data-grid-height="{{ altura_grade }}">
+        {% for b in blocos %}
+        <div class="ag-block" data-top="{{ b.top }}" data-height="{{ b.height }}"
+             title="Bloqueio: {{ b.bloq.motivo or 'indisponível' }} ({{ b.bloq.profissional.nome if b.bloq.profissional else '' }})">
+          <span>🔒 {{ b.bloq.motivo or 'Bloqueio' }}</span>
+        </div>
+        {% endfor %}
+        {% for ev in eventos %}
         <a class="ag-event {{ ev.ag.status|status_class }}"
            href="{% if current_user.is_profissional %}{{ url_for('agenda.atendimento', agendamento_id=ev.ag.id) }}{% else %}{{ url_for('agenda.editar', agendamento_id=ev.ag.id) }}{% endif %}"
            title="{{ ev.ini_br|hora_br }}–{{ ev.fim_br|hora_br }} · {{ ev.ag.paciente.nome_completo }} · {{ ev.ag.profissional.nome }} · {{ ev.ag.status|status_label }}"
            data-top="{{ ev.top }}" data-height="{{ ev.height }}"
            data-left="{{ ev.left }}" data-width="{{ ev.width }}"
            data-accent="{{ ev.accent }}">
-          {# Exibe apenas o nome do paciente (req. do sócio); horário e
-             profissional ficam no tooltip (title) do evento. #}
+          <span class="ag-ev-time">{{ ev.ini_br|hora_br }}</span>
           <span class="ag-ev-pac">{{ ev.ag.paciente.nome_completo }}</span>
+          <span class="ag-ev-prof">{{ ev.ag.profissional.nome }}{% if ev.ag.sala %} · {{ ev.ag.sala }}{% endif %}</span>
         </a>
         {% endfor %}
       </div>
-      {% endfor %}
     </div>
   </div>
 </div>
@@ -77,5 +80,6 @@
   <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>
   <span class="leg-item"><span class="leg-dot tag-edit"></span>Faltou</span>
   <span class="leg-item"><span class="leg-dot tag-danger"></span>Cancelado</span>
+  <span class="leg-item"><span class="leg-dot leg-dot-bloqueio"></span>Bloqueio</span>
 </div>
 {% endblock %}

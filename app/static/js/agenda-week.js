@@ -13,7 +13,7 @@
     if (h > 0) el.style.height = h + "px";
   });
 
-  var eventos = document.querySelectorAll(".ag-event");
+  var eventos = document.querySelectorAll(".ag-event, .ag-block");
   Array.prototype.forEach.call(eventos, function (el) {
     var top = parseFloat(el.dataset.top);
     var height = parseFloat(el.dataset.height);

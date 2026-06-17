@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Bloqueios de agenda — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Bloqueios de agenda</h2>
+  <a href="{{ url_for('agenda.listar') }}" class="btn btn-outline">← Voltar à agenda</a>
+</div>
+<p class="muted mb-4">Bloqueie períodos em que o profissional não atende (férias, congresso, reunião, ausência). Horários bloqueados não aparecem para agendamento nem para o auto-agendamento do paciente.</p>
+
+<form method="POST" action="{{ url_for('agenda.bloqueios') }}" class="card mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="flex-form">
+    {% if profissionais|length > 1 %}
+    <div class="form-group form-group-grow">
+      <label for="profissional_id">Profissional</label>
+      <select id="profissional_id" name="profissional_id" required>
+        {% for p in profissionais %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+      </select>
+    </div>
+    {% elif profissionais %}
+      <input type="hidden" name="profissional_id" value="{{ profissionais[0].id }}">
+    {% endif %}
+    <div class="form-group form-group-grow">
+      <label for="motivo">Motivo</label>
+      <select id="motivo" name="motivo">
+        {% for m in motivos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="flex-form">
+    <div class="form-group">
+      <label for="data_inicio">Data início *</label>
+      <input type="date" id="data_inicio" name="data_inicio" value="{{ hoje }}" required>
+    </div>
+    <div class="form-group">
+      <label for="data_fim">Data fim</label>
+      <input type="date" id="data_fim" name="data_fim" value="{{ hoje }}">
+    </div>
+    <div class="form-group">
+      <label for="hora_inicio">Hora início</label>
+      <input type="time" id="hora_inicio" name="hora_inicio">
+    </div>
+    <div class="form-group">
+      <label for="hora_fim">Hora fim</label>
+      <input type="time" id="hora_fim" name="hora_fim">
+    </div>
+  </div>
+  <p class="muted text-sm">Deixe as horas vazias para bloquear o(s) dia(s) inteiro(s) — ex.: férias de uma data a outra. Preencha as horas para bloquear só uma faixa (ex.: reunião 14:00–16:00) na data de início.</p>
+  <button type="submit" class="btn btn-primary">Bloquear</button>
+</form>
+
+<h3 class="mb-2">Bloqueios vigentes</h3>
+{% if bloqueios %}
+<div class="table-wrapper"><table class="table">
+  <thead><tr><th>Profissional</th><th>Início</th><th>Fim</th><th>Motivo</th><th></th></tr></thead>
+  <tbody>
+    {% for b in bloqueios %}
+    <tr>
+      <td>{{ b.profissional.nome if b.profissional else '—' }}</td>
+      <td>{{ b.inicio|datetime_br }}</td>
+      <td>{{ b.fim|datetime_br }}</td>
+      <td>{{ b.motivo or '—' }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('agenda.remover_bloqueio', bloqueio_id=b.id) }}" class="inline-form no-loading">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-link" data-confirm="Remover este bloqueio?">Remover</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="empty-state"><p>Nenhum bloqueio vigente.</p></div>
+{% endif %}
+{% endblock %}
