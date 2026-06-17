@@ -131,6 +131,30 @@ def _msg_bloqueio(bloq):
             "Escolha outro horário.")
 
 
+def _conflito_sala(sala, inicio, fim, excluir_id=None):
+    """Outra consulta na MESMA sala sobrepondo [inicio, fim) (RF-03). Ignora
+    canceladas. Sala vazia -> sem checagem (consultório não atribuído)."""
+    if not sala:
+        return None
+    q = select(Agendamento).where(
+        Agendamento.sala == sala,
+        Agendamento.status != Agendamento.STATUS_CANCELADO,
+        Agendamento.inicio < fim,
+        Agendamento.fim > inicio,
+    )
+    if excluir_id:
+        q = q.where(Agendamento.id != excluir_id)
+    return db.session.execute(q).scalars().first()
+
+
+def _msg_conflito_sala(conflito):
+    ini_br = _aware(conflito.inicio).astimezone(_BR_TZ).strftime("%H:%M")
+    fim_br = _aware(conflito.fim).astimezone(_BR_TZ).strftime("%H:%M")
+    sala = conflito.sala or "essa sala"
+    return (f"Sala ocupada: já há consulta em {sala} das {ini_br} às {fim_br}. "
+            "Escolha outra sala ou horário.")
+
+
 def _meu_prof_id():
     """ID do profissional do usuário logado para escopar a agenda à PRÓPRIA.
     Retorna -1 (id inexistente) para um profissional SEM cadastro vinculado
@@ -500,6 +524,16 @@ def novo():
                                    profissionais=profissionais,
                                    pacientes=pacientes, form=request.form,
                                    dia=dia.isoformat())
+        # Sala: a escolhida ou, se vazia, a sala padrão do profissional.
+        sala_final = (request.form.get("sala", "").strip()
+                      or profissional.sala or None)
+        conflito_sala = _conflito_sala(sala_final, inicio, fim)
+        if conflito_sala:
+            flash(_msg_conflito_sala(conflito_sala), "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
 
         ag = Agendamento(
             paciente_id=paciente.id,
@@ -508,8 +542,7 @@ def novo():
             fim=fim,
             status=Agendamento.STATUS_AGENDADO,
             convenio=request.form.get("convenio", "").strip() or None,
-            # Sala: a digitada ou, se vazia, a sala padrão do profissional.
-            sala=request.form.get("sala", "").strip() or profissional.sala or None,
+            sala=sala_final,
             observacoes=request.form.get("observacoes", "").strip() or None,
             criado_por_id=current_user.id,
         )
@@ -1028,12 +1061,19 @@ def editar(agendamento_id):
             flash(_msg_bloqueio(bloq), "error")
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)
+        sala_final = (request.form.get("sala", "").strip()
+                      or profissional.sala or None)
+        conflito_sala = _conflito_sala(sala_final, inicio, fim, excluir_id=ag.id)
+        if conflito_sala:
+            flash(_msg_conflito_sala(conflito_sala), "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
 
         ag.profissional_id = profissional.id
         ag.inicio = inicio
         ag.fim = fim
         ag.convenio = request.form.get("convenio", "").strip() or None
-        ag.sala = request.form.get("sala", "").strip() or profissional.sala or None
+        ag.sala = sala_final
         ag.observacoes = request.form.get("observacoes", "").strip() or None
         # Reagendou p/ outra data -> precisa reenviar lembrete da NOVA data.
         ag.lembrete_enviado_em = None

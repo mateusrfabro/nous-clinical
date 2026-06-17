@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import convenio_select with context %}
+{% from "_macros.html" import convenio_select, sala_select with context %}
 {% block title %}Agendar consulta — Nous Clinical{% endblock %}
 {% block content %}
 <div class="w-narrow">
@@ -42,7 +42,7 @@
       </div>
       <div class="form-group form-group-grow">
         <label for="sala">Sala / consultório</label>
-        <input type="text" id="sala" name="sala" data-prof-sala value="{{ form.get('sala','') }}" placeholder="Puxa do profissional">
+        {{ sala_select('sala', form.get('sala',''), prof_aware=true) }}
       </div>
     </div>
     <div class="form-group">
