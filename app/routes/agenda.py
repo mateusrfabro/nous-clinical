@@ -131,9 +131,13 @@ def _msg_bloqueio(bloq):
             "Escolha outro horário.")
 
 
-def _conflito_sala(sala, inicio, fim, excluir_id=None):
+def _conflito_sala(sala, inicio, fim, excluir_id=None, clinica_id=None):
     """Outra consulta na MESMA sala sobrepondo [inicio, fim) (RF-03). Ignora
-    canceladas. Sala vazia -> sem checagem (consultório não atribuído)."""
+    canceladas. Sala vazia -> sem checagem (consultório não atribuído).
+
+    clinica_id explícito é OBRIGATÓRIO no contexto público (sem escopo
+    automático): o nome da sala NÃO é único entre clínicas, então sem o filtro
+    haveria conflito cruzado. No contexto logado o tenant loader já escopa."""
     if not sala:
         return None
     q = select(Agendamento).where(
@@ -142,6 +146,8 @@ def _conflito_sala(sala, inicio, fim, excluir_id=None):
         Agendamento.inicio < fim,
         Agendamento.fim > inicio,
     )
+    if clinica_id is not None:
+        q = q.where(Agendamento.clinica_id == clinica_id)
     if excluir_id:
         q = q.where(Agendamento.id != excluir_id)
     return db.session.execute(q).scalars().first()
@@ -945,8 +951,13 @@ def agendar_online():
 
         inicio = _br_para_utc(dia, hora)
         fim = inicio + timedelta(minutes=profissional.duracao_padrao_min or 30)
+        # Sala da consulta online = sala padrão do profissional. Checa conflito
+        # de sala escopado à clínica (contexto público não tem escopo auto).
+        sala_online = profissional.sala or None
         if (not inicio or _conflito_horario(profissional.id, inicio, fim)
-                or _bloqueio_conflito(profissional.id, inicio, fim)):
+                or _bloqueio_conflito(profissional.id, inicio, fim)
+                or _conflito_sala(sala_online, inicio, fim,
+                                  clinica_id=clinica.id)):
             return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
 
         convenio = request.form.get("convenio", "").strip() or None
@@ -960,7 +971,7 @@ def agendar_online():
         ag = Agendamento(
             paciente_id=paciente.id, profissional_id=profissional.id,
             inicio=inicio, fim=fim, status=Agendamento.STATUS_AGENDADO,
-            convenio=convenio,
+            convenio=convenio, sala=sala_online,
             observacoes=request.form.get("observacoes", "").strip()[:500] or None,
             clinica_id=clinica.id)
         db.session.add(ag)

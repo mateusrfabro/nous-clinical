@@ -4,7 +4,9 @@ from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from app import db
-from app.models import Sala, Usuario, Profissional, Paciente, Agendamento
+from app.models import (
+    Sala, Usuario, Profissional, Paciente, Agendamento, Clinica,
+)
 from app.services.passwords import hash_senha
 
 _BR = ZoneInfo("America/Sao_Paulo")
@@ -137,3 +139,37 @@ def test_sala_cancelada_nao_conflita(client_admin):
         "sala": "Sala A",
     }, follow_redirects=True)
     assert Agendamento.query.count() == antes + 1      # cancelada não ocupa
+
+
+def test_conflito_sala_isolado_entre_clinicas(client_admin):
+    """Sala "Sala 1" ocupada na clínica B NÃO bloqueia a mesma sala na clínica
+    A (nome de sala não é único entre clínicas; conflito é escopado)."""
+    profA_id = Profissional.query.first().id
+    pacA_id = Paciente.query.first().id
+    cb = Clinica(nome="Clínica B Sala", slug="b-sala")
+    db.session.add(cb)
+    db.session.flush()
+    ub = Usuario(email="pb@test.com", senha_hash=hash_senha("x12345678"),
+                 nome_responsavel="PB", tipo="profissional", clinica_id=cb.id)
+    db.session.add(ub)
+    db.session.flush()
+    profB = Profissional(usuario_id=ub.id, nome="Dr. B", clinica_id=cb.id)
+    pacB = Paciente(nome_completo="Pac B", telefone="x", clinica_id=cb.id)
+    db.session.add_all([profB, pacB])
+    db.session.flush()
+    dia = _amanha()
+    ini = datetime.combine(dia, time(10, 0), tzinfo=_BR).astimezone(timezone.utc)
+    db.session.add(Agendamento(                    # B ocupa "Sala 1" às 10h
+        paciente_id=pacB.id, profissional_id=profB.id, inicio=ini,
+        fim=ini + timedelta(minutes=30), status=Agendamento.STATUS_AGENDADO,
+        sala="Sala 1", clinica_id=cb.id))
+    db.session.commit()
+
+    resp = client_admin.post("/agenda/novo", data={  # A agenda "Sala 1" mesmo horário
+        "paciente_id": pacA_id, "profissional_id": profA_id,
+        "dia": dia.isoformat(), "hora": "10:00", "duracao_min": "30",
+        "sala": "Sala 1",
+    }, follow_redirects=True)
+    # A sala "Sala 1" da clínica B NÃO pode bloquear a clínica A.
+    assert b"Sala ocupada" not in resp.data
+    assert "Consulta agendada".encode() in resp.data

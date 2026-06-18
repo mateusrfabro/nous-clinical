@@ -130,7 +130,8 @@ def adicionar():
 @recepcao_ou_admin
 def convenio_toggle(convenio_id):
     c = db.session.get(Convenio, convenio_id)
-    if not c:
+    cid = clinica_atual()
+    if not c or (cid is not None and c.clinica_id != cid):
         flash("Convênio não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
     c.ativo = not c.ativo
@@ -146,7 +147,8 @@ def convenio_toggle(convenio_id):
 @recepcao_ou_admin
 def sala_toggle(sala_id):
     s = db.session.get(Sala, sala_id)
-    if not s:
+    cid = clinica_atual()
+    if not s or (cid is not None and s.clinica_id != cid):
         flash("Sala não encontrada.", "error")
         return redirect(url_for("procedimentos.listar"))
     s.ativo = not s.ativo
