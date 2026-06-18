@@ -6,6 +6,7 @@ schema via db.create_all(), seed minimo com 1 usuario de cada papel.
 import os
 import tempfile
 from datetime import datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -77,8 +78,12 @@ def _seed_minimo():
     db.session.add(pac)
     db.session.flush()
 
-    inicio = datetime.combine(datetime.now(timezone.utc).date(), time(12, 0),
-                              tzinfo=timezone.utc)
+    # Ancorado ao "hoje" de Brasília (não ao de UTC): à noite (após 21h BR) a
+    # data UTC já virou, e um seed em UTC cairia "amanhã" no fuso BR, saindo do
+    # período de relatórios/lembretes e quebrando testes por horário do dia.
+    _br = ZoneInfo("America/Sao_Paulo")
+    inicio = datetime.combine(datetime.now(_br).date(), time(12, 0),
+                              tzinfo=_br).astimezone(timezone.utc)
     db.session.add(Agendamento(
         paciente_id=pac.id, profissional_id=prof.id,
         inicio=inicio, fim=inicio + timedelta(minutes=30),
