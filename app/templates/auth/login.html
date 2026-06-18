@@ -4,36 +4,60 @@
 
 {% block content %}
 <section class="auth-split" aria-label="Entrar na sua conta">
-    {% if portal_clinica %}
-    <aside class="auth-brand" aria-label="{{ portal_clinica.nome }}">
-        {% if clinica_logo_url %}<img class="auth-brand-logo" src="{{ clinica_logo_url }}" alt="Logo {{ portal_clinica.nome }}">{% endif %}
-        <span class="auth-brand-eyebrow">Bem-vindo(a)</span>
-        <h1 class="auth-brand-titulo">{{ portal_clinica.nome }}</h1>
-        <p class="auth-brand-sub">Acesse sua conta para ver a agenda, pacientes e atendimentos.</p>
-        <p class="auth-brand-foot">{{ portal_clinica.nome }}</p>
-    </aside>
-    {% else %}
-    <aside class="auth-brand" aria-label="Nous Clinical">
-        <span class="auth-brand-eyebrow">Gestão de clínica sem fricção</span>
-        <h1 class="auth-brand-titulo">Agenda, pacientes e prontuário num só lugar.</h1>
-        <p class="auth-brand-sub">Marque consultas, organize a recepção e registre o atendimento com segurança de dados de saúde.</p>
-        <div class="auth-brand-stats">
-            <div class="auth-brand-stat">
-                <span class="auth-brand-stat-num">1 tela</span>
-                <span class="auth-brand-stat-label">Agenda do dia por profissional, em tempo real.</span>
+    <aside class="auth-brand" aria-label="{{ portal_clinica.nome if portal_clinica else 'Nous Clinical' }}">
+        <canvas id="auth-net" class="auth-net" aria-hidden="true"></canvas>
+
+        <div class="auth-brand-top">
+            {% if portal_clinica and clinica_logo_url %}
+            <img class="auth-brand-logo" src="{{ clinica_logo_url }}" alt="Logo {{ portal_clinica.nome }}">
+            {% else %}
+            <svg class="auth-brand-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="24" cy="24" r="21" stroke="#43B8A5" stroke-width="2.5" opacity=".55"/>
+                <path d="M24 12 L13 30 M24 12 L35 30 M13 30 L35 30" stroke="#43B8A5" stroke-width="1.6" opacity=".7"/>
+                <circle cx="24" cy="12" r="3.6" fill="#43B8A5"/>
+                <circle cx="13" cy="30" r="3.6" fill="#6FB59C"/>
+                <circle cx="35" cy="30" r="3.6" fill="#B7A7F5"/>
+                <circle cx="24" cy="24" r="2.4" fill="#fff"/>
+            </svg>
+            <div class="auth-wordmark">
+                {% if portal_clinica %}{{ portal_clinica.nome }}<span>NA PLATAFORMA NOUS</span>
+                {% else %}Nous <b>Clinical</b><span>INTELIGÊNCIA CLÍNICA</span>{% endif %}
             </div>
-            <div class="auth-brand-stat">
-                <span class="auth-brand-stat-num">LGPD</span>
-                <span class="auth-brand-stat-label">Prontuário visível só para profissional e admin.</span>
-            </div>
+            {% endif %}
         </div>
-        <p class="auth-brand-foot">NOUS CLINICAL · GESTÃO DE CLÍNICA</p>
+
+        <div class="auth-brand-center">
+            {% if portal_clinica %}
+            <span class="auth-brand-eyebrow">Bem-vindo(a)</span>
+            <h1 class="auth-brand-titulo">{{ portal_clinica.nome }}</h1>
+            <p class="auth-brand-sub">Acesse sua conta para ver a agenda, os pacientes e os atendimentos.</p>
+            {% else %}
+            <span class="auth-brand-eyebrow">Acesso à plataforma</span>
+            <h1 class="auth-brand-titulo">Menos gestão.<br><em>Mais medicina.</em></h1>
+            <p class="auth-brand-sub">A inteligência que conecta agenda, pacientes e prontuário — a equipe cuida, o sistema cuida do resto.</p>
+            {% endif %}
+        </div>
+
+        <div>
+            {% if not portal_clinica %}
+            <div class="auth-chips">
+                <div class="auth-chip">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6l7-3z" stroke="#43B8A5" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#43B8A5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="auth-chip-t"><b>LGPD</b>Prontuário restrito ao profissional</span>
+                </div>
+                <div class="auth-chip">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="#B7A7F5" stroke-width="1.7"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#B7A7F5" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    <span class="auth-chip-t"><b>Agenda viva</b>Dia, grade e semana em tempo real</span>
+                </div>
+            </div>
+            {% endif %}
+            <p class="auth-brand-foot">{{ portal_clinica.nome if portal_clinica else 'NOUS CLINICAL · GESTÃO DE CLÍNICA' }}</p>
+        </div>
     </aside>
-    {% endif %}
 
     <div class="auth-form-side">
         <div class="auth-form-wrapper">
-            <span class="auth-form-eyebrow">Acesso à plataforma</span>
+            <span class="auth-form-eyebrow">Bem-vindo(a) de volta</span>
             <h2 class="auth-form-titulo" id="form-titulo-login">Entrar</h2>
             <p class="auth-form-sub">Use o e-mail e a senha do seu cadastro.</p>
 
@@ -47,16 +71,33 @@
                 </div>
                 <div class="form-group {% if erro_login %}is-invalid{% endif %}">
                     <label for="senha">Senha</label>
-                    <input type="password" id="senha" name="senha" required
-                           autocomplete="current-password">
+                    <div class="auth-control">
+                        <input type="password" id="senha" name="senha" required
+                               autocomplete="current-password" placeholder="••••••••">
+                        <button type="button" class="auth-eye" data-toggle-senha="senha"
+                                aria-label="Mostrar senha">
+                            <svg class="eye-on" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+                            <svg class="eye-off" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M9.9 4.6A9.8 9.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.3 4M6.2 6.2A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 3.7-.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
                     {% if erro_login %}
                     <small class="field-error">Verifique seu e-mail e senha.</small>
                     {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                <div class="auth-row">
+                    <a class="auth-forgot" href="{{ url_for('auth.esqueci_senha') }}">Esqueci a senha</a>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Entrar na plataforma</button>
             </form>
-            <p class="form-footer">
-                <a href="{{ url_for('auth.esqueci_senha') }}">Esqueci minha senha</a>
+
+            {% if not portal_clinica %}
+            <div class="auth-divider">ou</div>
+            <p class="auth-alt"><a href="{{ url_for('agenda.agendar_online') }}">Agendar uma consulta</a></p>
+            {% endif %}
+
+            <p class="auth-secure">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+                Acesso seguro e criptografado
             </p>
         </div>
     </div>
