@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!-- MOCKUP de avaliação — tela de login redesenhada do Nous Clinical.
+     Standalone (abre no navegador). A animação da rede de nós evoca o símbolo
+     da marca. Para integrar no app, o <script> da rede vira arquivo externo
+     (CSP-safe) e os campos voltam ao form Flask. -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — Nous Clinical</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#43B8A5; --teal-deep:#2F9486; --teal-bright:#5FD3BF;
+    --sage:#6FB59C; --lilas:#B7A7F5;
+    --navy:#1E293B; --navy-2:#16202E; --navy-3:#0E1822;
+    --ink:#1E293B; --bg:#F8FAF8; --bg-2:#EDF2F1; --card:#FFFFFF;
+    --line:#DDE6E4; --muted:#5B6B72; --soft:#8A979C;
+    --on-navy:#E8ECF1; --on-navy-soft:#9DB2B0;
+    --r:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:"Inter",system-ui,sans-serif; color:var(--ink);
+    background:var(--bg); -webkit-font-smoothing:antialiased;
+  }
+  .stage{display:grid; grid-template-columns:1.15fr 1fr; min-height:100vh}
+
+  /* ============ PAINEL IMERSIVO (esquerda) ============ */
+  .brand-side{
+    position:relative; overflow:hidden; isolation:isolate;
+    background:
+      radial-gradient(800px 500px at 18% 12%, rgba(67,184,165,.20), transparent 55%),
+      radial-gradient(700px 520px at 92% 88%, rgba(183,167,245,.16), transparent 55%),
+      linear-gradient(155deg, var(--navy-2) 0%, var(--navy) 55%, var(--navy-3) 100%);
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:48px 56px;
+  }
+  /* rede de nós animada (canvas) */
+  #net{position:absolute; inset:0; width:100%; height:100%; z-index:0; opacity:.9}
+  /* textura de grão sutil por cima do gradiente */
+  .brand-side::after{
+    content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+    opacity:.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .brand-side > *{position:relative; z-index:2}
+
+  .brand-top{display:flex; align-items:center; gap:14px}
+  .mark{width:46px; height:46px; flex:0 0 auto; filter:drop-shadow(0 0 14px rgba(67,184,165,.35))}
+  .wordmark{font-family:"Sora",sans-serif; font-weight:700; color:#fff; font-size:1.18rem; letter-spacing:.01em; line-height:1}
+  .wordmark b{color:var(--teal-bright); font-weight:800}
+  .wordmark span{display:block; font-size:.62rem; letter-spacing:.36em; color:var(--on-navy-soft); font-weight:600; margin-top:5px}
+
+  .brand-center{max-width:30ch}
+  .eyebrow{font-family:"Sora",sans-serif; font-weight:600; font-size:.72rem; letter-spacing:.24em;
+    text-transform:uppercase; color:var(--teal-bright)}
+  .brand-center h1{
+    font-family:"Sora",sans-serif; font-weight:800; color:#fff;
+    font-size:clamp(2rem,3.4vw,3.05rem); line-height:1.08; letter-spacing:-.025em; margin:18px 0 0;
+  }
+  .brand-center h1 em{font-style:normal; color:var(--teal-bright)}
+  .brand-center p{color:var(--on-navy-soft); font-size:1.05rem; line-height:1.6; margin:20px 0 0; max-width:42ch}
+
+  .brand-chips{display:flex; gap:12px; flex-wrap:wrap}
+  .chip{
+    display:flex; align-items:center; gap:9px; padding:11px 16px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10);
+    backdrop-filter:blur(6px);
+  }
+  .chip svg{flex:0 0 auto}
+  .chip-t{font-size:.82rem; color:var(--on-navy); line-height:1.25}
+  .chip-t b{display:block; font-family:"Sora",sans-serif; font-weight:700; color:#fff; font-size:.86rem}
+  .brand-foot{font-size:.7rem; letter-spacing:.2em; color:var(--on-navy-soft); font-weight:600}
+
+  /* ============ FORMULÁRIO (direita) ============ */
+  .form-side{display:flex; align-items:center; justify-content:center; padding:40px 32px}
+  .form-wrap{width:100%; max-width:380px; animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .form-eyebrow{font-family:"Sora",sans-serif; font-weight:600; font-size:.72rem; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--teal-deep)}
+  .form-wrap h2{font-family:"Sora",sans-serif; font-weight:700; font-size:2rem; letter-spacing:-.02em;
+    color:var(--navy); margin:10px 0 6px}
+  .form-sub{color:var(--muted); font-size:.95rem; margin:0 0 28px}
+
+  .field{margin-bottom:18px; animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .field:nth-child(2){animation-delay:.06s}
+  .field:nth-child(3){animation-delay:.12s}
+  .field label{display:block; font-family:"Sora",sans-serif; font-weight:600; font-size:.78rem;
+    color:var(--navy); margin-bottom:7px; letter-spacing:.01em}
+  .control{position:relative}
+  .control input{
+    width:100%; padding:14px 15px; font-size:.95rem; font-family:inherit; color:var(--ink);
+    background:var(--bg); border:1.5px solid var(--line); border-radius:12px; outline:none;
+    transition:border-color .18s, box-shadow .18s, background .18s;
+  }
+  .control input::placeholder{color:var(--soft)}
+  .control input:focus{
+    border-color:var(--teal); background:#fff;
+    box-shadow:0 0 0 4px rgba(67,184,165,.14);
+  }
+  .control .eye{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:none; border:0; cursor:pointer; padding:8px; color:var(--soft);
+    display:grid; place-items:center; border-radius:8px;
+  }
+  .control .eye:hover{color:var(--teal-deep); background:var(--bg-2)}
+
+  .row{display:flex; align-items:center; justify-content:space-between; margin:6px 0 24px}
+  .keep{display:flex; align-items:center; gap:9px; font-size:.86rem; color:var(--muted); cursor:pointer}
+  .keep input{width:17px; height:17px; accent-color:var(--teal); cursor:pointer}
+  .forgot{font-size:.86rem; color:var(--teal-deep); font-weight:600; text-decoration:none}
+  .forgot:hover{text-decoration:underline}
+
+  .btn{
+    width:100%; padding:15px 18px; font-family:"Sora",sans-serif; font-weight:700; font-size:1rem;
+    color:#06302a; background:linear-gradient(180deg, var(--teal-bright), var(--teal));
+    border:0; border-radius:12px; cursor:pointer; letter-spacing:.01em;
+    box-shadow:0 10px 22px -8px rgba(67,184,165,.55); transition:transform .12s, box-shadow .18s, filter .18s;
+  }
+  .btn:hover{transform:translateY(-1px); box-shadow:0 14px 28px -8px rgba(67,184,165,.65); filter:brightness(1.03)}
+  .btn:active{transform:translateY(0)}
+
+  .divider{display:flex; align-items:center; gap:14px; margin:26px 0; color:var(--soft); font-size:.78rem}
+  .divider::before,.divider::after{content:""; height:1px; flex:1; background:var(--line)}
+  .alt{text-align:center; font-size:.9rem; color:var(--muted)}
+  .alt a{color:var(--teal-deep); font-weight:600; text-decoration:none}
+  .alt a:hover{text-decoration:underline}
+  .secure{margin-top:30px; display:flex; align-items:center; justify-content:center; gap:7px;
+    font-size:.74rem; color:var(--soft)}
+
+  @keyframes rise{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+  /* ============ responsivo ============ */
+  @media (max-width:880px){
+    .stage{grid-template-columns:1fr}
+    .brand-side{display:none}            /* no mobile, foco no login */
+    .form-side{padding:32px 22px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #net{display:none}
+    .form-wrap,.field{animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ===== PAINEL IMERSIVO ===== -->
+  <section class="brand-side">
+    <canvas id="net" aria-hidden="true"></canvas>
+
+    <div class="brand-top">
+      <svg class="mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="24" cy="24" r="21" stroke="#43B8A5" stroke-width="2.5" opacity=".55"/>
+        <path d="M24 12 L13 30 M24 12 L35 30 M13 30 L35 30" stroke="#43B8A5" stroke-width="1.6" opacity=".7"/>
+        <circle cx="24" cy="12" r="3.6" fill="#43B8A5"/>
+        <circle cx="13" cy="30" r="3.6" fill="#6FB59C"/>
+        <circle cx="35" cy="30" r="3.6" fill="#B7A7F5"/>
+        <circle cx="24" cy="24" r="2.4" fill="#fff"/>
+      </svg>
+      <div class="wordmark">Nous <b>Clinical</b><span>INTELIGÊNCIA CLÍNICA</span></div>
+    </div>
+
+    <div class="brand-center">
+      <span class="eyebrow">Acesso à plataforma</span>
+      <h1>Menos gestão.<br><em>Mais medicina.</em></h1>
+      <p>A inteligência que conecta agenda, pacientes e prontuário — para a equipe cuidar, e o sistema cuidar do resto.</p>
+    </div>
+
+    <div>
+      <div class="brand-chips">
+        <div class="chip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6l7-3z" stroke="#5FD3BF" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#5FD3BF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="chip-t"><b>LGPD</b>Prontuário restrito ao profissional</span>
+        </div>
+        <div class="chip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="#B7A7F5" stroke-width="1.7"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#B7A7F5" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span class="chip-t"><b>Agenda viva</b>Dia, grade e semana em tempo real</span>
+        </div>
+      </div>
+      <p class="brand-foot" style="margin-top:26px">NOUS CLINICAL · GESTÃO DE CLÍNICA</p>
+    </div>
+  </section>
+
+  <!-- ===== FORMULÁRIO ===== -->
+  <section class="form-side">
+    <div class="form-wrap">
+      <span class="form-eyebrow">Bem-vindo(a) de volta</span>
+      <h2>Entrar</h2>
+      <p class="form-sub">Use o e-mail e a senha do seu cadastro.</p>
+
+      <form onsubmit="return false">
+        <div class="field">
+          <label for="email">E-mail</label>
+          <div class="control">
+            <input type="email" id="email" placeholder="voce@clinica.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="field">
+          <label for="senha">Senha</label>
+          <div class="control">
+            <input type="password" id="senha" placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="eye" id="toggle" aria-label="Mostrar senha">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="keep"><input type="checkbox"> Manter conectado</label>
+          <a class="forgot" href="#">Esqueci a senha</a>
+        </div>
+
+        <button type="submit" class="btn">Entrar na plataforma</button>
+      </form>
+
+      <div class="divider">ou</div>
+      <p class="alt">Não tem acesso? <a href="#">Fale com a sua clínica</a></p>
+
+      <p class="secure">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Acesso seguro e criptografado
+      </p>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== Rede de nós viva (símbolo do Nous animado) =====
+(function () {
+  "use strict";
+  var canvas = document.getElementById("net");
+  if (!canvas) return;
+  var ctx = canvas.getContext("2d");
+  var nodes = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var ACCENTS = ["#43B8A5", "#6FB59C", "#B7A7F5"];
+
+  function resize() {
+    var r = canvas.getBoundingClientRect();
+    W = r.width; H = r.height;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var alvo = Math.round((W * H) / 16000);          // densidade por área
+    alvo = Math.max(26, Math.min(70, alvo));
+    nodes = [];
+    for (var i = 0; i < alvo; i++) {
+      nodes.push({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.22, vy: (Math.random() - 0.5) * 0.22,
+        r: Math.random() * 1.8 + 1.1,
+        cor: Math.random() < 0.22 ? ACCENTS[(Math.random() * 3) | 0] : null,
+        ph: Math.random() * 6.28
+      });
+    }
+  }
+
+  var t = 0;
+  function frame() {
+    t += 0.016;
+    ctx.clearRect(0, 0, W, H);
+    // linhas entre nós próximos
+    for (var i = 0; i < nodes.length; i++) {
+      var a = nodes[i];
+      a.x += a.vx; a.y += a.vy;
+      if (a.x < 0 || a.x > W) a.vx *= -1;
+      if (a.y < 0 || a.y > H) a.vy *= -1;
+      for (var j = i + 1; j < nodes.length; j++) {
+        var b = nodes[j], dx = a.x - b.x, dy = a.y - b.y;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 132) {
+          ctx.strokeStyle = "rgba(95,211,191," + (0.16 * (1 - d / 132)) + ")";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+      }
+    }
+    // nós (com leve pulso nos coloridos)
+    for (var k = 0; k < nodes.length; k++) {
+      var n = nodes[k];
+      var pulse = n.cor ? (1 + 0.35 * Math.sin(t * 1.6 + n.ph)) : 1;
+      if (n.cor) {
+        ctx.shadowColor = n.cor; ctx.shadowBlur = 12;
+        ctx.fillStyle = n.cor;
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(160,200,194,0.55)";
+      }
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * pulse, 0, 6.2832); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+  if (!window.matchMedia || !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    requestAnimationFrame(frame);
+  }
+
+  // mostrar/ocultar senha (só pro mockup)
+  var tg = document.getElementById("toggle"), pw = document.getElementById("senha");
+  if (tg && pw) tg.addEventListener("click", function () {
+    pw.type = pw.type === "password" ? "text" : "password";
+  });
+})();
+</script>
+</body>
+</html>
