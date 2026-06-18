@@ -726,6 +726,14 @@ button[aria-disabled="true"] {
 
 .auth-brand-top { display: flex; align-items: center; gap: 14px; }
 .auth-brand-mark { width: 46px; height: 46px; flex: 0 0 auto; }
+/* Símbolo: fill/stroke via CSS (não atributo) p/ acompanhar o tema da clínica.
+   Sage fica fixo (3ª cor do símbolo); primária e accent vêm dos tokens. */
+.auth-brand-mark .m-ring,
+.auth-brand-mark .m-line { stroke: var(--brand-verde-claro); }
+.auth-brand-mark .m-p { fill: var(--brand-verde-claro); }
+.auth-brand-mark .m-s { fill: #6FB59C; }
+.auth-brand-mark .m-a { fill: var(--brand-ouro); }
+.auth-brand-mark .m-c { fill: #fff; }
 .auth-wordmark {
     font-family: var(--font-heading);
     font-weight: 700; color: #fff; font-size: 1.15rem; line-height: 1;
