@@ -351,8 +351,24 @@ def create_app(config_name="default"):
         else:
             _favicon_url = _url_for("static", filename="favicon.svg")
 
+        # Suporte de ajuda (custo zero): mostra o widget p/ equipe logada e já
+        # leva as perguntas sugeridas (do FAQ). Superadmin/anônimo ficam de fora.
+        _suporte_ativo = (getattr(_cu, "is_authenticated", False)
+                          and getattr(_cu, "tipo", None)
+                          in {"recepcao", "admin", "profissional"})
+        _suporte_sugestoes = []
+        if _suporte_ativo:
+            try:
+                from app.services.ajuda import sugestoes as _sug
+                _suporte_sugestoes = _sug(_cu.tipo)
+            except Exception:
+                _suporte_sugestoes = []
+
         return {
             "whatsapp_url": url,
+            # Suporte de ajuda local (custo zero): flag de exibição + sugestões.
+            "suporte_ativo": _suporte_ativo,
+            "suporte_sugestoes": _suporte_sugestoes,
             # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
             "pode": lambda permissao: tem_permissao(_cu, permissao),
             # Link público de confirmação (WhatsApp) — token assinado.

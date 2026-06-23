@@ -11,9 +11,17 @@ def test_base_de_ajuda_filtra_por_papel(app):
         assert "Prontuário" in _base_para_papel("profissional")
 
 
-def test_widget_oculto_quando_desligado(client_admin):
-    # AJUDA_IA_ATIVA é False por padrão -> widget não aparece.
+def test_widget_suporte_aparece_mesmo_sem_ia(client_admin):
+    # O Suporte Nous é local/gratuito -> aparece p/ equipe logada mesmo com a IA off
+    # (AJUDA_IA_ATIVA é False por padrão).
     r = client_admin.get("/agenda/")
+    assert r.status_code == 200
+    assert b"ajuda-wrap" in r.data
+
+
+def test_widget_suporte_oculto_para_anonimo(client):
+    # Deslogado (tela de login) NÃO mostra o widget de suporte.
+    r = client.get("/login")
     assert r.status_code == 200
     assert b"ajuda-wrap" not in r.data
 
