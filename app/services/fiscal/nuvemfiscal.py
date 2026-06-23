@@ -88,3 +88,41 @@ class NuvemFiscalGateway(GatewayNFSe):
         """Valida as credenciais autenticando (não emite nada). True ou GatewayError."""
         self._token()
         return True
+
+    def _erro_msg(self, r):
+        try:
+            d = r.json()
+            return d.get("message") or d.get("error") or str(d)[:200]
+        except Exception:   # noqa: BLE001 — corpo não-JSON
+            return f"HTTP {r.status_code}"
+
+    def cadastrar_emitente(self, config):
+        """Cadastra a empresa emitente (POST /empresas). NÃO exige certificado.
+        Retorna o identificador no gateway (o CNPJ). Idempotente: se já existe
+        (HTTP 409), considera ok."""
+        if not (config.cnpj and config.razao_social
+                and config.inscricao_municipal and config.codigo_municipio_ibge):
+            raise GatewayError(
+                "Preencha CNPJ, razão social, inscrição municipal e código IBGE "
+                "do município antes de cadastrar o emitente.")
+        payload = {
+            "cpf_cnpj": config.cnpj,
+            "nome_razao_social": config.razao_social,
+            "email": config.email or "",
+            "inscricao_municipal": config.inscricao_municipal,
+            "endereco": {
+                "logradouro": config.logradouro or "",
+                "numero": config.numero or "",
+                "complemento": config.complemento or "",
+                "bairro": config.bairro or "",
+                "codigo_municipio": config.codigo_municipio_ibge,
+                "cidade": config.cidade or "",
+                "uf": (config.uf or "").upper(),
+                "cep": config.cep or "",
+            },
+        }
+        r = self._req("POST", "/empresas", json=payload)
+        if r.status_code in (200, 201, 409):     # 409 = já cadastrada -> ok
+            return config.cnpj
+        raise GatewayError(
+            f"Não foi possível cadastrar o emitente: {self._erro_msg(r)}")

@@ -56,3 +56,24 @@ def test_fiscal_salva_config_do_emitente(app, client_admin, monkeypatch):
         # Ainda NÃO está pronta pra emitir: falta cadastrar o emitente no gateway
         # (gateway_empresa_id), que é o próximo passo.
         assert cfg.configurada is False
+
+
+def test_fiscal_cadastrar_emitente_acao(app, client_admin, monkeypatch):
+    _liga_nf(monkeypatch, app)
+    client_admin.post("/configuracoes/fiscal", data={
+        "cnpj": "12.345.678/0001-99", "razao_social": "Clínica X",
+        "inscricao_municipal": "123", "codigo_municipio_ibge": "4106902",
+        "logradouro": "Rua A", "numero": "1", "bairro": "Centro",
+        "cidade": "Curitiba", "uf": "PR", "cep": "80000-000",
+        "codigo_servico": "4.01", "ativo": "on",
+    })
+    # Mocka o cadastro no gateway (sem rede).
+    from app.services.fiscal.nuvemfiscal import NuvemFiscalGateway
+    monkeypatch.setattr(NuvemFiscalGateway, "cadastrar_emitente",
+                        lambda self, cfg: cfg.cnpj)
+    r = client_admin.post("/configuracoes/fiscal",
+                          data={"acao": "cadastrar_emitente"})
+    assert r.status_code == 302
+    with app.app_context():
+        cfg = db.session.execute(select(ConfigFiscalClinica)).scalars().first()
+        assert cfg.gateway_empresa_id == "12345678000199"

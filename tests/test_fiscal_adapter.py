@@ -78,6 +78,62 @@ def test_token_credencial_invalida_levanta(app, monkeypatch):
             get_gateway().ping()
 
 
+def _cfg_emitente(**over):
+    from types import SimpleNamespace
+    base = dict(cnpj="12345678000199", razao_social="Clínica X LTDA",
+                email="a@b.com", inscricao_municipal="123",
+                codigo_municipio_ibge="4106902", logradouro="Rua A", numero="1",
+                complemento="", bairro="Centro", cidade="Curitiba", uf="pr",
+                cep="80000000")
+    base.update(over)
+    return SimpleNamespace(**base)
+
+
+def test_cadastrar_emitente_exige_campos_minimos(app, monkeypatch):
+    with app.app_context():
+        _conf(monkeypatch, app)
+        cfg = _cfg_emitente(cnpj=None)
+        with pytest.raises(GatewayError):
+            get_gateway().cadastrar_emitente(cfg)
+
+
+def test_cadastrar_emitente_sucesso(app, monkeypatch):
+    import requests
+    monkeypatch.setattr(requests, "post", lambda url, **kw: _Resp(
+        200, {"access_token": "t", "expires_in": 3600}))
+    monkeypatch.setattr(requests, "request", lambda m, url, **kw: _Resp(
+        201, {"cpf_cnpj": "12345678000199"}))
+    with app.app_context():
+        _conf(monkeypatch, app, cid="emit-ok")
+        NuvemFiscalGateway._token_cache.pop("emit-ok", None)
+        assert get_gateway().cadastrar_emitente(_cfg_emitente()) == "12345678000199"
+
+
+def test_cadastrar_emitente_409_e_idempotente(app, monkeypatch):
+    import requests
+    monkeypatch.setattr(requests, "post", lambda url, **kw: _Resp(
+        200, {"access_token": "t", "expires_in": 3600}))
+    monkeypatch.setattr(requests, "request",
+                        lambda m, url, **kw: _Resp(409, {"message": "já existe"}))
+    with app.app_context():
+        _conf(monkeypatch, app, cid="emit-409")
+        NuvemFiscalGateway._token_cache.pop("emit-409", None)
+        assert get_gateway().cadastrar_emitente(_cfg_emitente()) == "12345678000199"
+
+
+def test_cadastrar_emitente_erro_levanta(app, monkeypatch):
+    import requests
+    monkeypatch.setattr(requests, "post", lambda url, **kw: _Resp(
+        200, {"access_token": "t", "expires_in": 3600}))
+    monkeypatch.setattr(requests, "request", lambda m, url, **kw: _Resp(
+        400, {"message": "CNPJ inválido"}))
+    with app.app_context():
+        _conf(monkeypatch, app, cid="emit-err")
+        NuvemFiscalGateway._token_cache.pop("emit-err", None)
+        with pytest.raises(GatewayError):
+            get_gateway().cadastrar_emitente(_cfg_emitente())
+
+
 def test_config_fiscal_configurada_property():
     """`configurada` exige emitente no gateway + dados fiscais mínimos."""
     from app.models import ConfigFiscalClinica

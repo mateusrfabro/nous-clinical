@@ -122,14 +122,38 @@ def fiscal():
                 flash(f"Falha na conexão: {exc}", "error")
             return redirect(url_for("configuracoes.fiscal"))
 
+        # "Cadastrar emitente" registra a empresa no gateway (não exige certificado).
+        if request.form.get("acao") == "cadastrar_emitente":
+            if cfg is None:
+                flash("Salve a configuração antes de cadastrar o emitente.", "error")
+                return redirect(url_for("configuracoes.fiscal"))
+            try:
+                cfg.gateway_empresa_id = \
+                    get_gateway(cfg.gateway).cadastrar_emitente(cfg)
+                db.session.commit()
+                audit(AuditLog.ACAO_FISCAL_CONFIG, recurso_tipo="config_fiscal",
+                      recurso_id=cfg.id, detalhes="emitente_cadastrado")
+                flash("Emitente cadastrado no emissor fiscal.", "success")
+            except GatewayError as exc:
+                flash(f"Falha ao cadastrar o emitente: {exc}", "error")
+            return redirect(url_for("configuracoes.fiscal"))
+
         if cfg is None:
             cfg = ConfigFiscalClinica(clinica_id=clinica.id)
             db.session.add(cfg)
 
         cfg.cnpj = re.sub(r"\D", "", request.form.get("cnpj", ""))[:14] or None
         cfg.razao_social = request.form.get("razao_social", "").strip()[:160] or None
+        cfg.email = request.form.get("email", "").strip()[:160] or None
         cfg.inscricao_municipal = \
             request.form.get("inscricao_municipal", "").strip()[:30] or None
+        cfg.logradouro = request.form.get("logradouro", "").strip()[:160] or None
+        cfg.numero = request.form.get("numero", "").strip()[:20] or None
+        cfg.complemento = request.form.get("complemento", "").strip()[:80] or None
+        cfg.bairro = request.form.get("bairro", "").strip()[:80] or None
+        cfg.cidade = request.form.get("cidade", "").strip()[:80] or None
+        cfg.uf = request.form.get("uf", "").strip().upper()[:2] or None
+        cfg.cep = re.sub(r"\D", "", request.form.get("cep", ""))[:8] or None
         cfg.codigo_municipio_ibge = \
             re.sub(r"\D", "", request.form.get("codigo_municipio_ibge", ""))[:7] or None
         regime = request.form.get("regime_tributario", "").strip().lower()

@@ -39,11 +39,53 @@
     </div>
 
     <div class="form-group">
+      <label for="email">E-mail da clínica</label>
+      <input type="email" id="email" name="email" maxlength="160"
+             value="{{ cfg.email if cfg and cfg.email else '' }}">
+    </div>
+
+    <div class="form-group">
       <label for="inscricao_municipal">Inscrição municipal</label>
       <input type="text" id="inscricao_municipal" name="inscricao_municipal" maxlength="30"
              value="{{ cfg.inscricao_municipal if cfg and cfg.inscricao_municipal else '' }}">
     </div>
 
+    <h3 class="section-title-mt">Endereço do prestador</h3>
+    <div class="form-group">
+      <label for="logradouro">Logradouro</label>
+      <input type="text" id="logradouro" name="logradouro" maxlength="160"
+             value="{{ cfg.logradouro if cfg and cfg.logradouro else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="numero">Número</label>
+      <input type="text" id="numero" name="numero" maxlength="20"
+             value="{{ cfg.numero if cfg and cfg.numero else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="complemento">Complemento (opcional)</label>
+      <input type="text" id="complemento" name="complemento" maxlength="80"
+             value="{{ cfg.complemento if cfg and cfg.complemento else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="bairro">Bairro</label>
+      <input type="text" id="bairro" name="bairro" maxlength="80"
+             value="{{ cfg.bairro if cfg and cfg.bairro else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="cidade">Cidade</label>
+      <input type="text" id="cidade" name="cidade" maxlength="80"
+             value="{{ cfg.cidade if cfg and cfg.cidade else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="uf">UF</label>
+      <input type="text" id="uf" name="uf" maxlength="2" placeholder="ex.: PR"
+             value="{{ cfg.uf if cfg and cfg.uf else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="cep">CEP</label>
+      <input type="text" id="cep" name="cep" inputmode="numeric" maxlength="9"
+             placeholder="00000-000" value="{{ cfg.cep if cfg and cfg.cep else '' }}">
+    </div>
     <div class="form-group">
       <label for="codigo_municipio_ibge">Código IBGE do município</label>
       <input type="text" id="codigo_municipio_ibge" name="codigo_municipio_ibge"
@@ -90,16 +132,21 @@
 
     <div class="toolbar">
       <button type="submit" class="btn btn-primary">Salvar configuração</button>
+      {% if cfg %}
+      <button type="submit" name="acao" value="cadastrar_emitente" class="btn btn-outline">Cadastrar emitente</button>
+      {% endif %}
       <button type="submit" name="acao" value="testar" class="btn btn-outline">Testar conexão</button>
       <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline">Voltar</a>
     </div>
   </form>
 
   <p class="muted text-sm mt-2">
-    {% if cfg and cfg.configurada %}✓ Pronta para emitir.
+    {% if cfg and cfg.gateway_empresa_id %}
+    ✓ Emitente <strong>cadastrado</strong> no emissor (CNPJ {{ cfg.cnpj }}).
+    Próximo passo: certificado A1 e emissão da nota.
     {% elif cfg and cfg.cnpj and cfg.inscricao_municipal and cfg.codigo_servico %}
-    Dados preenchidos. <strong>Próximo passo:</strong> enviar o certificado A1 e
-    cadastrar o emitente no emissor.
+    Dados preenchidos. Clique em <strong>Cadastrar emitente</strong> para registrar a
+    clínica no emissor fiscal.
     {% else %}
     Faltam dados mínimos (CNPJ, inscrição municipal e código de serviço).
     {% endif %}

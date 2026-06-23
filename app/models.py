@@ -737,7 +737,16 @@ class ConfigFiscalClinica(db.Model):
     # Dados do prestador (a clínica) — usados pra cadastrar o emitente e na nota.
     cnpj = db.Column(db.String(14))
     razao_social = db.Column(db.String(160))
+    email = db.Column(db.String(160))
     inscricao_municipal = db.Column(db.String(30))
+    # Endereço do prestador (exigido pelo gateway ao cadastrar o emitente).
+    logradouro = db.Column(db.String(160))
+    numero = db.Column(db.String(20))
+    complemento = db.Column(db.String(80))
+    bairro = db.Column(db.String(80))
+    cidade = db.Column(db.String(80))
+    uf = db.Column(db.String(2))
+    cep = db.Column(db.String(8))
     codigo_municipio_ibge = db.Column(db.String(7))   # IBGE (7 dígitos)
     regime_tributario = db.Column(db.String(12))      # simples|presumido|real
     aliquota_iss = db.Column(Numeric(5, 2))           # % de ISS
