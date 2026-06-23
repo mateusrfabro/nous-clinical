@@ -171,6 +171,7 @@ def create_app(config_name="default"):
     from app.routes.auditoria import auditoria_bp
     from app.routes.configuracoes import configuracoes_bp
     from app.routes.portal import portal_bp
+    from app.routes.ajuda import ajuda_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -259,6 +260,7 @@ def create_app(config_name="default"):
     app.register_blueprint(auditoria_bp)
     app.register_blueprint(configuracoes_bp)
     app.register_blueprint(portal_bp)
+    app.register_blueprint(ajuda_bp)
 
     from app.commands import register_commands
     register_commands(app)
@@ -357,6 +359,9 @@ def create_app(config_name="default"):
             "convenios_ativos": _convenios_ativos,
             # Salas cadastradas (select controlado no agendamento, RF-03).
             "salas_ativas": _salas_ativas,
+            # Chatbot de ajuda ativo? (mostra/oculta o widget). Só se ligado + com chave.
+            "ajuda_ia_ativa": bool(app.config.get("AJUDA_IA_ATIVA")
+                                   and app.config.get("ANTHROPIC_API_KEY")),
             # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
             "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.

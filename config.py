@@ -44,6 +44,13 @@ class Config:
     # fora de um request (cron). Vazio = links sao omitidos.
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
 
+    # Chatbot de ajuda ("Nous Assistente") via Claude API. A chave fica SO no
+    # servidor (nunca vai ao front). AJUDA_IA_ATIVA liga/desliga a feature sem
+    # deploy; se a chave faltar, a feature fica inativa mesmo com a flag on.
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+    MODEL_AJUDA = os.getenv("MODEL_AJUDA", "claude-haiku-4-5")
+    AJUDA_IA_ATIVA = os.getenv("AJUDA_IA_ATIVA", "false").lower() in ("1", "true", "sim")
+
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)

@@ -59,6 +59,7 @@ ACAO_LABEL = {
     "crm_interacao": "Interação de CRM registrada",
     "bloqueio_criado": "Bloqueio de agenda criado",
     "bloqueio_removido": "Bloqueio de agenda removido",
+    "ajuda_consulta": "Consulta ao assistente de ajuda",
 }
 
 

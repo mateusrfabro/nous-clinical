@@ -603,6 +603,7 @@ class AuditLog(db.Model):
     ACAO_CRM_INTERACAO = "crm_interacao"  # contato registrado (ex: aniversário)
     ACAO_BLOQUEIO_CRIADO = "bloqueio_criado"      # bloqueio de agenda (RF-05/07)
     ACAO_BLOQUEIO_REMOVIDO = "bloqueio_removido"  # desbloqueio de agenda
+    ACAO_AJUDA_CONSULTA = "ajuda_consulta"        # pergunta ao chatbot de ajuda
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

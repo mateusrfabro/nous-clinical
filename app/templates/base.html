@@ -160,6 +160,28 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+    {% if ajuda_ia_ativa %}
+    {# Nous Assistente — chatbot de ajuda (CSP-safe; lógica em ajuda-widget.js) #}
+    <div class="ajuda-wrap">
+        <button type="button" class="ajuda-fab" id="ajuda-toggle" aria-label="Abrir ajuda" aria-expanded="false">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+        </button>
+        <section class="ajuda-panel" id="ajuda-panel" hidden aria-label="Assistente de ajuda" data-csrf="{{ csrf_token() }}">
+            <header class="ajuda-head">
+                <span>Nous Assistente</span>
+                <button type="button" class="ajuda-close" id="ajuda-close" aria-label="Fechar ajuda">&times;</button>
+            </header>
+            <div class="ajuda-msgs" id="ajuda-msgs" aria-live="polite">
+                <div class="ajuda-msg ajuda-bot">Olá! Posso ajudar com dúvidas de <strong>uso do sistema</strong>. Pergunte algo como “como agendo uma consulta?”.</div>
+            </div>
+            <form class="ajuda-form" id="ajuda-form">
+                <input type="text" id="ajuda-input" placeholder="Sua dúvida sobre o sistema…" autocomplete="off" maxlength="500" aria-label="Sua pergunta">
+                <button type="submit" class="btn btn-primary btn-sm" id="ajuda-send">Enviar</button>
+            </form>
+            <p class="ajuda-aviso">Só ajuda de uso. Não digite dados de pacientes aqui.</p>
+        </section>
+    </div>
+    {% endif %}
 {% else %}
 {# ===================== PÚBLICO (deslogado) ===================== #}
 <body class="public tema-{{ tema_clinica }}">
@@ -202,5 +224,6 @@
     <script src="{{ url_for('static', filename='js/tema-cor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/copiar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth-net.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ajuda-widget.js') }}"></script>
 </body>
 </html>
