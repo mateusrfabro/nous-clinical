@@ -76,3 +76,16 @@ def test_token_credencial_invalida_levanta(app, monkeypatch):
         NuvemFiscalGateway._token_cache.pop("cid-ruim", None)
         with pytest.raises(GatewayError):
             get_gateway().ping()
+
+
+def test_config_fiscal_configurada_property():
+    """`configurada` exige emitente no gateway + dados fiscais mínimos."""
+    from app.models import ConfigFiscalClinica
+    c = ConfigFiscalClinica()
+    assert c.configurada is False
+    c.gateway_empresa_id = "12345678000199"
+    c.cnpj = "12345678000199"
+    c.inscricao_municipal = "987654"
+    assert c.configurada is False          # ainda falta o código de serviço
+    c.codigo_servico = "4.01"
+    assert c.configurada is True

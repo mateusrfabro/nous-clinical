@@ -709,3 +709,52 @@ class WhatsAppMensagem(db.Model):
 
     def __repr__(self):
         return f"<WhatsAppMensagem {self.id} {self.direcao}>"
+
+
+class ConfigFiscalClinica(db.Model):
+    """Config de emissão de NFS-e de UMA clínica (multi-tenant: 1 por clínica).
+
+    Módulo INERTE por padrão: `NF_ATIVO` (global) + `ativo` (por clínica). As
+    credenciais do gateway são da PLATAFORMA (variáveis de ambiente, não por clínica);
+    aqui ficam os dados do EMITENTE (a clínica) e o vínculo com o emitente cadastrado
+    no gateway (`gateway_empresa_id`). O **certificado A1 vai pro gateway** — não é
+    guardado aqui. Ver docs/11-emissao-nf.md.
+    """
+    __tablename__ = "config_fiscal_clinica"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", name="uq_config_fiscal_clinica"),
+    )
+
+    REGIMES = ("simples", "presumido", "real")
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    ativo = db.Column(db.Boolean, nullable=False, default=False)
+    gateway = db.Column(db.String(20), nullable=False, default="nuvemfiscal")
+    gateway_empresa_id = db.Column(db.String(40))     # emitente no gateway (CNPJ)
+    # Dados do prestador (a clínica) — usados pra cadastrar o emitente e na nota.
+    cnpj = db.Column(db.String(14))
+    razao_social = db.Column(db.String(160))
+    inscricao_municipal = db.Column(db.String(30))
+    codigo_municipio_ibge = db.Column(db.String(7))   # IBGE (7 dígitos)
+    regime_tributario = db.Column(db.String(12))      # simples|presumido|real
+    aliquota_iss = db.Column(Numeric(5, 2))           # % de ISS
+    codigo_servico = db.Column(db.String(20))         # LC116 (4.01/4.03) ou municipal
+    cnae = db.Column(db.String(10))
+    iss_retido_padrao = db.Column(db.Boolean, nullable=False, default=False)
+    certificado_validade = db.Column(db.Date)         # status do A1 (vive no gateway)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    atualizado_em = db.Column(db.DateTime(timezone=True), default=_agora,
+                              onupdate=_agora)
+
+    clinica = db.relationship("Clinica")
+
+    @property
+    def configurada(self):
+        """Pronta pra emitir: emitente no gateway + dados fiscais mínimos."""
+        return bool(self.gateway_empresa_id and self.cnpj
+                    and self.inscricao_municipal and self.codigo_servico)
+
+    def __repr__(self):
+        return f"<ConfigFiscalClinica {self.id} clinica={self.clinica_id}>"
