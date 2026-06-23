@@ -109,6 +109,17 @@ há tráfego/custo quando `WHATSAPP_ATIVO` (global) está on **E** a conta está
 > Todos os três carregam `clinica_id` (multi-tenant). A listagem da inbox **filtra
 > explicitamente por `clinica_id`** (defesa em profundidade, além do escopo automático).
 
+### `ConfigFiscalClinica` — emissão de NFS-e por clínica
+1:1 com `Clinica` (`UniqueConstraint(clinica_id)`). Guarda os dados do **emitente** (a
+clínica): `cnpj`, `razao_social`, `email`, `inscricao_municipal`, endereço completo
+(`logradouro`/`numero`/`bairro`/`cidade`/`uf`/`cep`/`codigo_municipio_ibge`),
+`regime_tributario`, `aliquota_iss` (**`Numeric`**), `codigo_servico` (LC116), `cnae`,
+`iss_retido_padrao`, e o `gateway_empresa_id` (emitente cadastrado no gateway). Módulo
+**INERTE** por padrão (`NF_ATIVO` global + `ativo` por clínica). As **credenciais do
+gateway são da plataforma** (variáveis de ambiente, não por clínica); o **certificado A1
+vai pro gateway**, não é guardado aqui. Emissão via `app/services/fiscal/` (adaptador
+agnóstico de provedor; Nuvem Fiscal). Detalhe em [doc 11](11-emissao-nf.md).
+
 ### `AuditLog` — trilha de auditoria
 `usuario_id`, `acao` (constantes `ACAO_*`), `recurso_tipo`/`recurso_id`,
 `detalhes` (**nunca PII**), `ip`, `user_agent`, `criado_em`. **Não tem

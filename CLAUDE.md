@@ -56,6 +56,12 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
   convênio são **`<select>` da lista cadastrada** (macro `convenio_select` em `_macros.html`;
   sem digitação livre — req. do sócio), populado por `convenios_ativos()`.
 - **AuditLog** — trilha de auditoria (constantes `ACAO_*`). Tela admin em `/auditoria`.
+- **WhatsAppConta/Contato/Mensagem** — WhatsApp Business por clínica (token cifrado em
+  repouso via `services/cripto.py`). Gated por `WHATSAPP_ATIVO`.
+- **ConfigFiscalClinica** — config de emissão de NFS-e por clínica (1:1): emitente (CNPJ,
+  razão social, endereço, IM, regime, ISS, código LC116, `gateway_empresa_id`). Gated por
+  `NF_ATIVO`. Credenciais do gateway são globais (env); certificado A1 vai pro gateway.
+  Ver `docs/11-emissao-nf.md`.
 
 ## Fluxo principal
 ```
@@ -93,9 +99,13 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
   anti timing-attack, anti open-redirect, anti session-fixation, token de reset 1-uso.
 - Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
   `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health),
-  `ajuda` (chatbot "Nous Assistente": Claude Haiku via SDK oficial, base em
-  `docs/ajuda/*.md` filtrada por papel, **default-OFF** via `AJUDA_IA_ATIVA` +
-  `ANTHROPIC_API_KEY`; rota `/ajuda/chat`, widget gated em `base.html`).
+  `ajuda` ("Suporte Nous": busca local na base `docs/ajuda/*.md` filtrada por papel —
+  **custo zero, sempre ON** p/ equipe logada; rota `/ajuda/buscar`, widget em `base.html`.
+  Modo IA opcional (Claude Haiku) **default-OFF** via `AJUDA_IA_ATIVA`+`ANTHROPIC_API_KEY`,
+  rota `/ajuda/chat`),
+  `fiscal` (emissão de NFS-e via **adaptador agnóstico de gateway** — Nuvem Fiscal;
+  OAuth2; **default-OFF** via `NF_ATIVO`; cadastro do emitente por clínica; ver
+  docs/11-emissao-nf.md).
 - Error handlers 400/403/404/429/500 com template próprio.
 - Design system CSS **tema claro** (tokens `--brand-*`/semânticos, utilitários, componentes) —
   **identidade oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C`
