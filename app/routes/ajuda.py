@@ -17,10 +17,17 @@ from app.services.audit import audit
 ajuda_bp = Blueprint("ajuda", __name__, url_prefix="/ajuda")
 
 
+def _chave_rate_limit():
+    """Limita por USUÁRIO (não por IP) — numa clínica a equipe sai pelo mesmo IP
+    público; o vetor de custo de API é o usuário logado. Cai pro IP se anônimo."""
+    return f"u:{current_user.id}" if getattr(current_user, "id", None) \
+        else (request.remote_addr or "anon")
+
+
 @ajuda_bp.route("/chat", methods=["POST"])
 @login_required
 @equipe_required
-@limiter.limit("20 per hour;4 per minute")
+@limiter.limit("20 per hour;4 per minute", key_func=_chave_rate_limit)
 def chat():
     if not ia_disponivel():
         return jsonify({"ok": False,

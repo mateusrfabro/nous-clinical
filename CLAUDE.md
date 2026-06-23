@@ -92,7 +92,10 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
 - Auth: login/logout/esqueci-senha/redefinir-senha, Argon2id + rehash-on-login,
   anti timing-attack, anti open-redirect, anti session-fixation, token de reset 1-uso.
 - Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
-  `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health).
+  `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health),
+  `ajuda` (chatbot "Nous Assistente": Claude Haiku via SDK oficial, base em
+  `docs/ajuda/*.md` filtrada por papel, **default-OFF** via `AJUDA_IA_ATIVA` +
+  `ANTHROPIC_API_KEY`; rota `/ajuda/chat`, widget gated em `base.html`).
 - Error handlers 400/403/404/429/500 com template próprio.
 - Design system CSS **tema claro** (tokens `--brand-*`/semânticos, utilitários, componentes) —
   **identidade oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C`

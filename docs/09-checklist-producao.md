@@ -6,7 +6,7 @@
 
 ## ✅ O que já está pronto (código)
 - Todo o sistema consolidado em **`master`** e na branch de deploy (mesmo commit).
-- Suíte **verde** (271 testes), ruff limpo, auditado por múltiplos agentes.
+- Suíte **verde** (286 testes), ruff limpo, auditado por múltiplos agentes.
 - `ProductionConfig` já endurecido: `DEBUG=False`, cookies `Secure`/`HttpOnly`/
   `SameSite`, pool de conexão, CSP estrita, CSRF, rate-limit, Argon2id.
 - Storage S3/R2 implementado (só falta ligar as chaves).
@@ -49,6 +49,22 @@ Sem isso, logo e exames somem no redeploy (disco efêmero no Free).
 - Hoje o Render faz deploy de **`feat/nous-rebrand-financeiro`** (= `master`).
 - Para usar `master` como produção: trocar a branch no painel do Render (ou em
   `render.yaml`) e re-sincronizar. Sem pressa — as duas apontam para o mesmo código.
+
+### 5b. Chatbot de ajuda "Nous Assistente" 🤖 (opcional — depende de chave Anthropic)
+A feature é **default-OFF**: o código está em produção, mas inerte até ligar.
+1. Anthropic Console → API Keys → criar chave (billing pré-pago, ~US$1/1M tokens no Haiku).
+2. Render → Environment:
+   - `ANTHROPIC_API_KEY` = `sk-ant-...` ⚠️ **direto no Render** (não compartilhar em chat).
+   - `AJUDA_IA_ATIVA` = `true`
+   - `MODEL_AJUDA` = `claude-haiku-4-5` (default; barato).
+3. **Rate-limit em multi-worker:** o limiter do chat é por usuário, mas o storage
+   default é `memory://` (por processo). Com mais de 1 worker gunicorn, setar
+   `RATELIMIT_STORAGE_URI=redis://...` (o Redis já está no `docker-compose`) pra o
+   teto valer global. Sem isso, o limite é N× o configurado (N = nº de workers).
+4. Conferir: logado, aparece o balão de ajuda; pergunta "como agendo?" responde;
+   pergunta médica/de prontuário (p/ recepção) é recusada (guardrail).
+
+> Sem a chave **ou** com `AJUDA_IA_ATIVA=false`, o widget nem aparece — zero custo.
 
 ### 6. Primeiro acesso real 👤
 - Criar o **superadmin real**: `flask criar-superadmin --email ... --senha ...`

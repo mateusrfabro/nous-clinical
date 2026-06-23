@@ -79,6 +79,10 @@ class TestingConfig(Config):
     SECRET_KEY = "test-secret-never-use-in-prod"
     CACHE_TYPE = "NullCache"
     RATELIMIT_STORAGE_URI = "memory://"
+    # Suite hermetica: ignora um .env de dev que tenha o chatbot ligado. Cada
+    # teste que precisa da IA liga AJUDA_IA_ATIVA/ANTHROPIC_API_KEY explicitamente.
+    AJUDA_IA_ATIVA = False
+    ANTHROPIC_API_KEY = ""
 
 
 class ProductionConfig(Config):
