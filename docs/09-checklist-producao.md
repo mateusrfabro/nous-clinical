@@ -66,6 +66,24 @@ A feature é **default-OFF**: o código está em produção, mas inerte até lig
 
 > Sem a chave **ou** com `AJUDA_IA_ATIVA=false`, o widget nem aparece — zero custo.
 
+### 5c. WhatsApp Business (Cloud API) 💬 (opcional — inerte por padrão)
+Módulo multi-tenant: cada clínica conecta o número dela e vê as conversas no Nous.
+O custo das mensagens é da **clínica** (billing da Meta), não nosso. Default-OFF.
+1. Render → Environment (plataforma):
+   - `WHATSAPP_ATIVO` = `true` (liga o módulo/menu).
+   - `WHATSAPP_VERIFY_TOKEN` = uma string aleatória (handshake do webhook). **Obrigatório.**
+   - `WHATSAPP_APP_SECRET` = App Secret do nosso app Meta. ⚠️ **Obrigatório em produção** —
+     sem ele o webhook recusa tudo (fail-closed); com ele, valida a assinatura da Meta.
+   - `WHATSAPP_ENC_KEY` = uma chave Fernet (recomendado; senão deriva do `SECRET_KEY`).
+   - Todos os segredos vão **direto no Render** (não compartilhar em chat).
+2. No app da Meta: configurar o webhook → URL `https://nousclinical.com/whatsapp/webhook`
+   + o mesmo `WHATSAPP_VERIFY_TOKEN`; assinar o campo `messages`.
+3. Cada clínica: Admin → WhatsApp → **Configurar conexão** (cola `phone_number_id` + token).
+4. Modelo de onboarding e custos detalhados em [docs/10-whatsapp-integracao.md](10-whatsapp-integracao.md).
+
+> **Retenção (LGPD):** conversas de WhatsApp guardam telefone (PII) e texto. Definir
+> política de expurgo antes de operar com volume (hoje sem TTL automático).
+
 ### 6. Primeiro acesso real 👤
 - Criar o **superadmin real**: `flask criar-superadmin --email ... --senha ...`
   (ou via shell do Render). Trocar a senha demo.

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}WhatsApp — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>WhatsApp</h2>
+  {% if current_user.is_admin %}
+  <a class="btn btn-secondary" href="{{ url_for('whatsapp.config') }}">Configurar conexão</a>
+  {% endif %}
+</div>
+
+{% if not conta or not conta.configurada or not conta.ativo %}
+<div class="card mb-4">
+  <p class="muted">
+    O WhatsApp da clínica ainda não está conectado.
+    {% if current_user.is_admin %}
+      Vá em <a href="{{ url_for('whatsapp.config') }}">Configurar conexão</a> para ligar o número.
+    {% else %}
+      Peça ao administrador da clínica para conectar em Configurar conexão.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+
+{% if contatos %}
+<div class="wa-list">
+  {% for c in contatos %}
+  <a class="wa-list-item{{ ' wa-unread' if c.nao_lidas }}" href="{{ url_for('whatsapp.conversa', contato_id=c.id) }}">
+    <div class="wa-list-main">
+      <span class="wa-list-nome">
+        {% if c.paciente %}{{ c.paciente.nome_completo }}{% else %}{{ c.nome or c.wa_id }}{% endif %}
+      </span>
+      <span class="wa-list-num">{{ c.wa_id }}</span>
+    </div>
+    <div class="wa-list-meta">
+      <span class="muted text-sm">{{ c.ultima_em|datetime_br }}</span>
+      {% if c.nao_lidas %}<span class="wa-badge">{{ c.nao_lidas }}</span>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">Nenhuma conversa ainda. Quando um paciente enviar mensagem para o número conectado, ela aparece aqui.</p>
+{% endif %}
+{% endblock %}

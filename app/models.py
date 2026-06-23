@@ -604,6 +604,8 @@ class AuditLog(db.Model):
     ACAO_BLOQUEIO_CRIADO = "bloqueio_criado"      # bloqueio de agenda (RF-05/07)
     ACAO_BLOQUEIO_REMOVIDO = "bloqueio_removido"  # desbloqueio de agenda
     ACAO_AJUDA_CONSULTA = "ajuda_consulta"        # pergunta ao chatbot de ajuda
+    ACAO_WHATSAPP_CONFIG = "whatsapp_config"      # conexão/edição da conta WhatsApp
+    ACAO_WHATSAPP_ENVIADA = "whatsapp_enviada"    # mensagem enviada pela equipe
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
@@ -617,3 +619,93 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f"<AuditLog {self.id} {self.acao}>"
+
+
+class WhatsAppConta(db.Model):
+    """Conta WhatsApp Business (Cloud API) de UMA clínica. Multi-tenant: 1 por
+    clínica (UniqueConstraint). O `phone_number_id` (id do número na Meta) roteia
+    o webhook único de volta pra clínica dona. O token de acesso é SEGREDO —
+    guardado CIFRADO (Fernet, ver services/cripto.py) em `token_cifrado` e nunca
+    exibido ou logado. Feature INERTE por padrão: só há tráfego/custo quando
+    `WHATSAPP_ATIVO` (global) está on E esta conta tem `ativo=True` + token.
+    """
+    __tablename__ = "whatsapp_contas"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", name="uq_whatsapp_conta_clinica"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    # IDs da Meta (Graph API). phone_number_id é único global (roteia o webhook).
+    phone_number_id = db.Column(db.String(40), unique=True, index=True)
+    waba_id = db.Column(db.String(40))            # WhatsApp Business Account id
+    display_phone = db.Column(db.String(20))      # número humano (exibição)
+    nome_exibicao = db.Column(db.String(120))
+    token_cifrado = db.Column(db.Text)            # access token cifrado em repouso
+    ativo = db.Column(db.Boolean, nullable=False, default=False)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    atualizado_em = db.Column(db.DateTime(timezone=True), default=_agora,
+                              onupdate=_agora)
+
+    @property
+    def configurada(self):
+        """Pronta pra operar: tem número e token (não revela o token)."""
+        return bool(self.phone_number_id and self.token_cifrado)
+
+    def __repr__(self):
+        return f"<WhatsAppConta {self.id} clinica={self.clinica_id}>"
+
+
+class WhatsAppContato(db.Model):
+    """A outra ponta de uma conversa de WhatsApp = uma 'thread' da inbox.
+    `wa_id` é o número internacional só dígitos (ex.: 5543999998888). Ligado
+    opcionalmente a um Paciente (casado pelo telefone) pra dar contexto clínico."""
+    __tablename__ = "whatsapp_contatos"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "wa_id", name="uq_whatsapp_contato"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    wa_id = db.Column(db.String(20), nullable=False, index=True)
+    nome = db.Column(db.String(120))              # push name informado pela Meta
+    paciente_id = db.Column(db.Integer, db.ForeignKey("pacientes.id"), index=True)
+    nao_lidas = db.Column(db.Integer, nullable=False, default=0)
+    ultima_em = db.Column(db.DateTime(timezone=True), default=_agora, index=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    paciente = db.relationship("Paciente", lazy="joined")
+    mensagens = db.relationship(
+        "WhatsAppMensagem", back_populates="contato",
+        order_by="WhatsAppMensagem.criado_em", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<WhatsAppContato {self.id} {self.wa_id}>"
+
+
+class WhatsAppMensagem(db.Model):
+    """Uma mensagem da thread. `direcao` in=recebida / out=enviada pela equipe.
+    `wa_message_id` é o id da Meta (dedupe de webhook e correlação de status)."""
+    __tablename__ = "whatsapp_mensagens"
+
+    DIRECAO_IN = "in"
+    DIRECAO_OUT = "out"
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    contato_id = db.Column(db.Integer, db.ForeignKey("whatsapp_contatos.id"),
+                           index=True, nullable=False)
+    direcao = db.Column(db.String(3), nullable=False)
+    wa_message_id = db.Column(db.String(80), index=True)
+    texto = db.Column(db.Text)
+    status = db.Column(db.String(12))             # out: enviada|entregue|lida|falhou
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora, index=True)
+
+    contato = db.relationship("WhatsAppContato", back_populates="mensagens")
+
+    def __repr__(self):
+        return f"<WhatsAppMensagem {self.id} {self.direcao}>"

@@ -172,6 +172,7 @@ def create_app(config_name="default"):
     from app.routes.configuracoes import configuracoes_bp
     from app.routes.portal import portal_bp
     from app.routes.ajuda import ajuda_bp
+    from app.routes.whatsapp import whatsapp_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -261,6 +262,7 @@ def create_app(config_name="default"):
     app.register_blueprint(configuracoes_bp)
     app.register_blueprint(portal_bp)
     app.register_blueprint(ajuda_bp)
+    app.register_blueprint(whatsapp_bp)
 
     from app.commands import register_commands
     register_commands(app)
@@ -362,6 +364,8 @@ def create_app(config_name="default"):
             # Chatbot de ajuda ativo? (mostra/oculta o widget). Só se ligado + com chave.
             "ajuda_ia_ativa": bool(app.config.get("AJUDA_IA_ATIVA")
                                    and app.config.get("ANTHROPIC_API_KEY")),
+            # Módulo WhatsApp ligado? (mostra/oculta o item de menu). Default off.
+            "whatsapp_ativo": bool(app.config.get("WHATSAPP_ATIVO")),
             # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
             "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.

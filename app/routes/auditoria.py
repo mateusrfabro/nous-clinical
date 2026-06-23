@@ -60,6 +60,8 @@ ACAO_LABEL = {
     "bloqueio_criado": "Bloqueio de agenda criado",
     "bloqueio_removido": "Bloqueio de agenda removido",
     "ajuda_consulta": "Consulta ao assistente de ajuda",
+    "whatsapp_config": "WhatsApp configurado",
+    "whatsapp_enviada": "Mensagem WhatsApp enviada",
 }
 
 

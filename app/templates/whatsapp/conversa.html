@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}WhatsApp — conversa — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>
+    {% if contato.paciente %}
+      <a href="{{ url_for('pacientes.detalhe', paciente_id=contato.paciente.id) }}">{{ contato.paciente.nome_completo }}</a>
+    {% else %}{{ contato.nome or contato.wa_id }}{% endif %}
+  </h2>
+  <a class="btn btn-secondary" href="{{ url_for('whatsapp.inbox') }}">← Conversas</a>
+</div>
+<p class="muted mb-3">{{ contato.wa_id }}{% if not contato.paciente %} — não vinculado a um paciente{% endif %}</p>
+
+<div class="wa-thread">
+  {% for m in mensagens %}
+  <div class="wa-msg wa-msg-{{ m.direcao }}">
+    <div class="wa-bubble">{{ m.texto }}</div>
+    <div class="wa-msg-meta">
+      {{ m.criado_em|datetime_br }}{% if m.direcao == 'out' and m.status %} · {{ m.status }}{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">Sem mensagens nesta conversa.</p>
+  {% endfor %}
+</div>
+
+{% if conta and conta.configurada and conta.ativo %}
+<form method="POST" action="{{ url_for('whatsapp.enviar', contato_id=contato.id) }}" class="wa-reply">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="text" name="texto" class="form-input" maxlength="4000" placeholder="Escreva uma mensagem…" autocomplete="off" required>
+  <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+<p class="muted text-sm mt-2">A Meta só permite mensagem livre dentro de 24h da última mensagem do paciente. Fora disso, é preciso um template aprovado.</p>
+{% else %}
+<p class="muted">Conexão do WhatsApp inativa — não é possível responder por aqui.</p>
+{% endif %}
+{% endblock %}

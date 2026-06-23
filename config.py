@@ -51,6 +51,19 @@ class Config:
     MODEL_AJUDA = os.getenv("MODEL_AJUDA", "claude-haiku-4-5")
     AJUDA_IA_ATIVA = os.getenv("AJUDA_IA_ATIVA", "false").lower() in ("1", "true", "sim")
 
+    # WhatsApp Business (Cloud API), multi-tenant. Feature INERTE por padrao:
+    # WHATSAPP_ATIVO (global) liga o modulo; cada clinica conecta seu numero/token
+    # (cifrado em repouso). So ha custo quando uma clinica conecta e envia — e o
+    # billing da Meta e da clinica, nao nosso. Ver docs/10-whatsapp-integracao.md.
+    WHATSAPP_ATIVO = os.getenv("WHATSAPP_ATIVO", "false").lower() in ("1", "true", "sim")
+    WHATSAPP_API_BASE = os.getenv("WHATSAPP_API_BASE", "https://graph.facebook.com/v21.0")
+    # Handshake do webhook (GET hub.verify_token) e assinatura (POST X-Hub-Signature-256).
+    WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+    WHATSAPP_APP_SECRET = os.getenv("WHATSAPP_APP_SECRET", "")
+    # Chave Fernet pra cifrar o token de acesso em repouso. Vazio = deriva do
+    # SECRET_KEY (rotacionar o SECRET_KEY invalida os tokens — recolar na clinica).
+    WHATSAPP_ENC_KEY = os.getenv("WHATSAPP_ENC_KEY", "")
+
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
@@ -79,10 +92,14 @@ class TestingConfig(Config):
     SECRET_KEY = "test-secret-never-use-in-prod"
     CACHE_TYPE = "NullCache"
     RATELIMIT_STORAGE_URI = "memory://"
-    # Suite hermetica: ignora um .env de dev que tenha o chatbot ligado. Cada
-    # teste que precisa da IA liga AJUDA_IA_ATIVA/ANTHROPIC_API_KEY explicitamente.
+    # Suite hermetica: ignora um .env de dev que tenha features ligadas. Cada
+    # teste que precisa liga a flag/segredo explicitamente.
     AJUDA_IA_ATIVA = False
     ANTHROPIC_API_KEY = ""
+    WHATSAPP_ATIVO = False
+    WHATSAPP_VERIFY_TOKEN = "test-verify-token"
+    WHATSAPP_APP_SECRET = ""          # vazio => sem checagem de assinatura no teste
+    WHATSAPP_ENC_KEY = ""             # deriva do SECRET_KEY de teste
 
 
 class ProductionConfig(Config):
