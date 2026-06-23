@@ -17,6 +17,9 @@ Clinica (TENANT) 1───* Usuario
    ├── 1───* LancamentoFinanceiro ─┘ (recebimento)  └── financeiro/agendamentos
    ├── 1───* Procedimento ── * PrecoConvenio
    ├── 1───* Convenio        (master data)
+   ├── 1───1 WhatsAppConta   (Cloud API; token cifrado)
+   │         WhatsAppContato *── Paciente (match por telefone)
+   │            └── 1───* WhatsAppMensagem (in/out)
    └── (AuditLog ligado por Usuario)
 ```
 
@@ -82,6 +85,29 @@ opcional a `paciente` e a `agendamento` (1:1 **unique** → recebimento idempote
 ### `Exame` — anexo (LGPD)
 Arquivo no `storage` (fora de `static/`), só `arquivo_key` opaca no DB.
 Download por rota autenticada com checagem de posse (`clinico_required`).
+
+### `WhatsAppConta` / `WhatsAppContato` / `WhatsAppMensagem` — WhatsApp Business (Cloud API)
+Integração multi-tenant com o WhatsApp Business da Meta. **Inerte por padrão**: só
+há tráfego/custo quando `WHATSAPP_ATIVO` (global) está on **E** a conta está
+`ativo=True` com token. Detalhe da integração (webhook, custos, onboarding) em
+[doc 10](10-whatsapp-integracao.md).
+
+- **`WhatsAppConta`** — 1:1 com Clínica (`UniqueConstraint` em `clinica_id`). Guarda
+  os IDs da Meta: `phone_number_id` (**único global** — roteia o webhook de volta pra
+  clínica dona), `waba_id`, `display_phone`, `nome_exibicao`. O access token é
+  **SEGREDO**: guardado **cifrado** (`token_cifrado`, Fernet — `services/cripto.py`)
+  e nunca exibido/logado. `configurada` = tem número + token.
+- **`WhatsAppContato`** — uma "thread" da inbox = a outra ponta da conversa. `wa_id`
+  (número internacional só dígitos), `nome` (push name da Meta), `nao_lidas`,
+  `ultima_em`. Ligado **opcionalmente** a um `Paciente` (casado por telefone) pra dar
+  contexto clínico. `UniqueConstraint(clinica_id, wa_id)`.
+- **`WhatsAppMensagem`** — uma mensagem da thread. `direcao` (`in`=recebida /
+  `out`=enviada pela equipe), `texto`, `wa_message_id` (id da Meta, dedupe de webhook
+  + correlação de status), `status` (out: `enviada|entregue|lida|falhou`),
+  `enviado_por_id`. Cascade delete a partir do contato.
+
+> Todos os três carregam `clinica_id` (multi-tenant). A listagem da inbox **filtra
+> explicitamente por `clinica_id`** (defesa em profundidade, além do escopo automático).
 
 ### `AuditLog` — trilha de auditoria
 `usuario_id`, `acao` (constantes `ACAO_*`), `recurso_tipo`/`recurso_id`,
