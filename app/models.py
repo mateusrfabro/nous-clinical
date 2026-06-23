@@ -606,6 +606,7 @@ class AuditLog(db.Model):
     ACAO_AJUDA_CONSULTA = "ajuda_consulta"        # pergunta ao chatbot de ajuda
     ACAO_WHATSAPP_CONFIG = "whatsapp_config"      # conexão/edição da conta WhatsApp
     ACAO_WHATSAPP_ENVIADA = "whatsapp_enviada"    # mensagem enviada pela equipe
+    ACAO_FISCAL_CONFIG = "fiscal_config"          # config de emissão de NFS-e da clínica
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

@@ -382,6 +382,10 @@ def create_app(config_name="default"):
                                    and app.config.get("ANTHROPIC_API_KEY")),
             # Módulo WhatsApp ligado? (mostra/oculta o item de menu). Default off.
             "whatsapp_ativo": bool(app.config.get("WHATSAPP_ATIVO")),
+            # Módulo de Nota Fiscal ligado E com credenciais do gateway? (menu). Off.
+            "nf_ativo": bool(app.config.get("NF_ATIVO")
+                             and app.config.get("NUVEMFISCAL_CLIENT_ID")
+                             and app.config.get("NUVEMFISCAL_CLIENT_SECRET")),
             # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
             "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.

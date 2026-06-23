@@ -1,6 +1,9 @@
-"""Configurações da clínica (admin): Aparência — white-label (tema + logo)."""
+"""Configurações da clínica (admin): Aparência — white-label (tema + logo);
+Fiscal — emissão de NFS-e (config do emitente, gated por NF_ATIVO)."""
 import io
 import os
+import re
+from decimal import Decimal, InvalidOperation
 
 from flask import (
     Blueprint, render_template, redirect, url_for, flash, request,
@@ -13,8 +16,9 @@ from sqlalchemy import select
 
 from app import db
 from app.auth_decorators import admin_required
-from app.models import Clinica, AuditLog
+from app.models import Clinica, AuditLog, ConfigFiscalClinica
 from app.services.audit import audit
+from app.services.fiscal import nf_disponivel, get_gateway, GatewayError
 from app.services.storage import get_storage
 from app.services.cores import (
     hex_to_rgb, css_para_cor, cor_de_marca, svg_favicon,
@@ -76,6 +80,73 @@ def aparencia():
 
     return render_template("configuracoes/aparencia.html",
                            temas=TEMAS, atual=clinica.tema, clinica=clinica)
+
+
+def _parse_aliquota(valor):
+    """'5,00' / '5.00' / '5' -> Decimal clampado em 0..100; vazio/inválido -> None."""
+    s = (valor or "").strip().replace("%", "").replace(",", ".")
+    if not s:
+        return None
+    try:
+        v = Decimal(s)
+    except InvalidOperation:
+        return None
+    return min(max(v, Decimal(0)), Decimal(100))
+
+
+@configuracoes_bp.route("/fiscal", methods=["GET", "POST"])
+@login_required
+@admin_required
+def fiscal():
+    """Config de emissão de NFS-e da clínica (dados do emitente). Gated por NF_ATIVO:
+    se o módulo está desligado globalmente, a tela nem existe (404)."""
+    if not nf_disponivel():
+        abort(404)
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    cfg = db.session.execute(
+        select(ConfigFiscalClinica).where(
+            ConfigFiscalClinica.clinica_id == clinica.id)
+    ).scalar_one_or_none()
+
+    if request.method == "POST":
+        # "Testar conexão" valida as credenciais do gateway (não salva nada).
+        if request.form.get("acao") == "testar":
+            try:
+                get_gateway().ping()
+                flash("Conexão com o emissor fiscal OK.", "success")
+            except GatewayError as exc:
+                flash(f"Falha na conexão: {exc}", "error")
+            return redirect(url_for("configuracoes.fiscal"))
+
+        if cfg is None:
+            cfg = ConfigFiscalClinica(clinica_id=clinica.id)
+            db.session.add(cfg)
+
+        cfg.cnpj = re.sub(r"\D", "", request.form.get("cnpj", ""))[:14] or None
+        cfg.razao_social = request.form.get("razao_social", "").strip()[:160] or None
+        cfg.inscricao_municipal = \
+            request.form.get("inscricao_municipal", "").strip()[:30] or None
+        cfg.codigo_municipio_ibge = \
+            re.sub(r"\D", "", request.form.get("codigo_municipio_ibge", ""))[:7] or None
+        regime = request.form.get("regime_tributario", "").strip().lower()
+        cfg.regime_tributario = regime if regime in ConfigFiscalClinica.REGIMES else None
+        cfg.aliquota_iss = _parse_aliquota(request.form.get("aliquota_iss"))
+        cfg.codigo_servico = request.form.get("codigo_servico", "").strip()[:20] or None
+        cfg.cnae = re.sub(r"\D", "", request.form.get("cnae", ""))[:10] or None
+        cfg.iss_retido_padrao = request.form.get("iss_retido_padrao") == "on"
+        cfg.ativo = request.form.get("ativo") == "on"
+        db.session.commit()
+        audit(AuditLog.ACAO_FISCAL_CONFIG, recurso_tipo="config_fiscal",
+              recurso_id=cfg.id, detalhes=f"ativo={cfg.ativo}")
+        flash("Configuração fiscal salva.", "success")
+        return redirect(url_for("configuracoes.fiscal"))
+
+    return render_template("configuracoes/fiscal.html", cfg=cfg,
+                           regimes=ConfigFiscalClinica.REGIMES, clinica=clinica)
 
 
 @configuracoes_bp.route("/logo", methods=["POST"])

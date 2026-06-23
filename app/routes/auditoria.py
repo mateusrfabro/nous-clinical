@@ -62,6 +62,7 @@ ACAO_LABEL = {
     "ajuda_consulta": "Consulta ao assistente de ajuda",
     "whatsapp_config": "WhatsApp configurado",
     "whatsapp_enviada": "Mensagem WhatsApp enviada",
+    "fiscal_config": "Configuração fiscal (NF)",
 }
 
 
