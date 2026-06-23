@@ -64,6 +64,16 @@ class Config:
     # SECRET_KEY (rotacionar o SECRET_KEY invalida os tokens — recolar na clinica).
     WHATSAPP_ENC_KEY = os.getenv("WHATSAPP_ENC_KEY", "")
 
+    # Emissao de NFS-e (nota fiscal de servico), multi-tenant via GATEWAY. Feature
+    # INERTE por padrao: NF_ATIVO (global) liga o modulo; cada clinica configura seu
+    # emitente (certificado A1 vai pro gateway). Ver docs/11-emissao-nf.md.
+    NF_ATIVO = os.getenv("NF_ATIVO", "false").lower() in ("1", "true", "sim")
+    # Gateway padrao + credenciais (OAuth2 client_credentials). Sandbox por padrao;
+    # o segredo fica SO no servidor (variavel de ambiente), nunca no codigo/repo.
+    NUVEMFISCAL_CLIENT_ID = os.getenv("NUVEMFISCAL_CLIENT_ID", "")
+    NUVEMFISCAL_CLIENT_SECRET = os.getenv("NUVEMFISCAL_CLIENT_SECRET", "")
+    NUVEMFISCAL_AMBIENTE = os.getenv("NUVEMFISCAL_AMBIENTE", "sandbox")  # sandbox|producao
+
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
