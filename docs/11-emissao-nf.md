@@ -77,6 +77,21 @@ cidade — no futuro pode permitir integração direta sem gateway.
 4. Tela de notas: listar, baixar PDF/XML, cancelar (motivo) -> gateway.cancelar()
 ```
 
+### 2.3.1 Mapa da API Nuvem Fiscal (Fase 2 — confirmado na referência)
+- **Cadastrar emitente:** `POST /empresas` — `cpf_cnpj`, `nome_razao_social`, `email`,
+  `inscricao_municipal`, `endereco{logradouro, numero, bairro, codigo_municipio, cidade,
+  uf, cep}`. **Não exige certificado.**
+- **Certificado A1:** `PUT /empresas/{cpf_cnpj}/certificado` — `{certificado: <base64 do
+  .pfx>, password}`. **Exigido para emitir.**
+- **Configurar NFS-e:** `PUT /empresas/{cpf_cnpj}/nfse` — `regTrib{opSimpNac,...}`,
+  `ambiente` (`homologacao|producao`), série/numeração RPS.
+- **Emitir:** `POST /nfse` — `declaracao_prestacao_servico{ rps, competencia, prestador,
+  tomador, servicos[{ item_lista_servico (LC116), codigo_municipio, codigo_tributacao_
+  municipio, discriminacao (genérica!), aliquota_iss, valores{valor_servicos, valor_iss,
+  valor_liquido,...} }] }`. Consulta/cancelamento por eventos.
+- **Implicação de sequência:** cadastrar empresa → subir certificado A1 → configurar NFS-e
+  → emitir. **A partir do certificado, tudo precisa de um A1 válido** (mesmo no sandbox).
+
 ### 2.4 Gating por tenant (igual WhatsApp)
 - Flag global **`NF_ATIVO`** (default **off**) + `ConfigFiscalClinica.ativo` por clínica.
   Menu/botões só aparecem com ambos ligados. **Inerte e sem custo até configurar.**
