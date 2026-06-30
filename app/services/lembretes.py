@@ -18,6 +18,7 @@ from app import db
 from app.models import Agendamento
 from app.services.email import enviar_email, smtp_configurado
 from app.services.tokens import gerar_token_confirmacao
+from app.services.whatsapp import enviar_lembrete_whatsapp
 
 logger = logging.getLogger(__name__)
 _BR = ZoneInfo("America/Sao_Paulo")
@@ -67,26 +68,39 @@ def enviar_lembretes(data_alvo=None):
         )
     ).scalars().all()
 
-    enviados = sem_canal = falhas = 0
+    enviados = por_whatsapp = sem_canal = falhas = 0
     smtp_ok = smtp_configurado()
     agora = datetime.now(timezone.utc)
 
     for ag in ags:
+        # 1) WhatsApp template (proativo correto) — preferido quando configurado.
+        ok_wa, info_wa = enviar_lembrete_whatsapp(ag)
+        if ok_wa:
+            ag.lembrete_enviado_em = agora
+            por_whatsapp += 1
+            continue
+        # Falha TRANSITÓRIA do WhatsApp (estava configurado, mas a chamada caiu)
+        # justifica retry; "inativo/sem template/sem telefone" não.
+        wa_transitorio = info_wa.startswith("erro") or info_wa == "falha de conexão"
+
+        # 2) E-mail (fallback).
         email = (ag.paciente.email or "").strip() if ag.paciente else ""
-        if not (email and smtp_ok):
+        if email and smtp_ok:
+            if enviar_email(email, "Lembrete de consulta", _corpo(ag)):
+                ag.lembrete_enviado_em = agora
+                enviados += 1
+            else:
+                falhas += 1    # deixa NULL pra tentar de novo
+        elif wa_transitorio:
+            falhas += 1        # WhatsApp configurado mas caiu — tenta depois
+        else:
             # Sem canal disponível: marca pra não reprocessar todo dia.
             ag.lembrete_enviado_em = agora
             sem_canal += 1
-            continue
-        ok = enviar_email(email, "Lembrete de consulta", _corpo(ag))
-        if ok:
-            ag.lembrete_enviado_em = agora
-            enviados += 1
-        else:
-            falhas += 1   # deixa NULL pra tentar de novo no próximo disparo
 
     db.session.commit()
     resumo = {"alvo": alvo.isoformat(), "total": len(ags),
-              "enviados": enviados, "sem_canal": sem_canal, "falhas": falhas}
+              "enviados": enviados, "whatsapp": por_whatsapp,
+              "sem_canal": sem_canal, "falhas": falhas}
     logger.info("LEMBRETES %s", resumo)
     return resumo

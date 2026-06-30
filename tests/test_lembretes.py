@@ -40,6 +40,56 @@ def test_envia_email_e_marca(app, monkeypatch):
     assert len(chamadas) == 1
 
 
+def test_lembrete_via_whatsapp_template(app, monkeypatch):
+    """Com módulo WhatsApp ativo + template + conta da clínica, o lembrete vai
+    por WhatsApp (template) e é logado na inbox; não usa e-mail."""
+    from app.models import WhatsAppConta, WhatsAppMensagem
+    app.config["WHATSAPP_ATIVO"] = True
+    app.config["WHATSAPP_TEMPLATE_LEMBRETE"] = "lembrete_consulta"
+    try:
+        ag, alvo = _consulta_amanha()
+        db.session.add(WhatsAppConta(
+            clinica_id=ag.clinica_id, phone_number_id="123456",
+            token_cifrado="x", ativo=True))
+        db.session.commit()
+        chamadas = []
+        monkeypatch.setattr(
+            "app.services.whatsapp.enviar_template",
+            lambda *a, **k: chamadas.append(a) or (True, "wamid1"))
+        r = enviar_lembretes(alvo)
+        assert r["whatsapp"] == 1 and r["enviados"] == 0
+        assert db.session.get(Agendamento, ag.id).lembrete_enviado_em is not None
+        assert len(chamadas) == 1
+        assert WhatsAppMensagem.query.filter_by(direcao="out").count() == 1
+    finally:
+        app.config["WHATSAPP_ATIVO"] = False
+        app.config["WHATSAPP_TEMPLATE_LEMBRETE"] = ""
+
+
+def test_whatsapp_falha_transitoria_cai_no_email(app, monkeypatch):
+    """WhatsApp configurado mas a chamada falha -> cai pro e-mail (sem perder)."""
+    from app.models import WhatsAppConta
+    app.config["WHATSAPP_ATIVO"] = True
+    app.config["WHATSAPP_TEMPLATE_LEMBRETE"] = "lembrete_consulta"
+    try:
+        ag, alvo = _consulta_amanha()
+        db.session.add(WhatsAppConta(
+            clinica_id=ag.clinica_id, phone_number_id="123456",
+            token_cifrado="x", ativo=True))
+        db.session.commit()
+        monkeypatch.setattr("app.services.whatsapp.enviar_template",
+                            lambda *a, **k: (False, "erro 500"))
+        monkeypatch.setattr("app.services.lembretes.smtp_configurado",
+                            lambda: True)
+        monkeypatch.setattr("app.services.lembretes.enviar_email",
+                            lambda *a, **k: True)
+        r = enviar_lembretes(alvo)
+        assert r["whatsapp"] == 0 and r["enviados"] == 1
+    finally:
+        app.config["WHATSAPP_ATIVO"] = False
+        app.config["WHATSAPP_TEMPLATE_LEMBRETE"] = ""
+
+
 def test_sem_canal_marca_para_nao_reprocessar(app):
     # Sem SMTP e/ou sem e-mail -> conta como sem_canal e marca.
     ag, alvo = _consulta_amanha(email=None)

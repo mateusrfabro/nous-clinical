@@ -63,6 +63,14 @@ class Config:
     # Chave Fernet pra cifrar o token de acesso em repouso. Vazio = deriva do
     # SECRET_KEY (rotacionar o SECRET_KEY invalida os tokens — recolar na clinica).
     WHATSAPP_ENC_KEY = os.getenv("WHATSAPP_ENC_KEY", "")
+    # Template (HSM) aprovado p/ o LEMBRETE de consulta. WhatsApp Cloud API só
+    # permite mensagem proativa (fora da janela de 24h) via template aprovado —
+    # texto livre falha. A clinica registra um template com 3 variaveis de corpo
+    # (nome, data/hora, profissional) e o nome dele vai aqui. Vazio = lembrete
+    # por WhatsApp desligado (cai pro e-mail).
+    WHATSAPP_TEMPLATE_LEMBRETE = os.getenv("WHATSAPP_TEMPLATE_LEMBRETE", "")
+    WHATSAPP_TEMPLATE_LEMBRETE_LANG = os.getenv(
+        "WHATSAPP_TEMPLATE_LEMBRETE_LANG", "pt_BR")
 
     # Emissao de NFS-e (nota fiscal de servico), multi-tenant via GATEWAY. Feature
     # INERTE por padrao: NF_ATIVO (global) liga o modulo; cada clinica configura seu

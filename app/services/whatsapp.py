@@ -14,11 +14,15 @@ import hashlib
 import hmac
 import logging
 import re
+from datetime import timezone
+from zoneinfo import ZoneInfo
 
 from flask import current_app
 from sqlalchemy import select
 
 from app import db
+
+_BR = ZoneInfo("America/Sao_Paulo")
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +100,100 @@ def enviar_texto(conta, para_wa_id, texto):
     except Exception:   # noqa: BLE001 — best-effort
         logger.warning("WA_SEND_EXC", exc_info=True)
         return False, "falha de conexão"
+
+
+def enviar_template(conta, para_wa_id, template, lang, params):
+    """Envia uma mensagem de TEMPLATE (HSM) — único caminho permitido p/ mensagem
+    proativa fora da janela de 24h (lembrete). `params` = variáveis do corpo, na
+    ordem. Retorna (ok, info=wamid|motivo). Best-effort."""
+    from app.services.cripto import decifrar
+
+    if not (conta and conta.ativo and conta.phone_number_id):
+        return False, "conta inativa"
+    if not conta.phone_number_id.isdigit():
+        return False, "phone_number_id inválido"
+    token = decifrar(conta.token_cifrado)
+    if not token:
+        return False, "sem token"
+    para = normaliza_br(para_wa_id)
+    if not (para and template):
+        return False, "destino/template vazio"
+
+    componentes = []
+    if params:
+        componentes = [{"type": "body", "parameters": [
+            {"type": "text", "text": str(p)[:200]} for p in params]}]
+
+    import requests
+    base = current_app.config.get("WHATSAPP_API_BASE",
+                                  "https://graph.facebook.com/v21.0")
+    url = f"{base}/{conta.phone_number_id}/messages"
+    try:
+        r = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/json"},
+            json={"messaging_product": "whatsapp", "to": para,
+                  "type": "template",
+                  "template": {"name": template, "language": {"code": lang},
+                               "components": componentes}},
+            timeout=15, allow_redirects=False,
+        )
+        if r.status_code >= 400:
+            logger.warning("WA_TEMPLATE_FAIL status=%s", r.status_code)
+            return False, f"erro {r.status_code}"
+        data = r.json()
+        wamid = (data.get("messages") or [{}])[0].get("id")
+        return True, (wamid or "")
+    except Exception:   # noqa: BLE001 — best-effort
+        logger.warning("WA_TEMPLATE_EXC", exc_info=True)
+        return False, "falha de conexão"
+
+
+def _registrar_saida(conta, wa_id, texto, wamid, paciente_id=None,
+                     enviado_por_id=None):
+    """Grava uma mensagem OUT na inbox (NÃO commita — quem chama commita)."""
+    from app.models import WhatsAppMensagem, _agora
+    contato = _upsert_contato(conta.clinica_id, wa_id, None)
+    if paciente_id and not contato.paciente_id:
+        contato.paciente_id = paciente_id
+    db.session.add(WhatsAppMensagem(
+        clinica_id=conta.clinica_id, contato_id=contato.id,
+        direcao=WhatsAppMensagem.DIRECAO_OUT, wa_message_id=wamid or None,
+        texto=texto, status="enviada", enviado_por_id=enviado_por_id))
+    contato.ultima_em = _agora()
+
+
+def enviar_lembrete_whatsapp(ag):
+    """Lembrete de UMA consulta via WhatsApp template (proativo, correto). Loga
+    a saída na inbox (sem commit). Retorna (ok, info). Inerte/best-effort: só
+    age com módulo ativo + conta da clínica ativa + template configurado."""
+    if not feature_ativa():
+        return False, "modulo inativo"
+    conta = conta_da_clinica(ag.clinica_id)
+    if not (conta and conta.ativo):
+        return False, "conta inativa"
+    template = current_app.config.get("WHATSAPP_TEMPLATE_LEMBRETE")
+    if not template:
+        return False, "sem template"
+    lang = current_app.config.get("WHATSAPP_TEMPLATE_LEMBRETE_LANG", "pt_BR")
+    pac = ag.paciente
+    wa_id = normaliza_br(pac.telefone if pac else None)
+    if not wa_id:
+        return False, "sem telefone"
+
+    quando = ag.inicio
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    quando_br = quando.astimezone(_BR).strftime("%d/%m às %H:%M")
+    primeiro = (pac.nome_completo or "").split()[0] if pac else ""
+    prof = ag.profissional.nome if ag.profissional else ""
+    ok, info = enviar_template(conta, wa_id, template, lang,
+                               [primeiro, quando_br, prof])
+    if ok:
+        _registrar_saida(conta, wa_id, f"Lembrete de consulta ({quando_br})",
+                         info, paciente_id=pac.id if pac else None)
+    return ok, info
 
 
 # ----------------------------------------------------------------------------
