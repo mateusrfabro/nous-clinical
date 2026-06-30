@@ -13,10 +13,11 @@ Para abrir, clique em **Agenda** no menu lateral.
 
 ---
 
-## As 3 formas de ver a agenda
+## As 4 formas de ver a agenda
 
-No topo da tela há três botões que mudam só o **jeito de visualizar** o mesmo dia/semana:
-**Dia**, **Grade** e **Semana**. O botão da visão atual fica destacado.
+No topo da tela há quatro botões que mudam só o **jeito de visualizar** as mesmas
+consultas: **Dia**, **Grade**, **Semana** e **Quadro**. O botão da visão atual fica
+destacado.
 
 ### Visão Dia (lista)
 
@@ -54,6 +55,35 @@ Faltou, Cancelado) e a marcação de **Bloqueio**.
 
 > 💡 **Dica:** trocar de visão não perde o dia. Se você está vendo 23/06 na lista e clica
 > em **Semana**, abre a semana que contém 23/06.
+
+### Visão Quadro (Kanban, consultas por status)
+
+O **Quadro** mostra as consultas do dia em **colunas por status**: **Agendado**,
+**Confirmado**, **Atendido**, **Faltou** e **Cancelado**. Cada consulta vira um
+**card** com horário, paciente, profissional e sala — e ela aparece na coluna do status
+em que está. É a melhor visão para enxergar de relance "onde está cada paciente" no
+fluxo do dia: quem ainda não confirmou, quem já foi atendido, quem faltou.
+
+> 🖼️ *(Screenshot da visão Quadro a ser adicionado — a tela está no ar no sistema.)*
+
+**Para mudar o status de uma consulta, você tem dois caminhos:**
+
+- **Arrastar o card** de uma coluna para outra. Segure o card pela **alça ⠿** (no canto
+  do card) e solte na coluna do novo status — por exemplo, arraste de **Agendado** para
+  **Confirmado** quando o paciente confirma. É o jeito mais rápido.
+- **Usar os botões** do próprio card (ex.: **Confirmar**, **Check-in**, **Reabrir**).
+
+As **ações secundárias** ficam organizadas num menu **⋯ Mais** dentro do card — clique
+nele para ver opções como **Faltou**, **Cancelar consulta**, **Check-in**, **Editar** e
+**Lembrete (WhatsApp)**. Assim o card fica limpo, com só as ações principais à mostra.
+
+> ⚠️ **Atenção:** o card de uma consulta **Atendida** **não se arrasta** e não muda de
+> coluna. Como em todas as visões, o status **Atendido** só surge quando o profissional
+> registra o prontuário — e, depois disso, a consulta fica "trancada".
+
+> 🔒 **Quem acessa:** só a **Recepção** e o **Administrador** arrastam cards e mudam
+> status no Quadro. O **profissional** (médico) vê o quadro da própria agenda, mas no
+> lugar das ações de status tem o botão **Atender** para abrir o prontuário.
 
 ---
 
@@ -115,7 +145,10 @@ O status conta em que pé está a consulta. Você o controla pela recepção:
 - **Agendado** → **Confirmado** → **Atendido**
 - ou **Cancelado** / **Faltou**
 
-Para mudar, escolha o novo status no seletor da linha e clique em **Salvar**.
+Para mudar, escolha o novo status no seletor da linha e clique em **Salvar**. Algumas
+ações menos usadas do dia a dia (como **Faltou**, **Cancelar**, **Check-in**, **Editar**
+e **Lembrete**) ficam reunidas num menu **⋯ Mais** na própria linha — clique nos três
+pontinhos para abrir e escolher. É o mesmo menu que aparece nos cards da visão **Quadro**.
 
 > ⚠️ **Atenção:** você define manualmente **Agendado**, **Confirmado**, **Cancelado** e
 > **Faltou**. O status **Atendido** **não** é marcado à mão — ele aparece sozinho quando

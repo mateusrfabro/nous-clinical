@@ -130,6 +130,36 @@ entrada** — a lista de todas as conversas da clínica.
 
 ---
 
+## Lembrete de consulta automático por WhatsApp
+
+Além do e-mail, o Nous pode mandar o **lembrete de consulta** (a mensagem que avisa o
+paciente, na véspera, do dia e horário) **automaticamente pelo WhatsApp** — com um link
+para o paciente **confirmar a presença em um clique**. Não é a recepção que digita: o
+sistema dispara sozinho.
+
+> ⚠️ **Tem uma condição importante.** Esse lembrete sai pelo WhatsApp **só quando todas
+> estas coisas estão prontas**:
+> 1. o **módulo WhatsApp** está ligado e a clínica está **conectada** (passos 1 e 2 acima);
+> 2. a clínica tem uma **mensagem-modelo (template) aprovada pela Meta** configurada para
+>    o lembrete.
+
+Por que o template é obrigatório? Porque o lembrete é uma mensagem que a clínica
+**começa** (o paciente não escreveu antes) e geralmente sai **fora da janela de 24 horas**.
+Como você viu no início do capítulo, a Meta **só permite** mensagem proativa fora das 24h
+**por mensagem-modelo aprovada** — e cobra alguns centavos por ela, na conta da clínica.
+
+> 💡 **Sem template, ninguém fica sem lembrete.** Se a clínica ainda não tem a
+> mensagem-modelo aprovada, o lembrete daquele paciente **cai para o e-mail**
+> automaticamente (quando o paciente tem e-mail cadastrado). Ou seja: o WhatsApp é o
+> caminho preferido quando está tudo configurado; o e-mail é a rede de segurança.
+
+> 🔒 **Quem configura:** ligar o módulo, conectar o número e ter o **template aprovado**
+> é coisa do **Administrador** com o suporte/TI (aprovar um modelo de mensagem na Meta é
+> um passo técnico, feito uma vez). A recepção não precisa fazer nada para o lembrete
+> automático funcionar.
+
+---
+
 ## Perguntas rápidas
 
 **O Nous cobra alguma coisa pelas mensagens de WhatsApp?**
@@ -153,3 +183,15 @@ Não. **Conectar** é só do **Administrador**, na tela **Configurar conexão**.
 Confira com o administrador se a **Conexão ativa** está marcada e se o cadastro do
 **webhook** na Meta foi feito (passo técnico do suporte/TI). Sem esses dois, as
 mensagens dos pacientes não chegam até aqui.
+
+**O lembrete de consulta sai sozinho pelo WhatsApp?**
+Sim, **desde que** o módulo esteja conectado **e** a clínica tenha uma **mensagem-modelo
+(template) aprovada pela Meta** para o lembrete. Faltando o template, o lembrete daquele
+paciente **vai por e-mail** (se ele tiver e-mail cadastrado). Configurar o template é um
+passo do administrador com o suporte/TI.
+
+**Por que o lembrete precisa de uma mensagem-modelo?**
+Porque o lembrete é uma mensagem que a **clínica inicia**, normalmente **fora das 24
+horas** da última conversa. Nesse caso a Meta **só aceita** mensagem-modelo aprovada (e
+cobra centavos por ela, na conta da clínica). É a mesma regra das 24 horas explicada no
+começo do capítulo.

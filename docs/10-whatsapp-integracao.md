@@ -89,3 +89,37 @@ Desde **jul/2025** a Meta cobra **por mensagem** (template entregue), não mais 
   `WHATSAPP_APP_SECRET`) vão **direto no Render**.
 - **Próximo passo (escala):** trocar o "colar token" por **Embedded Signup** (botão),
   reaproveitando todo o resto.
+
+## 7. Lembrete por template (HSM)
+Mensagem **proativa** (que a clínica inicia, fora da janela de 24h de atendimento —
+ex.: lembrete de consulta) **não pode ser texto livre**: a Meta exige um **template
+aprovado** (HSM). Texto livre só é permitido dentro das 24h após a última mensagem
+do paciente. Por isso o lembrete usa template, não `enviar_texto`.
+
+- **`enviar_template(conta, para_wa_id, template, lang, params)`** (`services/whatsapp.py`)
+  — envia o HSM via Cloud API (`type: template`). `params` são as variáveis do corpo
+  na ordem (viram `components[].parameters[].text`, ≤200 chars cada). Retorna
+  `(ok, info=wamid|motivo)`, best-effort (nunca levanta; sem PII no log).
+- **`enviar_lembrete_whatsapp(ag)`** — monta o lembrete de UMA consulta e chama
+  `enviar_template` com `[primeiro_nome, data/hora BR, profissional]`. **Inerte**:
+  só age com `WHATSAPP_ATIVO` (global) + conta da clínica `ativo` + **template
+  configurado** + paciente com telefone. Em sucesso, **loga a saída na inbox**
+  (`_registrar_saida` grava uma `WhatsAppMensagem` OUT — sem commit; quem chama
+  commita), pra a conversa aparecer no histórico.
+- **Config:** `WHATSAPP_TEMPLATE_LEMBRETE` (nome do template aprovado na Meta —
+  vazio = lembrete por WhatsApp desligado) e `WHATSAPP_TEMPLATE_LEMBRETE_LANG`
+  (default `pt_BR`), em `config.py`.
+
+**Escolha de canal no motor de lembretes** (`services/lembretes.py`,
+`enviar_lembretes`) — por consulta, na ordem:
+1. **WhatsApp template** — tenta `enviar_lembrete_whatsapp` primeiro (proativo
+   correto). Sucesso → marca `lembrete_enviado_em`, conta em `whatsapp`.
+2. **E-mail** (fallback) — se o WhatsApp não saiu e o paciente tem e-mail + SMTP
+   configurado. Falha de SMTP deixa `lembrete_enviado_em` NULL pra retry.
+3. **Sem canal** — nem WhatsApp nem e-mail: marca `lembrete_enviado_em` mesmo assim
+   (não reprocessar todo dia), conta em `sem_canal`.
+
+Falha **transitória** do WhatsApp (estava configurado mas a chamada caiu —
+`info` começa com `erro`/`falha de conexão`) **não** marca enviado: fica pra retry.
+Já "inativo/sem template/sem telefone" não justifica retry — cai pro e-mail ou
+sem-canal. O job é idempotente (não reenvia o que já tem `lembrete_enviado_em`).

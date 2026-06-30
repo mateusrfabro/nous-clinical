@@ -18,16 +18,35 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 - ✅ **Módulo de Nota Fiscal (NFS-e) — Fase 1** — configuração do emitente por clínica +
   cadastro no emissor (Nuvem Fiscal). **Desligado em produção** (`NF_ATIVO` off): não
   aparece no menu até ser ligado, e a **emissão ainda não está pronta** (ver §4).
-- ✅ **Manual do Usuário** (PDF) — entregue às clínicas.
-- ✅ **Documentação técnica e de projeto** — atualizada.
+- ✅ **Agenda — visão Quadro (Kanban)** — 4ª forma de ver a agenda, por status, com
+  arrastar-e-soltar entre colunas. Soma-se a Dia/Grade/Semana.
+- ✅ **Painel do gestor com KPIs do dia** — faturamento de hoje, taxa de faltas, a receber
+  em atraso e ocupação por profissional (só admin/recepção).
+- ✅ **Financeiro avançado** — **conciliação bancária** (importa extrato OFX/CSV, casa com
+  os lançamentos: sugestão automática + manual + painel de divergências) e **fechamento de
+  caixa diário** (esperado por forma de pagamento × contado, com divergência). O relatório
+  de **repasse médico** calcula a comissão por profissional e oferece um atalho **"Lançar
+  repasse"** que abre a despesa **pré-preenchida** (o admin confere e salva).
+- ✅ **Lembrete de consulta automático** — por **WhatsApp** (template aprovado) ou e-mail;
+  reduz faltas. (WhatsApp exige o template HSM aprovado pela clínica; sem ele, cai no e-mail.)
+- ✅ **Padronização de UI/UX e acessibilidade** — design system consistente (botões, valores
+  alinhados, menu de ações "⋯", segmented control) e correções de contraste/teclado (WCAG).
+- ✅ **Manual do Usuário** — texto atualizado com as telas novas (Quadro, Painel, Financeiro,
+  WhatsApp). *Pendência menor:* gerar o screenshot real da visão **Quadro** antes do próximo PDF
+  (hoje o manual usa um placeholder sinalizado).
+- ✅ **Documentação técnica, comercial e de projeto** — atualizada
+  (`docs/COMERCIAL-NOUS.md` para o comercial; `docs/12-conciliacao-e-caixa.md` técnica).
 
 ## 2. Qualidade e segurança
 
-- ✅ **Suíte de testes: 328 verdes.**
-- ✅ **Auditoria adversarial multi-agente** (módulo fiscal + Suporte): **23 possíveis
-  problemas levantados → 0 confirmados** após verificação adversarial.
+- ✅ **Suíte de testes: 365 verdes.**
+- ✅ **Auditoria adversarial multi-agente** em várias rodadas (módulo fiscal, Suporte,
+  UI/perf/segurança/a11y e o financeiro avançado): problemas levantados →
+  **verificados e corrigidos** (ou descartados como falso-positivo). 0 P0 em aberto.
 - ✅ **Nenhum segredo vazado no repositório** (credenciais só em variáveis de ambiente).
 - ✅ WhatsApp já passara por auditoria (1 vazamento cross-tenant achado e **corrigido**).
+- ✅ **Defesa em profundidade** no financeiro: guard explícito de `clinica_id` nas
+  mutações, além do escopo automático por clínica.
 
 ## 3. Pendências de produção (decisões/ações de vocês)
 
@@ -41,9 +60,8 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 3. **Armazenamento (R2/S3)** — ✅ **CONCLUÍDO e confirmado em produção.** Cloudflare R2
    (bucket `nous-clinical`, conta do sócio Lucas), 4 chaves no Render, upload de logo
    testado ao vivo (arquivo confirmado no bucket via API). Logo e exames agora
-   **persistem** entre deploys. Free tier 10 GB. **Pendência residual:** o Account API
-   token do R2 **apareceu em print no chat → revogar e regerar** quando possível (risco
-   limitado: o token só acessa o bucket `nous-clinical`).
+   **persistem** entre deploys. Free tier 10 GB. *(O token do R2 só acessa o bucket
+   `nous-clinical` — escopo mínimo; sem ação pendente de rotação.)*
 
 ### 🟢 Ativar quando quiserem (estão prontos, desligados)
 4. **Assistente com IA** (opcional) — o Suporte gratuito já atende; se quiserem o modo IA,

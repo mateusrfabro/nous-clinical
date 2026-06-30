@@ -82,6 +82,25 @@ Datalist global `#convenios` em `base.html` via `convenios_ativos()`.
 opcional a `paciente` e a `agendamento` (1:1 **unique** → recebimento idempotente).
 `vencido` compara em **data BR**.
 
+### `MovimentoBancario` — transação de extrato (conciliação)
+Uma linha do extrato bancário (OFX/CSV) importada para conciliar. `data`
+(**`Date`** — sem hora/fuso), `valor` (**`Numeric`**, **sempre positivo**; o
+sentido vive em `tipo` = `credito`/`debito`), `descricao` (MEMO), `conta` (ACCTID),
+`banco`, `fitid` (id do banco), `status` (`pendente`/`conciliado`/`ignorado`).
+Liga **1:1** a `LancamentoFinanceiro` (`lancamento_id` **unique**;
+`back_populates="movimento"`). **Dedup de reimportação** por
+`UniqueConstraint(clinica_id, conta, fitid)`. Trilha:
+`importado_em`/`conciliado_em` + autores. Detalhe em [doc 12](12-conciliacao-e-caixa.md).
+
+### `FechamentoCaixa` — fechamento de caixa diário
+Confere o **esperado** (receitas pagas no dia, por forma de pagamento) contra o
+**contado** pela recepção. `dia` (**`Date`**, fuso BR), `esperado_total`/
+`contado_total`/`divergencia` (**`Numeric`**; divergência = `contado − esperado`),
+`detalhes` (**JSON em `Text`**: `{forma: {esperado, contado}}`), `observacoes`,
+`fechado_por_id`/`fechado_em`. **Um por (clínica, dia)**
+(`UniqueConstraint(clinica_id, dia)`); **reabrir = deletar** o registro. Detalhe em
+[doc 12](12-conciliacao-e-caixa.md).
+
 ### `Exame` — anexo (LGPD)
 Arquivo no `storage` (fora de `static/`), só `arquivo_key` opaca no DB.
 Download por rota autenticada com checagem de posse (`clinico_required`).

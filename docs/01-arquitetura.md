@@ -57,7 +57,10 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 - **`documentos_pdf.py`** — PDFs A4 de receita/atestado (reportlab); logo da clínica ou wordmark Nous.
 - **`passwords.py`** — Argon2id (hash, verify, rehash-on-login, dummy anti-timing).
 - **`tokens.py`** — tokens assinados (itsdangerous) p/ confirmação pública de consulta.
-- **`lembretes.py`** — job de lembretes (e-mail/Telegram), idempotente.
+- **`lembretes.py`** — job de lembretes (WhatsApp template → e-mail → sem-canal), idempotente.
+- **`ofx.py`** — parser de extrato OFX 1.x (SGML) / 2.x (XML), sem dependência externa.
+- **`extrato.py`** — dispatcher OFX/CSV (CSV tolerante: delimitador, núm/data BR, `fitid` por hash).
+- **`conciliacao.py`** — importa o extrato como `MovimentoBancario` e sugere o lançamento a casar.
 - **`notificacoes.py`** / **`email.py`** — envio (SMTP + Telegram).
 - **`pii.py`** — mascaramento de PII pra logs.
 - **`app_info.py`** — versão + head de migration (exposto no boot e no `/health`).

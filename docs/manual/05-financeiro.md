@@ -176,6 +176,90 @@ Repare que não há nenhuma linha de aluguel e o total de **Saídas** é menor.
 
 ---
 
+## 6. Conciliação bancária (bater o extrato com o sistema)
+
+A **Conciliação bancária** serve para **comparar o que entrou na conta do banco**
+com **o que está lançado no Nous**. Em vez de conferir tudo na mão, você **importa o
+extrato** do banco e o sistema vai casando cada movimento com o lançamento certo.
+
+> 🔒 **Quem acessa:** **Recepção** e **Administrador**, como o resto do Financeiro.
+
+Para abrir, na tela do Financeiro clique em **Conciliação**.
+
+### Importar o extrato
+
+1. No banco (ou no app/internet banking), baixe o extrato do período em **.ofx** ou
+   **.csv** — são os dois formatos que o Nous lê.
+2. Na tela de Conciliação, clique em **Importar extrato**, escolha o arquivo e confirme.
+3. O sistema lê os movimentos e os coloca na lista. Se você importar um arquivo que já
+   tinha sido importado antes, ele **não duplica** — avisa quantos eram novos e quantos
+   já existiam.
+
+### Conciliar cada movimento
+
+Cada linha do extrato (cada entrada ou saída do banco) aparece com uma **sugestão** de
+lançamento — o Nous procura um lançamento do mesmo **valor** e **data próxima** e já
+oferece o casamento pronto. Para cada movimento você decide:
+
+- **Confirmar a sugestão** — quando o lançamento sugerido é mesmo aquele. Um clique e
+  pronto: o movimento fica **conciliado**.
+- **Criar um lançamento** — quando aquele dinheiro do banco **ainda não estava** lançado
+  no Nous. O sistema cria um lançamento já **pago**, com o valor e a data do extrato, e
+  já concilia. Ótimo para entradas que ninguém tinha registrado.
+- **Conciliar manualmente** — quando a sugestão automática não serve (por exemplo, o
+  valor não bate exatamente). Você abre o movimento e **escolhe à mão** qual lançamento
+  existente corresponde a ele.
+- **Ignorar** — para movimentos que **não viram lançamento** da clínica (tarifa do banco,
+  transferência interna entre contas, etc.). Eles saem da fila de pendências.
+
+> 💡 **Dica:** conciliou errado? Dá para **desfazer** a conciliação (ou o "ignorar") e o
+> movimento volta a ficar **pendente**. Desfazer **não apaga** o lançamento ligado — só
+> separa os dois de novo.
+
+### A tela de Divergências
+
+O botão **Divergências** mostra, lado a lado, os **dois tipos de descompasso**:
+
+- **No extrato, mas sem lançamento** — dinheiro que **entrou/saiu no banco** e ainda
+  **não foi registrado** no Nous (movimentos pendentes).
+- **Recebido, mas sem extrato** — receitas que estão **marcadas como recebidas** no Nous
+  mas **não apareceram no extrato** importado.
+
+É o seu mapa do que falta acertar: o ideal é que os dois lados fiquem zerados.
+
+---
+
+## 7. Fechamento de caixa diário (conferir o dinheiro do dia)
+
+O **Fechamento de caixa** é a conferência de fim de expediente: comparar **quanto o
+sistema diz que entrou hoje** com **quanto realmente tem em caixa/conta**. Serve para
+pegar erro de troco, recebimento esquecido ou valor digitado errado, ainda no mesmo dia.
+
+> 🔒 **Quem acessa:** **Recepção** e **Administrador**.
+
+Para abrir, na tela do Financeiro clique em **Fechar caixa**.
+
+A tela mostra, por **forma de pagamento** (dinheiro, Pix, cartão, etc.):
+
+- **Esperado** — quanto o Nous recebeu hoje naquela forma de pagamento (calculado
+  automático, a partir das receitas já recebidas no dia). Você não digita isso.
+- **Contado** — quanto **você realmente conferiu** ali (o dinheiro na gaveta, o que caiu
+  no Pix, etc.). Esse número você preenche.
+
+Ao salvar, o sistema soma tudo e mostra a **divergência** (contado − esperado): se bater
+certinho, dá **zero**; se sobrar ou faltar, ele grava a diferença (com sinal de + ou −) e
+você pode anotar uma **observação** explicando o porquê.
+
+- É **um fechamento por dia**.
+- Errou na contagem ou quer ajustar depois? Dá para **reabrir** o caixa daquele dia e
+  fechar de novo.
+
+> 💡 **Dica:** o **esperado** é sempre recalculado pelo sistema na hora de fechar — ele
+> não confia em número "decorado" da tela. Então registre os recebimentos do dia
+> **antes** de fechar o caixa, para o esperado já vir completo.
+
+---
+
 ## Perguntas rápidas
 
 **Por que o "Saldo do período" mostra um valor negativo?**
@@ -196,3 +280,18 @@ período. Para esses números completos, fale com o administrador.
 O **Fluxo de caixa** mostra o que **já foi pago/recebido** num período (mais os
 totais em aberto). As **Contas a receber / pagar** listam o que ainda está **em
 aberto**, para você acompanhar e **dar baixa** quando o dinheiro entrar ou sair.
+
+**Que arquivo eu uso na Conciliação bancária?**
+O extrato do seu banco em **.ofx** ou **.csv** — os dois formatos que o Nous lê. Baixe
+o extrato no internet banking e importe na tela de **Conciliação**. Importar o mesmo
+arquivo duas vezes não duplica nada.
+
+**Um movimento do extrato não tem lançamento no sistema. O que faço?**
+Use **Criar um lançamento** direto na linha do movimento: o Nous registra a entrada (já
+paga, com valor e data do extrato) e concilia na hora. Se for tarifa ou transferência
+interna, escolha **Ignorar**.
+
+**Fechei o caixa e deu divergência. É problema?**
+A divergência é justamente o que o fechamento existe para mostrar: a diferença entre o
+**contado** e o **esperado**. Confira se faltou registrar algum recebimento do dia,
+anote uma observação e, se precisar corrigir, **reabra** o caixa e feche de novo.
