@@ -37,7 +37,11 @@ def tarefa_lembretes():
 
 
 @main_bp.route("/")
+@main_bp.route("/produto")
 def index():
+    # Landing comercial pública. `/produto` é um alias estável p/ o comercial
+    # compartilhar (link que não muda mesmo se `/` mudar de comportamento).
+    # Logado vai direto pro dashboard (a equipe não vê marketing).
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
     return render_template(

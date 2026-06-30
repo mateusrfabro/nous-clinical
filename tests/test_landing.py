@@ -24,6 +24,16 @@ def test_cta_padrao_cai_no_login(client):
     assert "Falar com a gente" not in body
 
 
+def test_produto_alias_renderiza_a_landing(client):
+    """Alias estável /produto p/ o comercial compartilhar — mesma landing."""
+    r = client.get("/produto")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Menos gestão" in body and "modulos" in body
+    # Canonical aponta pra raiz (evita conteúdo duplicado).
+    assert 'rel="canonical"' in body and body.rstrip().endswith("</html>")
+
+
 def test_cta_usa_contato_comercial_quando_configurado(app, client):
     app.config["CONTATO_COMERCIAL"] = "https://wa.me/5543999999999"
     try:

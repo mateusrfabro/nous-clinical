@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% if tema_css_url %}{# White-label: cor de marca livre da clínica (CSP-safe, 'self'). #}
     <link rel="stylesheet" href="{{ tema_css_url }}">{% endif %}
+    {% block head_extra %}{% endblock %}
 </head>
 {% set ep = request.endpoint or '' %}
 {% macro flashes() %}
