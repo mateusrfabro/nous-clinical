@@ -945,6 +945,9 @@ def _cria_ou_reusa_paciente(clinica, nome, telefone, cpf_fmt, data_nasc, conveni
 
 @agenda_bp.route("/agendar", methods=["GET", "POST"])
 @limiter.limit("5 per hour;1 per minute", methods=["POST"])
+# GET lista profissionais/especialidades/slots de uma clínica — limita p/ conter
+# enumeração anônima de médicos/horários iterando clinica_id/profissional_id.
+@limiter.limit("30 per minute", methods=["GET"])
 def agendar_online():
     """Agendamento online PÚBLICO (portal do paciente). Sem login.
 

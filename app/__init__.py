@@ -184,6 +184,11 @@ def create_app(config_name="default"):
     _TOKEN_PATH_RE = _re.compile(
         r'(/(?:redefinir-senha|uploads|agenda/confirmar)/)([^/?\s"\']+)'
     )
+    # Token/segredo em query string (ex.: /tarefas/lembretes?key=...,
+    # webhook ?verify_token=...). Evita vazamento em access log de proxy.
+    _TOKEN_QS_RE = _re.compile(
+        r'([?&](?:key|token|verify_token|hub\.verify_token)=)[^&\s"\']+'
+    )
 
     class _SanitizeTokenFilter(_logging.Filter):
         def filter(self, record):
@@ -191,8 +196,12 @@ def create_app(config_name="default"):
                 msg = record.getMessage()
             except Exception:
                 return True
-            if isinstance(msg, str) and "/" in msg:
-                novo = _TOKEN_PATH_RE.sub(r"\1<redacted>", msg)
+            if isinstance(msg, str):
+                novo = msg
+                if "/" in novo:
+                    novo = _TOKEN_PATH_RE.sub(r"\1<redacted>", novo)
+                if "=" in novo:
+                    novo = _TOKEN_QS_RE.sub(r"\1<redacted>", novo)
                 if novo != msg:
                     record.msg = novo
                     record.args = ()
