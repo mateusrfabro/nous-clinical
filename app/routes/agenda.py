@@ -11,6 +11,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app import db, limiter
 from app.auth_decorators import (
@@ -180,6 +181,9 @@ def listar():
 
     q = (
         select(Agendamento)
+        .options(selectinload(Agendamento.paciente),
+                 selectinload(Agendamento.profissional),
+                 selectinload(Agendamento.lancamento))
         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
         .order_by(Agendamento.inicio)
     )
@@ -230,6 +234,9 @@ def kanban():
     fim = ini + timedelta(days=1)
 
     q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
@@ -291,6 +298,9 @@ def semana():
                            tzinfo=_BR_TZ).astimezone(timezone.utc)
 
     q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
@@ -450,6 +460,9 @@ def dia_grade():
     fim = ini + timedelta(days=1)
 
     q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)

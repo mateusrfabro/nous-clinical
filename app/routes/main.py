@@ -7,6 +7,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from app import db, csrf, limiter
 from app.models import Paciente, Profissional, Agendamento, LancamentoFinanceiro
@@ -94,6 +95,8 @@ def dashboard():
     # Agendamentos de hoje (filtrados pelo profissional se for o caso).
     q = (
         select(Agendamento)
+        .options(selectinload(Agendamento.profissional),
+                 selectinload(Agendamento.paciente))
         .where(Agendamento.inicio >= hoje_ini, Agendamento.inicio < hoje_fim)
         .order_by(Agendamento.inicio)
     )
@@ -136,19 +139,14 @@ def dashboard():
                 L.pago_em >= hoje_ini, L.pago_em < hoje_fim,
             )
         ).scalar_one()
-        # A receber em atraso (contas a receber pendentes e vencidas).
-        a_receber_atraso = db.session.execute(
-            select(func.coalesce(func.sum(L.valor), 0)).where(
+        # A receber em atraso (contas a receber pendentes e vencidas):
+        # soma + contagem no MESMO round-trip (predicado idêntico).
+        a_receber_atraso, n_atraso = db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0), func.count(L.id)).where(
                 L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
                 L.vencimento.is_not(None), L.vencimento < hoje_br,
             )
-        ).scalar_one()
-        n_atraso = db.session.execute(
-            select(func.count(L.id)).where(
-                L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
-                L.vencimento.is_not(None), L.vencimento < hoje_br,
-            )
-        ).scalar_one()
+        ).one()
         # Faltas de hoje + taxa (faltas / consultas não-canceladas do dia).
         efetivas = [a for a in agendamentos_hoje
                     if a.status != Agendamento.STATUS_CANCELADO]

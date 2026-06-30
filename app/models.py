@@ -260,6 +260,12 @@ class Paciente(db.Model):
 
 class Agendamento(db.Model):
     __tablename__ = "agendamentos"
+    # Índices compostos pros filtros quentes: janela de dia por clínica e por
+    # profissional (agenda, kanban, dashboard, checagem de conflito).
+    __table_args__ = (
+        db.Index("ix_ag_clinica_inicio", "clinica_id", "inicio"),
+        db.Index("ix_ag_prof_inicio", "profissional_id", "inicio"),
+    )
 
     STATUS_AGENDADO = "agendado"
     STATUS_CONFIRMADO = "confirmado"
@@ -343,6 +349,10 @@ class Atendimento(db.Model):
     atendimento e do dia (regra aplicada na rota, nao no modelo).
     """
     __tablename__ = "atendimentos"
+    # Índice composto pros relatórios/CRM que filtram/ordenam por data.
+    __table_args__ = (
+        db.Index("ix_atend_clinica_criado", "clinica_id", "criado_em"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     agendamento_id = db.Column(
@@ -474,6 +484,14 @@ class LancamentoFinanceiro(db.Model):
     consulta, relacao 1:1 via unique). Dinheiro SEMPRE Numeric(12, 2).
     """
     __tablename__ = "lancamentos_financeiros"
+    # Índices compostos pros filtros quentes: fluxo/faturamento (status+tipo+
+    # pago_em) e contas a receber/atraso (status+tipo+vencimento), por clínica.
+    __table_args__ = (
+        db.Index("ix_lanc_clinica_status_tipo_pago",
+                 "clinica_id", "status", "tipo", "pago_em"),
+        db.Index("ix_lanc_clinica_status_tipo_venc",
+                 "clinica_id", "status", "tipo", "vencimento"),
+    )
 
     TIPO_RECEITA = "receita"
     TIPO_DESPESA = "despesa"

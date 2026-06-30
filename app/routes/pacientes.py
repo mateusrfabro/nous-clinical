@@ -11,6 +11,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select, or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 
 from app import db
@@ -175,7 +176,16 @@ def novo():
 @login_required
 @equipe_required
 def detalhe(paciente_id):
-    paciente = db.session.get(Paciente, paciente_id)
+    # Eager-load do histórico (evita N+1: o template itera agendamentos
+    # acessando profissional/atendimento e os lançamentos por linha).
+    paciente = db.session.get(
+        Paciente, paciente_id,
+        options=[
+            selectinload(Paciente.agendamentos).selectinload(Agendamento.profissional),
+            selectinload(Paciente.agendamentos).selectinload(Agendamento.atendimento),
+            selectinload(Paciente.lancamentos),
+        ],
+    )
     if not paciente:
         flash("Paciente não encontrado.", "error")
         return redirect(url_for("pacientes.listar"))
