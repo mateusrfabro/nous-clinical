@@ -9,6 +9,7 @@ CSV raramente traz um id de transação, sintetizamos um `fitid` por hash de
 import csv
 import hashlib
 import re
+import unicodedata
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
@@ -32,7 +33,10 @@ def parse_extrato(filename, conteudo):
 
 
 def _norm(s):
-    return re.sub(r"\s+", " ", (s or "").strip().lower())
+    # Remove acentos p/ casar cabeçalho "Histórico"/"Crédito"/"Débito" com as
+    # chaves sem acento (senão a coluna não é detectada).
+    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode()
+    return re.sub(r"\s+", " ", s.strip().lower())
 
 
 def _match(cols_norm, chaves):
@@ -61,17 +65,23 @@ def _data_br(valor):
 
 
 def _num_br(valor):
-    """'1.234,56' / '1234.56' / '-50,00' / 'R$ 12,00' -> Decimal. None se vazio/inválido."""
-    s = re.sub(r"[^\d,.\-]", "", (valor or "").strip())
+    """'1.234,56' / '1234.56' / '-50,00' / 'R$ 12,00' / '(50,00)' -> Decimal.
+    Parênteses = negativo (formato contábil de débito). None se vazio/inválido."""
+    bruto = (valor or "").strip()
+    # Débito em formato contábil: (50,00) ou trailing 'D'.
+    neg = (bruto.startswith("(") and bruto.endswith(")")) \
+        or bool(re.search(r"\bD$", bruto))
+    s = re.sub(r"[^\d,.\-]", "", bruto)
     if not s:
         return None
     # Se tem vírgula, ela é o decimal (formato BR) e ponto é milhar.
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
     try:
-        return Decimal(s)
+        v = Decimal(s)
     except InvalidOperation:
         return None
+    return -abs(v) if neg else v
 
 
 def parse_csv(conteudo):

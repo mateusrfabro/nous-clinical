@@ -665,7 +665,13 @@ def caixa_fechar():
     fechamento.observacoes = request.form.get("observacoes", "").strip()[:500] or None
     fechamento.fechado_por_id = current_user.id
     fechamento.fechado_em = datetime.now(timezone.utc)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Corrida: outro fechamento do mesmo dia entrou (duplo-clique/2 abas).
+        db.session.rollback()
+        flash("Este caixa acabou de ser fechado. Recarregue a página.", "error")
+        return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))
     audit(AuditLog.ACAO_CAIXA_FECHADO, recurso_tipo="caixa",
           recurso_id=fechamento.id,
           detalhes=f"dia={dia.isoformat()} divergencia={divergencia}")

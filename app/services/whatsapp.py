@@ -38,15 +38,14 @@ def _so_digitos(valor):
 
 def normaliza_br(numero):
     """Telefone -> wa_id internacional só dígitos. Assume Brasil (55) quando
-    vier sem código de país. None se não houver dígitos."""
+    vier sem código de país. None se inválido (evita mandar pra número-lixo, o
+    que marcaria o lembrete como enviado e bloquearia o fallback de e-mail)."""
     d = _so_digitos(numero)
-    if not d:
-        return None
-    if d.startswith("55"):
-        return d
-    if len(d) in (10, 11):     # DDD + número (com/sem 9)
+    if len(d) in (10, 11):              # DDD + número (com/sem 9) -> Brasil
         return "55" + d
-    return d
+    if len(d) in (12, 13) and d.startswith("55"):   # já com código do país
+        return d
+    return None
 
 
 def conta_da_clinica(clinica_id):

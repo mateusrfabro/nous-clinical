@@ -77,6 +77,18 @@ def test_csv_parser_le_transacoes():
     assert deb.tipo == "debito" and deb.valor == Decimal("80.00")
 
 
+def test_csv_debito_entre_parenteses():
+    """Formato contábil: (50,00) é DÉBITO (saída), não crédito."""
+    csv_paren = ("Data;Valor;Histórico\n"
+                 "10/06/2026;(50,00);TARIFA\n"
+                 "11/06/2026;200,00;PIX\n")
+    ext = parse_csv(csv_paren)
+    tarifa = next(t for t in ext.transacoes if "TARIFA" in t.descricao)
+    assert tarifa.tipo == "debito" and tarifa.valor == Decimal("50.00")
+    pix = next(t for t in ext.transacoes if "PIX" in t.descricao)
+    assert pix.tipo == "credito"
+
+
 def test_parse_extrato_dispatch_por_nome():
     assert len(parse_extrato("x.csv", _CSV.encode("utf-8")).transacoes) == 2
     assert len(parse_extrato("x.ofx", _OFX.encode("utf-8")).transacoes) == 2

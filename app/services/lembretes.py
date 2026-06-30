@@ -74,7 +74,12 @@ def enviar_lembretes(data_alvo=None):
 
     for ag in ags:
         # 1) WhatsApp template (proativo correto) — preferido quando configurado.
-        ok_wa, info_wa = enviar_lembrete_whatsapp(ag)
+        # Best-effort: uma exceção numa consulta NÃO derruba o lote inteiro.
+        try:
+            ok_wa, info_wa = enviar_lembrete_whatsapp(ag)
+        except Exception:   # noqa: BLE001
+            logger.warning("LEMBRETE_WA_EXC", exc_info=True)
+            ok_wa, info_wa = False, "exc"
         if ok_wa:
             ag.lembrete_enviado_em = agora
             por_whatsapp += 1
