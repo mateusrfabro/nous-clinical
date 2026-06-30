@@ -26,7 +26,8 @@ from app.models import (
     FechamentoCaixa,
 )
 from app.services.audit import audit
-from app.services.ofx import parse_ofx, OFXError
+from app.services.ofx import OFXError
+from app.services.extrato import parse_extrato
 from app.services.conciliacao import (
     importar_extrato, sugestao_para, candidatos_para,
     lancamentos_nao_conciliados,
@@ -400,10 +401,10 @@ def conciliacao_detalhe(movimento_id):
 def conciliacao_importar():
     arquivo = request.files.get("extrato")
     if not arquivo or not arquivo.filename:
-        flash("Selecione um arquivo .ofx do seu banco.", "error")
+        flash("Selecione um arquivo .ofx ou .csv do seu banco.", "error")
         return redirect(url_for("financeiro.conciliacao"))
     try:
-        extrato = parse_ofx(arquivo.read())
+        extrato = parse_extrato(arquivo.filename, arquivo.read())
     except OFXError as e:
         flash(f"Não foi possível ler o extrato: {e}", "error")
         return redirect(url_for("financeiro.conciliacao"))

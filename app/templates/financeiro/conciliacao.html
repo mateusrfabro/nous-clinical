@@ -11,11 +11,11 @@
 </div>
 
 <div class="card">
-  <h3>Importar extrato (.ofx)</h3>
-  <p class="muted text-sm mb-2">Exporte o extrato do seu banco no formato <strong>OFX</strong> e envie aqui. Transações já importadas são ignoradas (sem duplicar).</p>
+  <h3>Importar extrato (.ofx ou .csv)</h3>
+  <p class="muted text-sm mb-2">Exporte o extrato do seu banco em <strong>OFX</strong> (recomendado) ou <strong>CSV</strong> e envie aqui. Transações já importadas são ignoradas (sem duplicar).</p>
   <form method="POST" action="{{ url_for('financeiro.conciliacao_importar') }}" enctype="multipart/form-data" class="row-actions">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="file" name="extrato" accept=".ofx,application/x-ofx,application/ofx" required>
+    <input type="file" name="extrato" accept=".ofx,.csv,text/csv,application/x-ofx,application/ofx" required>
     <button type="submit" class="btn btn-primary">Importar extrato</button>
   </form>
 </div>

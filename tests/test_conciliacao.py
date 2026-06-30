@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from app import db
 from app.models import LancamentoFinanceiro, MovimentoBancario
 from app.services.ofx import parse_ofx, OFXError
+from app.services.extrato import parse_extrato, parse_csv
 from app.services.conciliacao import (
     sugestao_para, candidatos_para, lancamentos_nao_conciliados,
 )
@@ -28,10 +29,24 @@ VERSION:102
 """
 
 
+_CSV = (
+    "Data;Valor;Histórico\n"
+    "05/06/2026;150,00;PIX CONSULTA\n"
+    "06/06/2026;-80,00;TARIFA BANCO\n"
+)
+
+
 def _upload(client):
     return client.post(
         "/financeiro/conciliacao/importar",
         data={"extrato": (io.BytesIO(_OFX.encode("utf-8")), "extrato.ofx")},
+        content_type="multipart/form-data", follow_redirects=True)
+
+
+def _upload_csv(client):
+    return client.post(
+        "/financeiro/conciliacao/importar",
+        data={"extrato": (io.BytesIO(_CSV.encode("utf-8")), "extrato.csv")},
         content_type="multipart/form-data", follow_redirects=True)
 
 
@@ -49,6 +64,33 @@ def test_ofx_parser_le_transacoes():
     deb = ext.transacoes[1]
     assert deb.tipo == "debito"
     assert deb.valor == Decimal("80.00")   # sempre positivo
+
+
+def test_csv_parser_le_transacoes():
+    ext = parse_csv(_CSV)
+    assert len(ext.transacoes) == 2
+    cred = ext.transacoes[0]
+    assert cred.tipo == "credito" and cred.valor == Decimal("150.00")
+    assert cred.data.isoformat() == "2026-06-05"
+    assert cred.fitid.startswith("csv")   # fitid sintetizado p/ dedup
+    deb = ext.transacoes[1]
+    assert deb.tipo == "debito" and deb.valor == Decimal("80.00")
+
+
+def test_parse_extrato_dispatch_por_nome():
+    assert len(parse_extrato("x.csv", _CSV.encode("utf-8")).transacoes) == 2
+    assert len(parse_extrato("x.ofx", _OFX.encode("utf-8")).transacoes) == 2
+
+
+def test_importar_csv_e_dedup(client_admin, app):
+    _upload_csv(client_admin)
+    with app.app_context():
+        from app.models import MovimentoBancario as M
+        assert M.query.count() == 2
+    _upload_csv(client_admin)   # reimport: dedup por fitid sintetizado
+    with app.app_context():
+        from app.models import MovimentoBancario as M
+        assert M.query.count() == 2
 
 
 def test_ofx_parser_rejeita_lixo():
