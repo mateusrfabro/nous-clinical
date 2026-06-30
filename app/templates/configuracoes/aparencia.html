@@ -48,7 +48,7 @@
     {% if clinica.cor_primaria %}
     <form method="POST" action="{{ url_for('configuracoes.cor_remover') }}" class="inline-form mt-2">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="btn-link">Remover cor (voltar ao tema)</button>
+      <button type="submit" class="btn btn-sm btn-outline">Remover cor (voltar ao tema)</button>
     </form>
     {% endif %}
   </div>
@@ -61,7 +61,7 @@
       <img src="{{ url_for('configuracoes.logo_servir', clinica_id=clinica.id, v=clinica.logo_key[:8]) }}" alt="Logo atual da clínica">
       <form method="POST" action="{{ url_for('configuracoes.logo_remover') }}" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn-link" data-confirm="Remover a logo da clínica?">Remover logo</button>
+        <button type="submit" class="btn btn-sm btn-outline" data-confirm="Remover a logo da clínica?">Remover logo</button>
       </form>
     </div>
     {% else %}

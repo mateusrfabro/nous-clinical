@@ -18,16 +18,6 @@
 </select>
 {% endmacro %}
 
-{% macro section_header(titulo, nivel='h2') %}
-{# Cabeçalho de página/seção padrão. Ação opcional à direita via {% call %}:
-   {% call section_header('Agenda') %}<a class="btn btn-primary">+ Novo</a>{% endcall %}
-   nivel='h3' para subseções. #}
-<div class="page-header">
-  <{{ nivel }}>{{ titulo }}</{{ nivel }}>
-  {% if caller %}<div class="page-header-actions">{{ caller() }}</div>{% endif %}
-</div>
-{% endmacro %}
-
 {% macro actions_menu(label='Mais ações') %}
 {# Popover "⋯ Mais" para ações secundárias (CSP-safe, controlado por
    actions-menu.js). Conteúdo (links/forms) vem do {% call %}. NÃO usa

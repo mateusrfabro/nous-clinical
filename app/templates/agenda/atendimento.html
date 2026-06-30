@@ -118,7 +118,7 @@
         <td>
           <form method="POST" action="{{ url_for('exames.excluir', exame_id=ex.id) }}" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn-link" data-confirm="Remover este exame?">Remover</button>
+            <button type="submit" class="btn btn-sm btn-outline" data-confirm="Remover este exame?">Remover</button>
           </form>
         </td>
       </tr>

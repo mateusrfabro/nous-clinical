@@ -1,19 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Esqueci minha senha — Nous Clinical{% endblock %}
+{% block h1_oculto_pub %}{% endblock %}
 {% block content %}
-<div class="w-narrow">
-  <div class="page-header">
-    <h2>Recuperar acesso</h2>
-    <p class="muted">Informe seu e-mail. Se existir conta, enviamos um link de redefinição.</p>
-  </div>
-  <form method="POST" class="card">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-group">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" name="email" required autocomplete="email">
+<section class="auth-split" aria-label="Recuperar acesso">
+    {% include "auth/_brand.html" %}
+
+    <div class="auth-form-side">
+        <div class="auth-form-wrapper">
+            <span class="auth-form-eyebrow">Recuperar acesso</span>
+            <h2 class="auth-form-titulo">Esqueci minha senha</h2>
+            <p class="auth-form-sub">Informe seu e-mail. Se existir conta, enviamos um link de redefinição.</p>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" required
+                           autocomplete="email" placeholder="voce@clinica.com">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Enviar link</button>
+            </form>
+
+            <p class="auth-alt"><a href="{{ url_for('auth.login') }}">Voltar para o login</a></p>
+        </div>
     </div>
-    <button type="submit" class="btn btn-primary btn-block">Enviar link</button>
-  </form>
-  <p class="form-footer"><a href="{{ url_for('auth.login') }}">Voltar para o login</a></p>
-</div>
+</section>
 {% endblock %}

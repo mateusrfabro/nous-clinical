@@ -64,7 +64,7 @@
       <td>
         <form method="POST" action="{{ url_for('procedimentos.convenio_toggle', convenio_id=c.id) }}" class="inline-form no-loading">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
+          <button type="submit" class="btn btn-sm btn-outline">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
         </form>
       </td>
     </tr>
@@ -90,7 +90,7 @@
       <td>
         <form method="POST" action="{{ url_for('procedimentos.sala_toggle', sala_id=s.id) }}" class="inline-form no-loading">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link">{{ 'Desativar' if s.ativo else 'Ativar' }}</button>
+          <button type="submit" class="btn btn-sm btn-outline">{{ 'Desativar' if s.ativo else 'Ativar' }}</button>
         </form>
       </td>
     </tr>

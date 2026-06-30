@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Redefinir senha — Nous Clinical{% endblock %}
+{% block h1_oculto_pub %}{% endblock %}
 {% block content %}
-<div class="w-narrow">
-  <div class="page-header"><h2>Nova senha</h2></div>
-  <form method="POST" action="{{ url_for('auth.redefinir_senha', token=token) }}" class="card">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="form-group {% if erro_senha_curta %}is-invalid{% endif %}">
-      <label for="senha">Senha (mín. 8 caracteres)</label>
-      <input type="password" id="senha" name="senha" required minlength="8" autocomplete="new-password">
+<section class="auth-split" aria-label="Definir nova senha">
+    {% include "auth/_brand.html" %}
+
+    <div class="auth-form-side">
+        <div class="auth-form-wrapper">
+            <span class="auth-form-eyebrow">Quase lá</span>
+            <h2 class="auth-form-titulo">Definir nova senha</h2>
+            <p class="auth-form-sub">Escolha uma senha com pelo menos 8 caracteres.</p>
+
+            <form method="POST" action="{{ url_for('auth.redefinir_senha', token=token) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group {% if erro_senha_curta %}is-invalid{% endif %}">
+                    <label for="senha">Senha (mín. 8 caracteres)</label>
+                    <input type="password" id="senha" name="senha" required minlength="8" autocomplete="new-password" placeholder="••••••••">
+                </div>
+                <div class="form-group {% if erro_match %}is-invalid{% endif %}">
+                    <label for="confirmacao">Confirme a senha</label>
+                    <input type="password" id="confirmacao" name="confirmacao" required autocomplete="new-password" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Redefinir senha</button>
+            </form>
+
+            <p class="auth-alt"><a href="{{ url_for('auth.login') }}">Voltar para o login</a></p>
+        </div>
     </div>
-    <div class="form-group {% if erro_match %}is-invalid{% endif %}">
-      <label for="confirmacao">Confirme a senha</label>
-      <input type="password" id="confirmacao" name="confirmacao" required autocomplete="new-password">
-    </div>
-    <button type="submit" class="btn btn-primary btn-block">Redefinir senha</button>
-  </form>
-</div>
+</section>
 {% endblock %}

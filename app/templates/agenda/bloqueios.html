@@ -63,7 +63,7 @@
       <td>
         <form method="POST" action="{{ url_for('agenda.remover_bloqueio', bloqueio_id=b.id) }}" class="inline-form no-loading">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link" data-confirm="Remover este bloqueio?">Remover</button>
+          <button type="submit" class="btn btn-sm btn-outline" data-confirm="Remover este bloqueio?">Remover</button>
         </form>
       </td>
     </tr>
