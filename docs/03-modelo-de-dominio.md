@@ -140,9 +140,12 @@ vai pro gateway**, não é guardado aqui. Emissão via `app/services/fiscal/` (a
 agnóstico de provedor; Nuvem Fiscal). Detalhe em [doc 11](11-emissao-nf.md).
 
 ### `AuditLog` — trilha de auditoria
-`usuario_id`, `acao` (constantes `ACAO_*`), `recurso_tipo`/`recurso_id`,
-`detalhes` (**nunca PII**), `ip`, `user_agent`, `criado_em`. **Não tem
-`clinica_id`** — o escopo na tela `/auditoria` é feito por join em `Usuario.clinica_id`.
+`usuario_id`, `acao` (constantes `ACAO_*` — inclui `ACAO_CONCIERGE_GERADO` p/ a
+geração de mensagem de retorno), `recurso_tipo`/`recurso_id`, `detalhes`
+(**nunca PII**), `ip`, `user_agent`, `criado_em`. **Não tem `clinica_id`** — o
+escopo na tela `/auditoria` é por `Usuario.clinica_id` e é **fail-closed** +
+**exclui o superadmin** (a plataforma nunca aparece pro tenant; ver
+`routes/auditoria.py:_base_filtrada`).
 
 ## Fluxo principal (operação da clínica)
 ```
