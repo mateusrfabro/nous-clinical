@@ -49,6 +49,7 @@
 .card-hl-primary { border-left: 4px solid var(--primary); background: rgba(var(--brand-primary-rgb), 0.10); }
 .card-hl-success { border-left: 4px solid var(--success); background: rgba(22, 163, 74, 0.08); }
 .card-hl-warning { border-left: 4px solid var(--warning); background: rgba(245, 158, 11, 0.10); }
+.card-hl-danger  { border-left: 4px solid var(--danger); background: rgba(220, 38, 38, 0.08); }
 
 /* Input R$ mais largo (preco final em cotacao). */
 .w-input-money { width: 150px; }

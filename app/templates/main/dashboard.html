@@ -11,10 +11,28 @@
     <span class="kpi-label">Consultas hoje</span>
     <span class="kpi-value">{{ agendamentos_hoje|length }}</span>
   </div>
+  {% if faturamento_hoje is not none %}
+  <a class="kpi-card card-hl-success" href="{{ url_for('financeiro.fluxo', periodo='dia') }}">
+    <span class="kpi-label">Faturamento hoje</span>
+    <span class="kpi-value economia-pos">{{ faturamento_hoje|brl }}</span>
+  </a>
+  {% endif %}
   {% if entrada_semana is not none %}
-  <a class="kpi-card card-hl-success" href="{{ url_for('financeiro.fluxo', periodo='semana') }}">
+  <a class="kpi-card" href="{{ url_for('financeiro.fluxo', periodo='semana') }}">
     <span class="kpi-label">Entrada semanal</span>
     <span class="kpi-value economia-pos">{{ entrada_semana|brl }}</span>
+  </a>
+  {% endif %}
+  {% if faltas_hoje is not none %}
+  <div class="kpi-card">
+    <span class="kpi-label">Faltas hoje</span>
+    <span class="kpi-value">{{ faltas_hoje }} <span class="kpi-delta">({{ taxa_faltas }}%)</span></span>
+  </div>
+  {% endif %}
+  {% if a_receber_atraso is not none and n_atraso %}
+  <a class="kpi-card{% if a_receber_atraso > 0 %} card-hl-danger{% endif %}" href="{{ url_for('financeiro.contas') }}">
+    <span class="kpi-label">A receber em atraso</span>
+    <span class="kpi-value economia-neg">{{ a_receber_atraso|brl }} <span class="kpi-delta">({{ n_atraso }})</span></span>
   </a>
   {% endif %}
   {% if current_user.is_admin or current_user.is_recepcao %}
@@ -57,5 +75,24 @@
 </table>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta agendada para hoje.</p></div>
+{% endif %}
+
+{% if ocupacao %}
+<div class="page-header section-title-mt">
+  <h3>Ocupação por profissional (hoje)</h3>
+</div>
+<table class="table">
+  <thead><tr><th>Profissional</th><th>Consultas</th><th>Atendidas</th><th>Faltas</th></tr></thead>
+  <tbody>
+    {% for o in ocupacao %}
+    <tr>
+      <td>{{ o.nome }}</td>
+      <td>{{ o.total }}</td>
+      <td>{{ o.atendidos }}</td>
+      <td>{% if o.faltas %}<span class="tag tag-edit">{{ o.faltas }}</span>{% else %}0{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endif %}
 {% endblock %}

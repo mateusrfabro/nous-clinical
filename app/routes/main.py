@@ -109,8 +109,10 @@ def dashboard():
         select(func.count(Profissional.id)).where(Profissional.ativo.is_(True))
     ).scalar_one()
 
-    # Entrada da semana (receitas pagas seg-dom, fuso BR) — admin/recepcao.
-    entrada_semana = None
+    # KPIs de gestão (admin/recepcao): faturamento, faltas, a receber, ocupação.
+    entrada_semana = faturamento_hoje = None
+    faltas_hoje = taxa_faltas = a_receber_atraso = n_atraso = None
+    ocupacao = None
     if current_user.is_admin or current_user.is_recepcao:
         from zoneinfo import ZoneInfo
         from datetime import time as _time
@@ -127,6 +129,46 @@ def dashboard():
                 L.pago_em >= ini_utc, L.pago_em < fim_utc,
             )
         ).scalar_one()
+        # Faturamento de hoje (receitas pagas no dia, fuso BR).
+        faturamento_hoje = db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0)).where(
+                L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
+                L.pago_em >= hoje_ini, L.pago_em < hoje_fim,
+            )
+        ).scalar_one()
+        # A receber em atraso (contas a receber pendentes e vencidas).
+        a_receber_atraso = db.session.execute(
+            select(func.coalesce(func.sum(L.valor), 0)).where(
+                L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
+                L.vencimento.is_not(None), L.vencimento < hoje_br,
+            )
+        ).scalar_one()
+        n_atraso = db.session.execute(
+            select(func.count(L.id)).where(
+                L.status == L.STATUS_PENDENTE, L.tipo == L.TIPO_RECEITA,
+                L.vencimento.is_not(None), L.vencimento < hoje_br,
+            )
+        ).scalar_one()
+        # Faltas de hoje + taxa (faltas / consultas não-canceladas do dia).
+        efetivas = [a for a in agendamentos_hoje
+                    if a.status != Agendamento.STATUS_CANCELADO]
+        faltas_hoje = sum(1 for a in efetivas
+                          if a.status == Agendamento.STATUS_FALTOU)
+        taxa_faltas = round(100 * faltas_hoje / len(efetivas)) if efetivas else 0
+        # Ocupação por profissional (hoje): total, atendidos e faltas por médico.
+        ocup = {}
+        for a in agendamentos_hoje:
+            if a.status == Agendamento.STATUS_CANCELADO:
+                continue
+            nome = a.profissional.nome if a.profissional else "—"
+            linha = ocup.setdefault(
+                nome, {"nome": nome, "total": 0, "atendidos": 0, "faltas": 0})
+            linha["total"] += 1
+            if a.status == Agendamento.STATUS_ATENDIDO:
+                linha["atendidos"] += 1
+            elif a.status == Agendamento.STATUS_FALTOU:
+                linha["faltas"] += 1
+        ocupacao = sorted(ocup.values(), key=lambda x: (-x["total"], x["nome"]))
 
     return render_template(
         "main/dashboard.html",
@@ -134,6 +176,12 @@ def dashboard():
         total_pacientes=total_pacientes,
         total_profissionais=total_profissionais,
         entrada_semana=entrada_semana,
+        faturamento_hoje=faturamento_hoje,
+        faltas_hoje=faltas_hoje,
+        taxa_faltas=taxa_faltas,
+        a_receber_atraso=a_receber_atraso,
+        n_atraso=n_atraso,
+        ocupacao=ocupacao,
     )
 
 
