@@ -109,7 +109,7 @@
 <p class="muted mb-4">{{ total_ags }} consulta(s) no período · {{ atendidos }} atendida(s) · {{ faltas }} falta(s) · {{ cancelados }} cancelada(s) · {{ n_receitas }} recebimento(s).</p>
 
 {% elif tipo == 'faturamento' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Faturamento e receita por médico</h3>
   <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -150,7 +150,7 @@
 </details>
 
 {% elif tipo == 'dependencia_convenio' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Dependência financeira por convênio</h3>
   <a href="{{ url_for('relatorios.dependencia_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -163,7 +163,7 @@
 {% else %}<div class="empty-state"><p>Nenhum recebimento no período.</p></div>{% endif %}
 
 {% elif tipo == 'produtividade' %}
-<div class="page-header"><h3>Produtividade por profissional</h3></div>
+<div class="page-header section-title-mt"><h3>Produtividade por profissional</h3></div>
 <p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
 {% if produtividade %}
 <div class="table-wrapper"><table class="table">
@@ -187,7 +187,7 @@
 </details>
 
 {% elif tipo == 'clientes_ticket' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Clientes e ticket médio</h3>
   <a href="{{ url_for('relatorios.clientes_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -211,7 +211,7 @@
 {% else %}<div class="empty-state"><p>Nenhum recebimento de paciente no período.</p></div>{% endif %}
 
 {% elif tipo == 'pacientes_convenio' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Pacientes por convênio</h3>
   <a href="{{ url_for('relatorios.convenio_csv', convenio=convenio_sel or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -234,7 +234,7 @@
 {% else %}<div class="empty-state"><p>Nenhum paciente ativo{% if convenio_sel %} nesse convênio{% endif %}.</p></div>{% endif %}
 
 {% elif tipo == 'faixa_etaria' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Pacientes por faixa etária</h3>
   <a href="{{ url_for('relatorios.faixa_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -272,7 +272,7 @@
 {% else %}<div class="empty-state"><p>Nenhum paciente ativo cadastrado.</p></div>{% endif %}
 
 {% elif tipo == 'origem_leads' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>Origem de leads</h3>
   <a href="{{ url_for('relatorios.leads_csv') }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -293,7 +293,7 @@
 {% else %}<div class="empty-state"><p>Nenhum paciente ativo cadastrado.</p></div>{% endif %}
 
 {% elif tipo == 'dre' %}
-<div class="page-header">
+<div class="page-header section-title-mt">
   <h3>DRE simplificado</h3>
   <a href="{{ url_for('relatorios.dre_csv', ini=ini, fim=fim) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
@@ -309,7 +309,7 @@
 </table></div>
 
 {% elif tipo == 'evasao' %}
-<div class="page-header"><h3>Pacientes em risco de evasão</h3></div>
+<div class="page-header section-title-mt"><h3>Pacientes em risco de evasão</h3></div>
 <p class="muted text-sm mb-2">Ativos sem atendimento há mais de 180 dias e sem consulta futura — candidatos a recall.</p>
 {% if evasao %}
 <div class="table-wrapper" data-concierge data-concierge-url="{{ url_for('crm.mensagem_ia') }}" data-csrf="{{ csrf_token() }}"><table class="table">
