@@ -112,6 +112,17 @@ Para cada módulo: **o que faz** + **o benefício de negócio**.
   > **e-mail** depende do envio de e-mail configurado. Não é "liga e dispara" no primeiro
   > minuto — exige esse preparo inicial.
 
+### Concierge — mensagens de retorno/reativação
+- **O que faz:** nos painéis de **Retornos** e de **Risco de Evasão**, um botão **"Gerar
+  mensagem"** monta o rascunho personalizado para chamar o paciente de volta (no nome e no tom
+  da clínica). A **recepção revisa e envia** por WhatsApp ou e-mail — humano no meio.
+- **Benefício:** a clínica já tem a lista de quem chamar; o que trava é **escrever** dezenas de
+  mensagens à mão. O Concierge tira essa fricção e transforma a lista em receita de retorno.
+  > **Honesto:** funciona **sem custo** (mensagens prontas que se adaptam ao paciente). Há um
+  > **modo com IA opcional e desligado** para frases mais variadas (centavos por mensagem,
+  > arcado pela operadora). Em nenhum modo **acessa o prontuário** — usa só nome, profissional e
+  > tempo desde a última consulta (LGPD-safe). A ferramenta **sugere**, não envia sozinha.
+
 ### WhatsApp Business integrado *(opcional — liga quando quiser)*
 - **O que faz:** cada clínica conecta o **próprio número** de WhatsApp Business e
   conversa com o paciente de dentro do sistema. O token de acesso fica **cifrado**.
@@ -212,6 +223,7 @@ clínica quiser · **Parcial / Roadmap** = depende de uma etapa ou ainda em cons
 | Repasse médico (comissão) | ✅ Pronto | Calculado nos Relatórios, por profissional. |
 | Relatórios / BI (faturamento por médico, convênio, produtividade, ticket, faixa etária, leads, DRE, evasão) | ✅ Pronto | Exportação em CSV. |
 | CRM (retornos, aniversariantes) | ✅ Pronto | — |
+| Concierge (rascunho de mensagem de retorno/reativação) | ✅ Pronto | **Custo zero** (mensagens prontas). Modo IA opcional desligado (centavos/msg). Não lê prontuário; a recepção revisa e envia. |
 | Lembrete de consulta automático (WhatsApp/e-mail) | ⚙️ Opcional | WhatsApp exige número conectado + **template aprovado pela Meta**; e-mail exige envio configurado. |
 | WhatsApp Business integrado | ⚙️ Opcional | Vem inerte; clínica conecta o número; **mensagens pagas pela clínica à Meta**. |
 | Suporte Nous (ajuda) | ✅ Pronto | **Custo zero**, sempre ligado. |

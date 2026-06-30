@@ -63,6 +63,26 @@ Na coluna **Ações** de cada linha você tem dois atalhos:
 > cadastrado. Sem telefone, a coluna mostra um traço (—). Vale completar o cadastro do
 > paciente para não perder o contato.
 
+### Gerar mensagem (Concierge)
+
+Em cada paciente há o botão **✦ Gerar mensagem**. Ao clicar, o sistema **monta um rascunho**
+de mensagem de retorno já no nome do paciente. Você então:
+
+1. **Revisa e edita** o texto na caixa que abre (é só um rascunho — ajuste à vontade).
+2. Clica em **Abrir WhatsApp** para enviar com o texto que você aprovou, ou em **Copiar**
+   para colar onde quiser. **Gerar de novo** traz outra versão.
+
+> ✅ **Custo zero:** as mensagens são prontas e se adaptam ao paciente — não há nenhum custo
+> por usar. (A clínica pode, opcionalmente, ligar um modo com IA para frases mais variadas;
+> esse modo é ativado pela operadora.)
+
+> ⚠️ **Atenção:** a ferramenta **sugere**, não envia. Nada sai sem você revisar e clicar em
+> enviar. Ela **não vê o prontuário** — só sabe o nome, o profissional e há quanto tempo foi a
+> última consulta.
+
+> 💡 O mesmo botão **✦ Gerar mensagem** aparece no relatório **Pacientes em risco de evasão**
+> (em **Relatórios**), para reativar quem está há muito tempo sem voltar.
+
 ---
 
 ## Aniversariantes do dia

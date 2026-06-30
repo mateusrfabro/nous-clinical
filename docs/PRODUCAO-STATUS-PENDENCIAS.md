@@ -29,6 +29,14 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
   repasse"** que abre a despesa **pré-preenchida** (o admin confere e salva).
 - ✅ **Lembrete de consulta automático** — por **WhatsApp** (template aprovado) ou e-mail;
   reduz faltas. (WhatsApp exige o template HSM aprovado pela clínica; sem ele, cai no e-mail.)
+- ✅ **Concierge — mensagens de retorno/reativação** — botão **"✦ Gerar mensagem"** nos painéis
+  de **Retornos** (CRM) e **Risco de Evasão** (Relatórios): gera um rascunho personalizado, a
+  recepção revisa e envia por WhatsApp/e-mail. **Custo ZERO por padrão** (modo template; sem API).
+  Há um **modo IA opcional desligado** (`CONCIERGE_ATIVO` + `ANTHROPIC_API_KEY`) pra frases mais
+  variadas — centavos/mensagem se ligado. Não lê prontuário (LGPD-safe); auditado só por metadado.
+- ✅ **Landing comercial pública** — a home `/` virou página de vendas honesta (módulos,
+  diferenciais, segurança/LGPD, faixa de transparência), gerada do `COMERCIAL-NOUS.md`. O CTA
+  usa `CONTATO_COMERCIAL` (WhatsApp/e-mail/form do comercial); sem ele, cai em "Entrar".
 - ✅ **Padronização de UI/UX e acessibilidade** — design system consistente (botões, valores
   alinhados, menu de ações "⋯", segmented control) e correções de contraste/teclado (WCAG).
 - ✅ **Manual do Usuário** — texto atualizado com as telas novas (Quadro, Painel, Financeiro,
@@ -67,6 +75,11 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 4. **Assistente com IA** (opcional) — o Suporte gratuito já atende; se quiserem o modo IA,
    basta colar a `ANTHROPIC_API_KEY` no Render (custo da PGS, centavos/mês).
 5. **WhatsApp por clínica** — já ligado; cada clínica conecta o próprio número.
+6. **Concierge — modo IA** (opcional) — o botão "Gerar mensagem" **já funciona de graça**
+   (templates). Se quiserem frases geradas por IA, `CONCIERGE_ATIVO=true` + `ANTHROPIC_API_KEY`
+   no Render (centavos/geração, PGS). **Decisão atual: NÃO ligar** — sem custo p/ ninguém agora.
+7. **CTA da landing** — setar `CONTATO_COMERCIAL` (ex.: link `https://wa.me/55...` do comercial
+   ou `mailto:`) pra o botão "Falar com a gente" apontar pro canal certo.
 
 ### 👥 Acesso
 6. **Adicionar o Lucas como colaborador** no repositório (pros links dos PDFs abrirem).

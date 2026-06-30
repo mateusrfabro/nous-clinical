@@ -105,7 +105,12 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
   rota `/ajuda/chat`),
   `fiscal` (emissão de NFS-e via **adaptador agnóstico de gateway** — Nuvem Fiscal;
   OAuth2; **default-OFF** via `NF_ATIVO`; cadastro do emitente por clínica; ver
-  docs/11-emissao-nf.md).
+  docs/11-emissao-nf.md),
+  `concierge` (gera a mensagem de **retorno/reativação** nos painéis de Retornos/Evasão —
+  **templates de custo ZERO por padrão** + **modo IA opcional default-OFF** via `CONCIERGE_ATIVO`
+  reusando `ANTHROPIC_API_KEY`; `gerar_mensagem()` decide IA×template e cai no template se a IA
+  falhar; **não lê prontuário** — só nome/profissional/tempo; recepção revisa e envia; rota
+  `/crm/mensagem-ia`).
 - Error handlers 400/403/404/429/500 com template próprio.
 - Design system CSS **tema claro** (tokens `--brand-*`/semânticos, utilitários, componentes) —
   **identidade oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C`
