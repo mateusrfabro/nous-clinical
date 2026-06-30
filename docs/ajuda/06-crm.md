@@ -11,7 +11,7 @@ rotas: [/crm/retornos, /crm/aniversariantes]
 Lista os pacientes cujo **retorno recomendado** pelo médico (no atendimento) está
 vencendo/vencido e que **ainda não reagendaram**. Para cada um:
 - **Agendar retorno** (vai direto pro agendamento já com o paciente).
-- **WhatsApp** com mensagem pronta de retorno.
+- **Gerar mensagem** — rascunho de retorno que você revisa e envia pelo WhatsApp (ver abaixo).
 
 Use os filtros de janela (vencidos, até 30/60/90/180 dias).
 

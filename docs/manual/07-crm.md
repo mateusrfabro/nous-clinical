@@ -55,13 +55,8 @@ Na coluna **Ações** de cada linha você tem dois atalhos:
 
 1. Clique em **Agendar retorno** para abrir a tela de novo agendamento **já com o
    paciente preenchido**. É o caminho mais rápido para remarcar.
-2. Clique em **WhatsApp** para abrir uma conversa com o paciente **com a mensagem já
-   escrita**, convidando para o retorno. A mensagem abre no seu WhatsApp; você ainda
-   confere e clica em enviar.
-
-> 💡 **Dica:** o botão **WhatsApp** só aparece se o paciente tiver **telefone**
-> cadastrado. Sem telefone, a coluna mostra um traço (—). Vale completar o cadastro do
-> paciente para não perder o contato.
+2. Clique em **Gerar mensagem** para montar um rascunho de mensagem de retorno e
+   enviá-lo pelo WhatsApp (revisando antes) — veja **Gerar mensagem (Concierge)** logo abaixo.
 
 ### Gerar mensagem (Concierge)
 
@@ -99,7 +94,7 @@ aniversário, a tela mostra **Nenhum aniversariante hoje.**
 
 Na coluna **Ações** de cada paciente:
 
-1. Clique em **WhatsApp 🎉** para abrir a conversa **com a mensagem de parabéns já
+1. Clique em **WhatsApp** para abrir a conversa **com a mensagem de parabéns já
    pronta**. Confira e envie.
 2. Depois de felicitar, clique em **Registrar contato**. Isso anota que a clínica fez
    o contato, para a equipe saber que aquele paciente já foi parabenizado.
@@ -107,7 +102,7 @@ Na coluna **Ações** de cada paciente:
 > 💡 **Dica:** registrar o contato evita que duas pessoas da recepção mandem parabéns
 > para o mesmo paciente. Quando você registra, aparece um aviso de confirmação na tela.
 
-> ⚠️ **Atenção:** assim como nos retornos, o botão **WhatsApp 🎉** só existe quando o
+> ⚠️ **Atenção:** assim como nos retornos, o botão **WhatsApp** só existe quando o
 > paciente tem telefone. Sem número, a linha mostra **sem telefone**.
 
 ---
