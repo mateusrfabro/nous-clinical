@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import actions_menu %}
+{% block title %}Conciliação bancária — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Conciliação bancária</h2>
+  <div class="page-header-actions">
+    <a href="{{ url_for('financeiro.fluxo') }}" class="btn btn-outline">Fluxo de caixa</a>
+    <a href="{{ url_for('financeiro.contas') }}" class="btn btn-outline">Contas</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Importar extrato (.ofx)</h3>
+  <p class="muted text-sm mb-2">Exporte o extrato do seu banco no formato <strong>OFX</strong> e envie aqui. Transações já importadas são ignoradas (sem duplicar).</p>
+  <form method="POST" action="{{ url_for('financeiro.conciliacao_importar') }}" enctype="multipart/form-data" class="row-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="extrato" accept=".ofx,application/x-ofx,application/ofx" required>
+    <button type="submit" class="btn btn-primary">Importar extrato</button>
+  </form>
+</div>
+
+<section class="kpi-grid">
+  <div class="kpi-card">
+    <span class="kpi-label">A conciliar</span>
+    <span class="kpi-value">{{ n_pend }}</span>
+  </div>
+  <div class="kpi-card card-hl-success">
+    <span class="kpi-label">Conciliados</span>
+    <span class="kpi-value">{{ n_conc }}</span>
+  </div>
+</section>
+
+{% if movimentos %}
+<div class="table-wrapper">
+<table class="table">
+  <thead>
+    <tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th>Situação</th><th>Ações</th></tr>
+  </thead>
+  <tbody>
+    {% for m in movimentos %}
+    <tr>
+      <td>{{ m.data|data_br }}</td>
+      <td>{{ m.descricao or '—' }}{% if m.banco %}<br><span class="muted text-sm">{{ m.banco }}</span>{% endif %}</td>
+      <td class="num {{ 'economia-pos' if m.tipo == 'credito' else 'economia-neg' }}">
+        {{ '+' if m.tipo == 'credito' else '-' }} {{ m.valor|brl }}
+      </td>
+      <td>
+        {% if m.status == 'conciliado' %}
+          <span class="tag tag-success">Conciliado</span>
+          {% if m.lancamento %}<br><span class="muted text-sm">{{ m.lancamento.descricao or (m.lancamento.categoria|categoria_label) }}</span>{% endif %}
+        {% elif m.status == 'ignorado' %}
+          <span class="tag tag-info">Ignorado</span>
+        {% else %}
+          <span class="tag tag-falta">A conciliar</span>
+        {% endif %}
+      </td>
+      <td>
+        <div class="row-actions">
+          {% if m.status == 'pendente' %}
+            {% set sug = sugestoes.get(m.id) %}
+            {% if sug %}
+            <form method="POST" action="{{ url_for('financeiro.conciliacao_conciliar', movimento_id=m.id) }}" class="inline-form no-loading" title="Sugestão: {{ sug.descricao or (sug.categoria|categoria_label) }} · {{ sug.valor|brl }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="lancamento_id" value="{{ sug.id }}">
+              <button type="submit" class="btn btn-primary btn-sm">Conciliar sugestão</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('financeiro.conciliacao_criar', movimento_id=m.id) }}" class="inline-form no-loading">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline btn-sm">Criar lançamento</button>
+            </form>
+            {% endif %}
+            {% call actions_menu() %}
+              {% if sug %}
+              <form method="POST" action="{{ url_for('financeiro.conciliacao_criar', movimento_id=m.id) }}" class="no-loading">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Criar novo lançamento</button>
+              </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('financeiro.conciliacao_ignorar', movimento_id=m.id) }}" class="no-loading">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="item-danger">Ignorar movimento</button>
+              </form>
+            {% endcall %}
+          {% else %}
+            <form method="POST" action="{{ url_for('financeiro.conciliacao_desfazer', movimento_id=m.id) }}" class="inline-form no-loading">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline btn-sm" data-confirm="Desfazer? O movimento volta para 'a conciliar'.">Desfazer</button>
+            </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhum movimento importado ainda. Envie um extrato .ofx para começar.</p></div>
+{% endif %}
+{% endblock %}

@@ -39,11 +39,13 @@ def init_tenant(db):
         Paciente, Profissional, Agendamento, Atendimento,
         LancamentoFinanceiro, Procedimento, Exame, Convenio, Usuario, Bloqueio,
         Sala, WhatsAppConta, WhatsAppContato, WhatsAppMensagem,
+        MovimentoBancario,
     )
     # Escopo de LEITURA (sem Usuario — auth precisa de lookup global).
     escopados = [Paciente, Profissional, Agendamento, Atendimento,
                  LancamentoFinanceiro, Procedimento, Exame, Convenio, Bloqueio,
-                 Sala, WhatsAppConta, WhatsAppContato, WhatsAppMensagem]
+                 Sala, WhatsAppConta, WhatsAppContato, WhatsAppMensagem,
+                 MovimentoBancario]
     # Recebem clinica_id na CRIAÇÃO (inclui Usuario).
     donos = tuple(escopados + [Usuario])
 

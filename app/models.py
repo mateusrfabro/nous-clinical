@@ -537,6 +537,15 @@ class LancamentoFinanceiro(db.Model):
 
     paciente = db.relationship("Paciente", back_populates="lancamentos")
     agendamento = db.relationship("Agendamento", back_populates="lancamento")
+    # Conciliação bancária: 0..1 movimento de extrato casado a este lançamento.
+    # `movimento is None` => lançamento ainda não conciliado.
+    movimento = db.relationship(
+        "MovimentoBancario", back_populates="lancamento", uselist=False)
+
+    @property
+    def conciliado(self):
+        """True se há um movimento bancário casado a este lançamento."""
+        return self.movimento is not None
 
     @property
     def vencido(self):
@@ -549,6 +558,56 @@ class LancamentoFinanceiro(db.Model):
 
     def __repr__(self):
         return f"<LancamentoFinanceiro {self.id} {self.tipo} {self.status} {self.valor}>"
+
+
+class MovimentoBancario(db.Model):
+    """Transação de um extrato bancário (OFX) importada para conciliação.
+
+    Cada linha do extrato vira um movimento. O usuário concilia cada movimento
+    com um LancamentoFinanceiro (relação 1:1) — casando um existente ou criando
+    um novo a partir do movimento — ou marca como ignorado (tarifa, transferência
+    interna, etc.). Dedup de reimportação por (clinica_id, conta, fitid). Valor
+    SEMPRE positivo; o sentido vive em `tipo` (credito=entrada / debito=saida).
+    Dinheiro Numeric(12,2). Datas do extrato são DATE (sem hora/fuso).
+    """
+    __tablename__ = "movimentos_bancarios"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "conta", "fitid", name="uq_mov_fitid"),
+        db.Index("ix_mov_clinica_status_data", "clinica_id", "status", "data"),
+    )
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_CONCILIADO = "conciliado"
+    STATUS_IGNORADO = "ignorado"
+
+    TIPO_CREDITO = "credito"   # entrada (TRNAMT > 0)
+    TIPO_DEBITO = "debito"     # saída   (TRNAMT < 0)
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    data = db.Column(db.Date, nullable=False, index=True)   # DTPOSTED do OFX
+    valor = db.Column(Numeric(12, 2), nullable=False)       # sempre positivo
+    tipo = db.Column(db.String(8), nullable=False)          # credito | debito
+    descricao = db.Column(db.String(200))                   # MEMO/NAME do OFX
+    fitid = db.Column(db.String(80))                        # id único da transação
+    conta = db.Column(db.String(40))                        # ACCTID do OFX
+    banco = db.Column(db.String(60))                        # ORG/BANKID (exibição)
+    status = db.Column(db.String(12), nullable=False,
+                       default=STATUS_PENDENTE, index=True)
+    lancamento_id = db.Column(
+        db.Integer, db.ForeignKey("lancamentos_financeiros.id"),
+        unique=True, index=True)
+    importado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    importado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    conciliado_em = db.Column(db.DateTime(timezone=True))
+    conciliado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    lancamento = db.relationship(
+        "LancamentoFinanceiro", back_populates="movimento")
+
+    def __repr__(self):
+        return f"<MovimentoBancario {self.id} {self.tipo} {self.valor} {self.status}>"
 
 
 class Exame(db.Model):
@@ -625,6 +684,10 @@ class AuditLog(db.Model):
     ACAO_WHATSAPP_CONFIG = "whatsapp_config"      # conexão/edição da conta WhatsApp
     ACAO_WHATSAPP_ENVIADA = "whatsapp_enviada"    # mensagem enviada pela equipe
     ACAO_FISCAL_CONFIG = "fiscal_config"          # config de emissão de NFS-e da clínica
+    ACAO_CONCILIACAO_IMPORT = "conciliacao_import"      # importou extrato OFX
+    ACAO_CONCILIACAO_CONCILIADO = "conciliacao_conciliado"  # casou movimento×lançamento
+    ACAO_CONCILIACAO_IGNORADO = "conciliacao_ignorado"      # ignorou um movimento
+    ACAO_CONCILIACAO_DESFEITO = "conciliacao_desfeito"      # desfez a conciliação
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

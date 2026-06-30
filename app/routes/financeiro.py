@@ -15,14 +15,17 @@ from flask import (
 from flask import abort
 from flask_login import login_required, current_user
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.auth_decorators import recepcao_ou_admin
 from app.models import (
-    LancamentoFinanceiro, Paciente, Agendamento, AuditLog,
+    LancamentoFinanceiro, Paciente, Agendamento, AuditLog, MovimentoBancario,
 )
 from app.services.audit import audit
+from app.services.ofx import parse_ofx, OFXError
+from app.services.conciliacao import importar_extrato, sugestao_para
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
@@ -341,3 +344,161 @@ def contas():
         a_receber=a_receber, a_pagar=a_pagar,
         total_receber=total_receber, total_pagar=total_pagar,
     )
+
+
+# ===================== Conciliação bancária (OFX) =====================
+
+@financeiro_bp.route("/conciliacao")
+@login_required
+@recepcao_ou_admin
+def conciliacao():
+    """Painel de conciliação: lista os movimentos do extrato (pendentes
+    primeiro) com a sugestão de lançamento p/ cada pendente."""
+    M = MovimentoBancario
+    movimentos = db.session.execute(
+        select(M).options(selectinload(M.lancamento))
+        # pendentes primeiro, depois mais recentes.
+        .order_by(M.status != M.STATUS_PENDENTE, M.data.desc(), M.id.desc())
+    ).scalars().all()
+    sugestoes = {m.id: sugestao_para(m)
+                 for m in movimentos if m.status == M.STATUS_PENDENTE}
+    n_pend = sum(1 for m in movimentos if m.status == M.STATUS_PENDENTE)
+    n_conc = sum(1 for m in movimentos if m.status == M.STATUS_CONCILIADO)
+    return render_template(
+        "financeiro/conciliacao.html",
+        movimentos=movimentos, sugestoes=sugestoes,
+        n_pend=n_pend, n_conc=n_conc,
+    )
+
+
+@financeiro_bp.route("/conciliacao/importar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_importar():
+    arquivo = request.files.get("extrato")
+    if not arquivo or not arquivo.filename:
+        flash("Selecione um arquivo .ofx do seu banco.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    try:
+        extrato = parse_ofx(arquivo.read())
+    except OFXError as e:
+        flash(f"Não foi possível ler o extrato: {e}", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    novos, dup = importar_extrato(
+        extrato, current_user.clinica_id, current_user.id)
+    audit(AuditLog.ACAO_CONCILIACAO_IMPORT, recurso_tipo="extrato",
+          detalhes=f"novos={novos} dup={dup} conta={extrato.conta or '-'}")
+    flash(f"Extrato importado: {novos} novo(s), {dup} já existente(s).",
+          "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+def _mov_ou_redirect(movimento_id):
+    """Carrega o movimento (auto-escopado por clínica) ou redireciona."""
+    mov = db.session.get(MovimentoBancario, movimento_id)
+    if not mov:
+        flash("Movimento não encontrado.", "error")
+    return mov
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/conciliar",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_conciliar(movimento_id):
+    """Casa o movimento a um lançamento existente (id vindo da sugestão)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    lanc_id = request.form.get("lancamento_id", type=int)
+    lanc = db.session.get(LancamentoFinanceiro, lanc_id) if lanc_id else None
+    if not lanc:
+        flash("Lançamento para conciliar não encontrado.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    if lanc.movimento is not None and lanc.movimento.id != mov.id:
+        flash("Esse lançamento já está conciliado com outro movimento.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    mov.lancamento_id = lanc.id
+    mov.status = MovimentoBancario.STATUS_CONCILIADO
+    mov.conciliado_em = datetime.now(timezone.utc)
+    mov.conciliado_por_id = current_user.id
+    db.session.commit()
+    audit(AuditLog.ACAO_CONCILIACAO_CONCILIADO, recurso_tipo="movimento",
+          recurso_id=mov.id, detalhes=f"lancamento={lanc.id}")
+    flash("Movimento conciliado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/criar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_criar(movimento_id):
+    """Cria um lançamento (pago) a partir do movimento e já concilia."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    if mov.status == MovimentoBancario.STATUS_CONCILIADO:
+        flash("Movimento já conciliado.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    L = LancamentoFinanceiro
+    tipo = (L.TIPO_RECEITA if mov.tipo == MovimentoBancario.TIPO_CREDITO
+            else L.TIPO_DESPESA)
+    # Data do extrato ao meio-dia BR -> UTC (evita virar o dia perto da 00h).
+    pago_em = datetime.combine(mov.data, time(12, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+    lanc = L(tipo=tipo, categoria="outro",
+             descricao=(mov.descricao or "Movimento bancário")[:200],
+             valor=mov.valor, status=L.STATUS_PAGO, pago_em=pago_em,
+             criado_por_id=current_user.id)
+    db.session.add(lanc)
+    db.session.flush()
+    mov.lancamento_id = lanc.id
+    mov.status = MovimentoBancario.STATUS_CONCILIADO
+    mov.conciliado_em = datetime.now(timezone.utc)
+    mov.conciliado_por_id = current_user.id
+    db.session.commit()
+    audit(AuditLog.ACAO_LANCAMENTO_CRIADO, recurso_tipo="lancamento",
+          recurso_id=lanc.id, detalhes=f"tipo={tipo} via=conciliacao")
+    audit(AuditLog.ACAO_CONCILIACAO_CONCILIADO, recurso_tipo="movimento",
+          recurso_id=mov.id, detalhes=f"lancamento={lanc.id} novo")
+    flash("Lançamento criado e movimento conciliado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/ignorar",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_ignorar(movimento_id):
+    """Marca o movimento como ignorado (tarifa, transferência interna...)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    if mov.status != MovimentoBancario.STATUS_CONCILIADO:
+        mov.status = MovimentoBancario.STATUS_IGNORADO
+        db.session.commit()
+        audit(AuditLog.ACAO_CONCILIACAO_IGNORADO, recurso_tipo="movimento",
+              recurso_id=mov.id)
+        flash("Movimento ignorado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/desfazer",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_desfazer(movimento_id):
+    """Volta o movimento p/ pendente (desfaz conciliação/ignore). NÃO apaga o
+    lançamento vinculado — só desfaz o vínculo."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    mov.lancamento_id = None
+    mov.status = MovimentoBancario.STATUS_PENDENTE
+    mov.conciliado_em = None
+    mov.conciliado_por_id = None
+    db.session.commit()
+    audit(AuditLog.ACAO_CONCILIACAO_DESFEITO, recurso_tipo="movimento",
+          recurso_id=mov.id)
+    flash("Conciliação desfeita.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
