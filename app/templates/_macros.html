@@ -30,12 +30,15 @@
 
 {% macro actions_menu(label='Mais ações') %}
 {# Popover "⋯ Mais" para ações secundárias (CSP-safe, controlado por
-   actions-menu.js). Conteúdo (links/forms) vem do {% call %}. #}
+   actions-menu.js). Conteúdo (links/forms) vem do {% call %}. NÃO usa
+   role="menu" de propósito: os itens são <a>/<button> dentro de <form>, que o
+   leitor de tela já anuncia corretamente; role=menu exigiria role=menuitem em
+   cada um e quebraria os forms. Disclosure simples (aria-expanded). #}
 <div class="actions-more">
   <button type="button" class="btn btn-outline btn-sm actions-more-toggle"
-          data-actions-toggle aria-haspopup="true" aria-expanded="false"
+          data-actions-toggle aria-expanded="false"
           aria-label="{{ label }}">⋯</button>
-  <div class="actions-more-menu" role="menu" hidden>{{ caller() }}</div>
+  <div class="actions-more-menu" hidden>{{ caller() }}</div>
 </div>
 {% endmacro %}
 

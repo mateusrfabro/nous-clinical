@@ -57,6 +57,7 @@
   }
 
   function onDragStart(ev) {
+    if (!(ev.target instanceof Element)) return;
     var card = ev.target.closest("[data-kanban-card]");
     if (!card) return;
     dragging = card;

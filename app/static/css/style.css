@@ -475,8 +475,9 @@ h1, h2, h3, h4, h5, h6 {
     outline-offset: -4px;
 }
 
-/* === A11y: foco visivel global (WCAG 2.4.7) ===
-   Aplica anel ouro em qualquer elemento interativo ao receber foco por
+/* === A11y: foco visivel global (WCAG 2.4.7 + 1.4.11) ===
+   Anel teal-escuro (--primary-dark, ~3.4:1 sobre fundo claro — passa o mínimo
+   3:1 de não-texto) em qualquer elemento interativo ao receber foco por
    teclado. :focus-visible (nao :focus) evita anel ao clicar com mouse. */
 a:focus-visible,
 button:focus-visible,
@@ -490,7 +491,7 @@ textarea:focus-visible,
 summary:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible {
-    outline: 2px solid var(--brand-ouro);
+    outline: 2px solid var(--primary-dark);
     outline-offset: 2px;
     border-radius: 4px;
 }
@@ -1177,7 +1178,7 @@ button[aria-disabled="true"] {
    3:1 sobre qualquer surface dark (verde/grafite/elevado) e mantem o
    padrao de "foco = ouro" usado nos cards do Kanban. */
 *:focus-visible {
-    outline: 2px solid var(--brand-ouro);
+    outline: 2px solid var(--primary-dark);
     outline-offset: 2px;
     border-radius: 2px;
 }
@@ -1866,7 +1867,7 @@ body.app .nav-item:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: 2px solid var(--brand-verde-claro);
+    outline: 2px solid var(--primary-dark);
     outline-offset: 1px;
 }
 

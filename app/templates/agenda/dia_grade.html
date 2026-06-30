@@ -11,7 +11,7 @@
 <form method="GET" class="toolbar no-loading mb-4">
   <div class="view-switch" role="group" aria-label="Modo de visualização">
     <a href="{{ url_for('agenda.listar', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Dia</a>
-    <span class="btn btn-primary btn-sm is-active" aria-current="true">Grade</span>
+    <span class="btn btn-primary btn-sm is-active" aria-current="page">Grade</span>
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
     <a href="{{ url_for('agenda.kanban', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
