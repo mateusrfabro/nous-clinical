@@ -25,6 +25,10 @@ Principais (ver `config.py`):
 | `TAREFAS_TOKEN` | autentica o endpoint `/tarefas/lembretes` (cron) | se usar cron |
 | `PUBLIC_BASE_URL` | base dos links públicos (confirmação/lembrete) | recomendável |
 | SMTP_* / `TELEGRAM_*` | envio de e-mail / Telegram | opcional |
+| `ANTHROPIC_API_KEY` | chave Claude (compartilhada pelo Suporte IA e Concierge IA) | opcional |
+| `AJUDA_IA_ATIVA` | liga o modo IA do Suporte (default-OFF) | opcional |
+| `CONCIERGE_ATIVO` | liga o modo IA do Concierge (mensagem de retorno; default-OFF → usa template grátis) | opcional |
+| `CONTATO_COMERCIAL` | CTA da landing `/` (link WhatsApp/`mailto:`); vazio → "Entrar" | opcional |
 
 ## Banco: migrations
 Sempre exporte `FLASK_APP=run.py` antes dos comandos `flask db`.

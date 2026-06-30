@@ -88,11 +88,12 @@ clínica. Em linguagem simples:
   atendimento. Inclui também o **volume de procedimentos/exames** registrados.
 - **Pacientes em risco de evasão** — pacientes ativos **sem atendimento há mais de
   180 dias e sem consulta futura marcada**. São candidatos a um "vamos te chamar
-  de volta". Quando há telefone cadastrado, aparece um botão **Lembrete** para
-  falar pelo WhatsApp.
+  de volta". Em cada paciente há o botão **Gerar mensagem**, que monta um rascunho
+  de reativação para você revisar e enviar pelo WhatsApp (o mesmo recurso do CRM
+  de Retornos — sem custo).
 
 > 💡 **Dica:** o relatório de **Pacientes em risco de evasão** é ouro para reativar
-> a clínica. Use o botão **Lembrete** para chamar de volta quem sumiu há um tempo.
+> a clínica. Use o botão **Gerar mensagem** para chamar de volta quem sumiu há um tempo.
 
 ---
 
@@ -129,6 +130,10 @@ login, cada paciente criado, cada agendamento, cada lançamento financeiro, cada
 prontuário visualizado ou editado. Ela registra **quem** fez, **qual** ação,
 **em que registro** e **a que horas**. É uma tela só de **leitura** — ninguém
 edita nem apaga o histórico.
+
+> 🔒 **Você vê só a sua clínica.** A trilha mostra apenas as ações dos usuários da
+> **sua** clínica. Ações da plataforma (o super-administrador do Nous) e de outras
+> clínicas **não aparecem** aqui — o isolamento é automático.
 
 No menu lateral, clique em **Auditoria**.
 

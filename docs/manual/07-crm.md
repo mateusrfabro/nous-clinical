@@ -65,7 +65,7 @@ Na coluna **Ações** de cada linha você tem dois atalhos:
 
 ### Gerar mensagem (Concierge)
 
-Em cada paciente há o botão **✦ Gerar mensagem**. Ao clicar, o sistema **monta um rascunho**
+Em cada paciente há o botão **Gerar mensagem**. Ao clicar, o sistema **monta um rascunho**
 de mensagem de retorno já no nome do paciente. Você então:
 
 1. **Revisa e edita** o texto na caixa que abre (é só um rascunho — ajuste à vontade).
@@ -80,7 +80,7 @@ de mensagem de retorno já no nome do paciente. Você então:
 > enviar. Ela **não vê o prontuário** — só sabe o nome, o profissional e há quanto tempo foi a
 > última consulta.
 
-> 💡 O mesmo botão **✦ Gerar mensagem** aparece no relatório **Pacientes em risco de evasão**
+> 💡 O mesmo botão **Gerar mensagem** aparece no relatório **Pacientes em risco de evasão**
 > (em **Relatórios**), para reativar quem está há muito tempo sem voltar.
 
 ---

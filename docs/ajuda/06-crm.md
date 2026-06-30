@@ -19,7 +19,7 @@ Use os filtros de janela (vencidos, até 30/60/90/180 dias).
 > médico precisa marcar um novo retorno no próximo atendimento.
 
 ### Gerar mensagem (Concierge)
-O botão **✦ Gerar mensagem** monta um **rascunho** de mensagem de retorno no nome do paciente
+O botão **Gerar mensagem** monta um **rascunho** de mensagem de retorno no nome do paciente
 (**sem custo**). Você revisa/edita, clica em **Abrir WhatsApp** (envia com o texto aprovado) ou
 **Copiar**; **Gerar de novo** traz outra versão. A ferramenta **sugere, não envia** — nada sai
 sem você revisar. Ela **não lê o prontuário** (só nome, profissional e tempo desde a última

@@ -188,7 +188,7 @@ Quando o profissional **não vai atender** num período, registre um **bloqueio*
 horários bloqueados deixam de aparecer para agendamento (inclusive no auto-agendamento
 online do paciente).
 
-Para abrir, clique em **🔒 Bloqueios** na barra da Agenda.
+Para abrir, clique em **Bloqueios** na barra da Agenda.
 
 ![Tela de Bloqueios de agenda](assets/agenda-bloqueios.png)
 

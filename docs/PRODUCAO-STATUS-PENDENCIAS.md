@@ -29,7 +29,7 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
   repasse"** que abre a despesa **pré-preenchida** (o admin confere e salva).
 - ✅ **Lembrete de consulta automático** — por **WhatsApp** (template aprovado) ou e-mail;
   reduz faltas. (WhatsApp exige o template HSM aprovado pela clínica; sem ele, cai no e-mail.)
-- ✅ **Concierge — mensagens de retorno/reativação** — botão **"✦ Gerar mensagem"** nos painéis
+- ✅ **Concierge — mensagens de retorno/reativação** — botão **"Gerar mensagem"** nos painéis
   de **Retornos** (CRM) e **Risco de Evasão** (Relatórios): gera um rascunho personalizado, a
   recepção revisa e envia por WhatsApp/e-mail. **Custo ZERO por padrão** (modo template; sem API).
   Há um **modo IA opcional desligado** (`CONCIERGE_ATIVO` + `ANTHROPIC_API_KEY`) pra frases mais
