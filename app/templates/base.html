@@ -220,8 +220,15 @@
     <nav class="navbar" aria-label="Navegação principal">
         <div class="nav-brand">{{ brand(url_for('main.index')) }}</div>
         <div class="nav-links">
+            {% if portal_clinica %}
+            {# Portal da clínica (paciente): agendar a própria consulta + entrar. #}
             <a href="{{ url_for('agenda.agendar_online') }}" class="btn btn-outline btn-sm">Agendar consulta</a>
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Entrar</a>
+            {% else %}
+            {# Landing comercial Nous: CTA de demo + caminho discreto p/ cliente. #}
+            {% if contato_comercial %}<a href="{{ contato_comercial }}" class="btn btn-primary btn-sm" target="_blank" rel="noopener">Agendar demonstração</a>{% endif %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Já sou cliente</a>
+            {% endif %}
         </div>
     </nav>
     <main class="container" id="conteudo-principal">

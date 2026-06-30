@@ -47,7 +47,10 @@ class Config:
     # CTA comercial da landing publica (/). Pode ser um link de WhatsApp
     # (https://wa.me/55...), um mailto: ou a URL de um formulario. Vazio = o CTA
     # cai pro "Entrar na plataforma" (nao inventa canal de contato).
-    CONTATO_COMERCIAL = os.getenv("CONTATO_COMERCIAL", "")
+    CONTATO_COMERCIAL = os.getenv(
+        "CONTATO_COMERCIAL",
+        "https://wa.me/5544999808355"
+        "?text=Ol%C3%A1!%20Quero%20agendar%20a%20demonstra%C3%A7%C3%A3o%20do%20Nous%20Clinical")
 
     # Chatbot de ajuda ("Nous Assistente") via Claude API. A chave fica SO no
     # servidor (nunca vai ao front). AJUDA_IA_ATIVA liga/desliga a feature sem
@@ -126,6 +129,7 @@ class TestingConfig(Config):
     # teste que precisa liga a flag/segredo explicitamente.
     AJUDA_IA_ATIVA = False
     ANTHROPIC_API_KEY = ""
+    CONTATO_COMERCIAL = ""            # cada teste de landing seta explicitamente
     WHATSAPP_ATIVO = False
     WHATSAPP_VERIFY_TOKEN = "test-verify-token"
     WHATSAPP_APP_SECRET = ""          # vazio => sem checagem de assinatura no teste

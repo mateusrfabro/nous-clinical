@@ -4,21 +4,22 @@
 {# Canonical na raiz: `/` e `/produto` renderizam a mesma página -> evita conteúdo duplicado no índice. #}
 {% block head_extra %}<link rel="canonical" href="{{ url_for('main.index', _external=True) }}">{% endblock %}
 {% block h1_oculto_pub %}{% endblock %}
-{% set cta_primario = contato or url_for('auth.login') %}
-{% set cta_label = 'Falar com a gente' if contato else 'Entrar na plataforma' %}
-{% set cta_externo = contato and (contato.startswith('http') or contato.startswith('mailto')) %}
+{% set cta_primario = contato_comercial or url_for('auth.login') %}
+{% set cta_label = 'Agendar demonstração gratuita' if contato_comercial else 'Entrar na plataforma' %}
+{% set cta_externo = contato_comercial and (contato_comercial.startswith('http') or contato_comercial.startswith('mailto')) %}
 {% block content %}
 
 <!-- ===== Hero ===== -->
 <section class="hero">
   <div class="hero-text">
-    <span class="hero-eyebrow">Gestão para clínicas e consultórios médicos</span>
-    <h1>Menos gestão. <span class="accent">Mais medicina.</span></h1>
-    <p class="hero-sub">Agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma — com inteligência clínica e a proteção de dados que a saúde exige. A recepção agenda e recebe, o profissional atende, o gestor enxerga a clínica inteira.</p>
+    <span class="hero-eyebrow">Para clínicas e consultórios de 1 a 5 médicos</span>
+    <h1>Agenda, prontuário e financeiro <span class="accent">numa tela só</span>.</h1>
+    <p class="hero-sub">Sem planilha, sem agenda de papel. A recepção marca e recebe, o profissional atende, você acompanha o dinheiro — com a segurança de dados que a saúde exige. <strong>Menos gestão, mais medicina.</strong></p>
     <div class="hero-actions">
       <a href="{{ cta_primario }}" class="btn btn-primary btn-lg"{% if cta_externo %} target="_blank" rel="noopener"{% endif %}>{{ cta_label }}</a>
       <a href="#modulos" class="btn btn-outline btn-lg">Ver os módulos</a>
     </div>
+    <p class="hero-microcommit muted text-sm">Demonstração de ~20 min, sem compromisso — mostramos com o fluxo da sua clínica.</p>
   </div>
 
   <aside class="hero-visual" aria-hidden="true">
@@ -103,6 +104,14 @@
     </div>
   </div>
 </section>
+
+<!-- ===== CTA intermediário ===== -->
+{% if contato_comercial %}
+<section class="lp-cta-mid">
+  <p>Quer ver isso resolvido na sua clínica?</p>
+  <a href="{{ cta_primario }}" class="btn btn-primary btn-lg" target="_blank" rel="noopener">{{ cta_label }}</a>
+</section>
+{% endif %}
 
 <!-- ===== Módulos ===== -->
 <section class="lp-section" id="modulos">
@@ -239,5 +248,10 @@
   </div>
   <p class="lp-cta-slogan">Menos gestão. Mais medicina. É pra isso que o Nous existe.</p>
 </section>
+
+{% if contato_comercial %}
+{# Barra fixa de conversão — só no mobile (página longa; recupera o lead a qualquer momento). #}
+<a class="lp-sticky-cta" href="{{ cta_primario }}" target="_blank" rel="noopener">Agendar demonstração gratuita</a>
+{% endif %}
 
 {% endblock %}

@@ -2654,3 +2654,32 @@ textarea:focus-visible {
 .lp-cta p { color: var(--text-secondary); max-width: 54ch; margin: 0 auto var(--space-4); line-height: 1.55; }
 .lp-cta .hero-actions { justify-content: center; }
 .lp-cta-slogan { font-family: var(--font-heading); font-weight: 600; color: var(--primary-text); margin-top: var(--space-4) !important; }
+
+/* Landing — CTA intermediario, microcommit e barra sticky de conversao (mobile). */
+.hero-microcommit { margin: 0.6rem 0 0; }
+.lp-cta-mid {
+    text-align: center;
+    padding: var(--space-5) var(--space-4);
+    margin: var(--space-4) 0;
+    background: rgba(var(--brand-primary-rgb), 0.06);
+    border-radius: calc(var(--radius) * 2);
+}
+.lp-cta-mid p {
+    font-family: var(--font-heading);
+    font-size: 1.2rem; color: var(--text-primary);
+    margin: 0 0 var(--space-3);
+}
+.lp-sticky-cta { display: none; }
+@media (max-width: 860px) {
+    /* Mobile: H1 + CTA primeiro; o mock decorativo do hero sai da primeira dobra. */
+    .hero-visual { display: none; }
+    .lp-sticky-cta {
+        display: block;
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 900;
+        background: var(--brand-verde-claro); color: var(--text-on-ouro);
+        text-align: center; font-family: var(--font-heading); font-weight: 600;
+        padding: 0.95rem 1rem; text-decoration: none;
+        box-shadow: 0 -4px 16px rgba(30, 41, 59, 0.14);
+    }
+    body.public { padding-bottom: 4rem; }
+}

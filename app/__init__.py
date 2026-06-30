@@ -404,6 +404,8 @@ def create_app(config_name="default"):
             "favicon_url": _favicon_url,
             # Clínica do portal público (None quando não é página de portal).
             "portal_clinica": _clinica_wl if _portal else None,
+            # CTA comercial (WhatsApp/mailto/form) — global p/ navbar + landing.
+            "contato_comercial": app.config.get("CONTATO_COMERCIAL") or "",
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.

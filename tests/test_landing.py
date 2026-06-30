@@ -21,7 +21,7 @@ def test_cta_padrao_cai_no_login(client):
     """Sem CONTATO_COMERCIAL configurado, o CTA aponta pro login (não inventa canal)."""
     body = client.get("/").get_data(as_text=True)
     assert "Entrar na plataforma" in body
-    assert "Falar com a gente" not in body
+    assert "Agendar demonstração" not in body   # sem contato, CTA de demo não aparece
 
 
 def test_produto_alias_renderiza_a_landing(client):
@@ -38,7 +38,7 @@ def test_cta_usa_contato_comercial_quando_configurado(app, client):
     app.config["CONTATO_COMERCIAL"] = "https://wa.me/5543999999999"
     try:
         body = client.get("/").get_data(as_text=True)
-        assert "Falar com a gente" in body
-        assert "wa.me/5543999999999" in body
+        assert "Agendar demonstração" in body   # CTA de demo aparece
+        assert "wa.me/5543999999999" in body     # aponta pro WhatsApp configurado
     finally:
         app.config["CONTATO_COMERCIAL"] = ""
