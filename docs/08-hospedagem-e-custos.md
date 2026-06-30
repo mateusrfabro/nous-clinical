@@ -52,7 +52,7 @@ O Nous roda em **Docker**, usa **PostgreSQL** (padrão) e **storage S3-compatív
 | Disco no VPS | incluso | Só se a app estiver num VPS; você cuida do backup. |
 | Render Persistent Disk | US$0,25/GB | Simples se já no Render (exige plano pago). |
 
-> ⚠️ **Por que isso importa:** no plano grátis do Render o disco é efêmero — a logo e os **exames somem** quando a instância dorme/redeploya. Por isso o storage **tem** que ser externo (R2) em produção. Já deixamos o código pronto pra R2.
+> ⚠️ **Por que isso importa:** no plano grátis do Render o disco é efêmero — a logo e os **exames somem** quando a instância dorme/redeploya. Por isso o storage **tem** que ser externo (R2) em produção. ✅ **Já está ativo:** Cloudflare R2 (bucket `nous-clinical`) configurado e validado em produção em 30/06/2026.
 
 ---
 

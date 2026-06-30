@@ -9,7 +9,7 @@
 - Suíte **verde** (286 testes), ruff limpo, auditado por múltiplos agentes.
 - `ProductionConfig` já endurecido: `DEBUG=False`, cookies `Secure`/`HttpOnly`/
   `SameSite`, pool de conexão, CSP estrita, CSRF, rate-limit, Argon2id.
-- Storage S3/R2 implementado (só falta ligar as chaves).
+- Storage S3/R2 — ✅ **ativo em produção** (Cloudflare R2, bucket `nous-clinical`).
 - Multi-tenant com escopo automático por clínica; LGPD (prontuário/exames restritos).
 
 ---
@@ -25,14 +25,15 @@ Hoje cada deploy popula clínicas/superadmin **de demonstração**. Em produçã
 > param de ser recriadas). Se quiser removê-las de fato, faça depois pelo painel
 > de Clínicas (superadmin) ou direto no banco.
 
-### 2. Storage persistente — Cloudflare R2 🪣 (depende do cartão do sócio)
-Sem isso, logo e exames somem no redeploy (disco efêmero no Free).
-1. Cloudflare → R2 → criar bucket **`nous-clinical`**.
-2. Criar API Token (Object Read & Write) → copiar Endpoint + Access Key + Secret.
-3. Render → Environment:
-   - `STORAGE_BACKEND` = `s3`
-   - `S3_ENDPOINT_URL`, `S3_BUCKET=nous-clinical`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION=auto`
-   - ⚠️ As chaves vão **direto no Render** (não compartilhar em chat).
+### 2. Storage persistente — Cloudflare R2 🪣 — ✅ **FEITO (30/06/2026)**
+Conta Cloudflare + bucket **`nous-clinical`** criados (conta do sócio Lucas), Account
+API Token (Object Read & Write) gerado e as 4 chaves coladas no Render. Upload de logo
+testado ao vivo → arquivo confirmado no bucket. **Logo e exames agora persistem** entre
+deploys (não somem mais no disco efêmero do Free).
+- Variáveis no Render: `STORAGE_BACKEND=s3`, `S3_ENDPOINT_URL`, `S3_BUCKET=nous-clinical`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION=auto` (chaves só no painel/`.env`).
+- ⚠️ **Residual:** o Account API token apareceu em print durante a config → **revogar e
+  regerar** quando possível (risco limitado ao bucket `nous-clinical`).
 
 ### 3. Plano pago (sair do Free) 💳 — Cenário 2 do estudo
 - Render **Starter** (web, ~US$7) + **Postgres Basic** (~US$6) → ~R$ 75/mês.
@@ -95,7 +96,7 @@ O custo das mensagens é da **clínica** (billing da Meta), não nosso. Default-
 - `GET /health` → `status: ok` + `migration_head` = o head atual.
 - Login admin real → Agenda (Dia/Grade/Semana), Bloqueios, Pacientes, Financeiro,
   Relatórios, CRM (Retornos/Aniversariantes), Cadastro de Itens (Salas/Convênios).
-- Subir um logo e confirmar que **persiste** após um redeploy (valida o R2).
+- ✅ Subir um logo e confirmar que **persiste** após um redeploy (valida o R2) — feito 30/06.
 
 ---
 
@@ -105,5 +106,6 @@ O custo das mensagens é da **clínica** (billing da Meta), não nosso. Default-
 - Dados → a portabilidade está documentada em [docs/08](08-hospedagem-e-custos.html)
   (pg_dump/restore + reapontar DNS).
 
-> **Resumo:** o código está pronto. O go-live é, na ordem: desligar demo (1) →
-> ligar R2 (2) → plano pago (3) → domínio (4). Os itens 5–7 são acabamento.
+> **Resumo (30/06/2026):** ✅ demo desligado (1), ✅ R2 ativo (2), ✅ domínio `nousclinical.com`
+> no ar (4). **Falta o plano pago (3)** — único item de infra com prazo (Postgres Free
+> expira ~90 dias). Itens 5–7 são acabamento/opcionais.
