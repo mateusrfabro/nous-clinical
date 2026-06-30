@@ -1,9 +1,12 @@
 """Tela de auditoria (visualização do AuditLog). Gate: admin.
 
 A trilha é append-only (gravada pelo service `audit`). Aqui o admin LÊ as
-ações da própria clínica — escopo aplicado via join em Usuario.clinica_id
-(AuditLog não tem clinica_id próprio; o vínculo é pelo usuário que agiu).
-Superadmin (sem clínica) vê tudo.
+ações da própria clínica — escopo aplicado via Usuario.clinica_id (AuditLog não
+tem clinica_id próprio; o vínculo é pelo usuário que agiu). O escopo é
+FAIL-CLOSED e NUNCA expõe ação da plataforma (superadmin) ao tenant:
+- superadmin -> vê tudo (cross-tenant);
+- admin com clínica -> só usuários DA clínica e que NÃO sejam superadmin;
+- admin sem clínica (não deveria ocorrer) -> não vê nada (fail-closed).
 """
 import csv
 import io
@@ -12,7 +15,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Blueprint, render_template, request, Response
 from flask_login import login_required, current_user
-from sqlalchemy import select, func
+from sqlalchemy import select, func, false
 
 from app import db
 from app.auth_decorators import admin_required
@@ -85,12 +88,21 @@ def _base_filtrada(acao, ini, fim):
     Reusado pela listagem e pelo export CSV."""
     base = select(AuditLog)
     # Escopo por clínica via usuário que agiu (AuditLog não é tenant-scoped).
-    if not current_user.is_superadmin and current_user.clinica_id:
-        ids = db.session.execute(
-            select(Usuario.id).where(
-                Usuario.clinica_id == current_user.clinica_id)
-        ).scalars().all()
-        base = base.where(AuditLog.usuario_id.in_(ids))
+    if not current_user.is_superadmin:
+        if current_user.clinica_id:
+            ids = db.session.execute(
+                select(Usuario.id).where(
+                    Usuario.clinica_id == current_user.clinica_id,
+                    # NUNCA expõe ação da plataforma (superadmin) ao tenant, mesmo
+                    # que por engano o superadmin tenha um clinica_id setado.
+                    Usuario.tipo != "superadmin",
+                )
+            ).scalars().all()
+            base = base.where(AuditLog.usuario_id.in_(ids))
+        else:
+            # Admin sem clínica (não deveria ocorrer) -> fail-closed: nada, em vez
+            # de vazar a trilha inteira (todas as clínicas + plataforma).
+            base = base.where(false())
     if acao:
         base = base.where(AuditLog.acao == acao)
     if ini:
