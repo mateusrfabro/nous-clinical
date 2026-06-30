@@ -63,6 +63,10 @@ ACAO_LABEL = {
     "whatsapp_config": "WhatsApp configurado",
     "whatsapp_enviada": "Mensagem WhatsApp enviada",
     "fiscal_config": "Configuração fiscal (NF)",
+    "conciliacao_import": "Extrato bancário importado",
+    "conciliacao_conciliado": "Movimento conciliado",
+    "conciliacao_ignorado": "Movimento ignorado",
+    "conciliacao_desfeito": "Conciliação desfeita",
 }
 
 
