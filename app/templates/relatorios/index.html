@@ -135,12 +135,16 @@
   <div class="mt-2">
   {% if repasse %}
   <div class="table-wrapper"><table class="table">
-    <thead><tr><th>Profissional</th><th class="num">Recebido</th><th class="num">Comissão</th><th class="num">Repasse</th></tr></thead>
+    <thead><tr><th>Profissional</th><th class="num">Recebido</th><th class="num">Comissão</th><th class="num">Repasse</th><th>Ações</th></tr></thead>
     <tbody>
-      {% for r in repasse %}<tr><td>{{ r.nome }}</td><td class="num">{{ r.recebido|brl }}</td><td class="num">{{ '%.1f'|format(r.percent) }}%</td><td class="num">{{ r.repasse|brl }}</td></tr>{% endfor %}
-      <tr class="table-total"><td>Total a repassar</td><td></td><td></td><td class="num">{{ total_repasse|brl }}</td></tr>
+      {% for r in repasse %}<tr>
+        <td>{{ r.nome }}</td><td class="num">{{ r.recebido|brl }}</td><td class="num">{{ '%.1f'|format(r.percent) }}%</td><td class="num">{{ r.repasse|brl }}</td>
+        <td>{% if r.repasse and r.repasse > 0 %}<a class="btn btn-outline btn-sm" href="{{ url_for('financeiro.novo', tipo='despesa', categoria='salario', valor='%.2f'|format(r.repasse), descricao='Repasse ' ~ r.nome ~ ' (' ~ ini ~ ' a ' ~ fim ~ ')') }}">Lançar repasse</a>{% else %}—{% endif %}</td>
+      </tr>{% endfor %}
+      <tr class="table-total"><td>Total a repassar</td><td></td><td></td><td class="num">{{ total_repasse|brl }}</td><td></td></tr>
     </tbody>
   </table></div>
+  <p class="muted text-sm mt-2">"Lançar repasse" abre um lançamento de despesa pré-preenchido (categoria salário) para você conferir e salvar.</p>
   {% else %}<div class="empty-state"><p>Nenhum repasse no período (defina a comissão no cadastro do profissional).</p></div>{% endif %}
   </div>
 </details>
