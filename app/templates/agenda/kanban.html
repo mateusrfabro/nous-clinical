@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Agenda (quadro) — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Agenda — {{ dia|data_br }}</h2>
+  {% if current_user.is_admin or current_user.is_recepcao %}
+    <a href="{{ url_for('agenda.novo', dia=dia.isoformat()) }}" class="btn btn-primary">+ Agendar consulta</a>
+  {% endif %}
+</div>
+
+<form method="GET" class="toolbar no-loading mb-4">
+  <div class="view-switch" role="group" aria-label="Modo de visualização">
+    <a href="{{ url_for('agenda.listar', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Dia</a>
+    <a href="{{ url_for('agenda.dia_grade', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Grade</a>
+    <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
+    <span class="btn btn-primary btn-sm is-active" aria-current="true">Quadro</span>
+  </div>
+  <div class="form-group">
+    <label for="dia">Dia</label>
+    <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
+  </div>
+  {% if not current_user.is_profissional %}
+  <div class="form-group form-group-grow">
+    <label for="profissional_id">Profissional</label>
+    <select id="profissional_id" name="profissional_id">
+      <option value="">Todos</option>
+      {% for p in profissionais %}
+        <option value="{{ p.id }}" {{ 'selected' if filtro_prof==p.id }}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <button type="submit" class="btn btn-outline">Filtrar</button>
+  <a href="{{ url_for('agenda.kanban', dia=dia_anterior) }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('agenda.kanban', dia=dia_seguinte) }}" class="btn btn-outline">Próximo →</a>
+</form>
+
+{% if total %}
+<div class="kanban-scroll">
+  <div class="kanban-board">
+    {% for col in colunas %}
+    <section class="kanban-col" aria-label="{{ col.titulo }}">
+      <header class="kanban-col-head">
+        <span class="tag {{ col.chave|status_class }}">{{ col.titulo }}</span>
+        <span class="kanban-count">{{ col.ags|length }}</span>
+      </header>
+      <div class="kanban-col-body">
+        {% for ag in col.ags %}
+        <article class="kanban-card">
+          <div class="kanban-card-time">{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</div>
+          <a class="kanban-card-pac" href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a>
+          <div class="kanban-card-prof muted text-sm">
+            {{ ag.profissional.nome }}{% if ag.sala %} · {{ ag.sala }}{% endif %}
+          </div>
+          {% if ag.checkin_em %}
+            <span class="tag tag-success">Chegou {{ ag.checkin_em|hora_br }}</span>
+          {% endif %}
+
+          {# ---- Financeiro (recepção/admin) ---- #}
+          {% if current_user.is_admin or current_user.is_recepcao %}
+            {% if ag.lancamento %}
+              <span class="tag tag-success">Recebido</span>
+            {% elif ag.status in ['confirmado','atendido'] %}
+              <a class="btn btn-outline btn-sm" href="{{ url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') }}">Receber</a>
+            {% endif %}
+          {% endif %}
+
+          {# ---- Ações rápidas ---- #}
+          <div class="kanban-card-actions flex-row-gap">
+            {% if current_user.is_admin or current_user.is_recepcao %}
+              {% if ag.status != 'atendido' %}
+                {# Mover entre colunas: cada destino é um POST p/ mudar_status. #}
+                {% set destinos = {
+                  'agendado':   [('confirmado','Confirmar'), ('faltou','Faltou'), ('cancelado','Cancelar')],
+                  'confirmado': [('faltou','Faltou'), ('cancelado','Cancelar')],
+                  'faltou':     [('agendado','Reabrir')],
+                  'cancelado':  [('agendado','Reabrir')],
+                } %}
+                {% for destino, rotulo in destinos.get(ag.status, []) %}
+                <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="inline-form no-loading">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="status" value="{{ destino }}">
+                  <button type="submit" class="btn-link">{{ rotulo }}</button>
+                </form>
+                {% endfor %}
+                {% if ag.status in ['agendado','confirmado'] %}
+                <form method="POST" action="{{ url_for('agenda.checkin', agendamento_id=ag.id) }}" class="inline-form no-loading">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-link">{{ 'Desfazer check-in' if ag.checkin_em else 'Check-in' }}</button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('agenda.editar', agendamento_id=ag.id) }}" class="btn-link">Editar</a>
+                {% set wn = ag.paciente.telefone|wa_numero %}
+                {% if wn %}
+                <a href="https://wa.me/{{ wn }}?text={{ ('Olá ' ~ ag.paciente.nome_completo ~ ', lembrete da sua consulta em ' ~ (ag.inicio|datetime_br) ~ ' com ' ~ ag.profissional.nome ~ '. Confirme sua presença em 1 clique: ' ~ url_confirmacao(ag))|urlencode }}" target="_blank" rel="noopener" class="btn-link">Lembrete</a>
+                {% endif %}
+              {% else %}
+                <span class="muted text-sm">Concluído</span>
+              {% endif %}
+            {% endif %}
+            {% if current_user.is_profissional %}
+              <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">Atender</a>
+            {% endif %}
+          </div>
+        </article>
+        {% else %}
+        <p class="kanban-empty muted text-sm">—</p>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhuma consulta neste dia.</p></div>
+{% endif %}
+{% endblock %}

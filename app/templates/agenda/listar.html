@@ -13,6 +13,7 @@
     <span class="btn btn-primary btn-sm is-active" aria-current="true">Dia</span>
     <a href="{{ url_for('agenda.dia_grade', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Grade</a>
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
+    <a href="{{ url_for('agenda.kanban', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
   <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
   <div class="form-group">

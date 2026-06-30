@@ -13,6 +13,7 @@
     <a href="{{ url_for('agenda.listar', dia=ref) }}" class="btn btn-outline btn-sm">Dia</a>
     <a href="{{ url_for('agenda.dia_grade', dia=ref) }}" class="btn btn-outline btn-sm">Grade</a>
     <span class="btn btn-primary btn-sm is-active" aria-current="true">Semana</span>
+    <a href="{{ url_for('agenda.kanban', dia=ref) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
   <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
   {% if not current_user.is_profissional %}

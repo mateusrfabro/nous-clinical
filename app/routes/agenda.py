@@ -207,6 +207,63 @@ def listar():
     )
 
 
+# Colunas do quadro Kanban (ordem = jornada do paciente). Cada agendamento do
+# dia cai na coluna do seu status. 'atendido' nunca é manual (vem do prontuário).
+_KANBAN_COLUNAS = (
+    (Agendamento.STATUS_AGENDADO, "Agendado"),
+    (Agendamento.STATUS_CONFIRMADO, "Confirmado"),
+    (Agendamento.STATUS_ATENDIDO, "Atendido"),
+    (Agendamento.STATUS_FALTOU, "Faltou"),
+    (Agendamento.STATUS_CANCELADO, "Cancelado"),
+)
+
+
+@agenda_bp.route("/quadro")
+@login_required
+def kanban():
+    """Quadro Kanban do dia: uma coluna por status (agendado/confirmado/
+    atendido/faltou/cancelado), cada consulta como card com ações rápidas.
+    Mesma janela/escopo da visão de lista (dia, filtro por profissional,
+    profissional vê só a própria agenda). Reusa agenda.mudar_status (auditado)."""
+    dia = _parse_dia(request.args.get("dia", ""))
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+
+    q = (select(Agendamento)
+         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
+         .order_by(Agendamento.inicio))
+    filtro_prof = request.args.get("profissional_id", type=int)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        q = q.where(Agendamento.profissional_id == meu_prof)
+    elif filtro_prof:
+        q = q.where(Agendamento.profissional_id == filtro_prof)
+    ags = db.session.execute(q).scalars().all()
+
+    # Agrupa por status preservando a ordem por horário da query.
+    por_status = {chave: [] for chave, _ in _KANBAN_COLUNAS}
+    for ag in ags:
+        if ag.status in por_status:
+            por_status[ag.status].append(ag)
+    colunas = [
+        {"chave": chave, "titulo": titulo, "ags": por_status[chave]}
+        for chave, titulo in _KANBAN_COLUNAS
+    ]
+
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    return render_template(
+        "agenda/kanban.html",
+        colunas=colunas, dia=dia, total=len(ags),
+        profissionais=profissionais, filtro_prof=filtro_prof,
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+    )
+
+
 _SEMANA_HORA_INI = 7      # janela visível da grade (07:00)
 _SEMANA_HORA_FIM = 21     # ...até 21:00
 _SEMANA_PX_HORA = 52      # altura de 1h na grade (px)
