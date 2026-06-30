@@ -41,6 +41,20 @@ _PERIODOS = ("dia", "semana", "mes")
 _CATEGORIAS_RESTRITAS = ("aluguel", "salario", "imposto")
 
 
+def _get_tenant(Model, id_):
+    """db.session.get + guard EXPLÍCITO de clínica (defesa em profundidade).
+    Além do escopo automático do tenant loader, recusa objeto de outra clínica —
+    blinda contra qualquer caminho que furasse o escopo. None se inexistente ou
+    de outro tenant."""
+    obj = db.session.get(Model, id_)
+    if obj is None:
+        return None
+    cid = getattr(obj, "clinica_id", None)
+    if cid is not None and cid != current_user.clinica_id:
+        return None
+    return obj
+
+
 def _filtro_categoria():
     """Clausula(s) que escondem as categorias sensíveis da recepção.
 
@@ -284,7 +298,7 @@ def novo():
 @login_required
 @recepcao_ou_admin
 def pagar(lancamento_id):
-    lanc = db.session.get(LancamentoFinanceiro, lancamento_id)
+    lanc = _get_tenant(LancamentoFinanceiro, lancamento_id)
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
@@ -310,7 +324,7 @@ def pagar(lancamento_id):
 @login_required
 @recepcao_ou_admin
 def cancelar(lancamento_id):
-    lanc = db.session.get(LancamentoFinanceiro, lancamento_id)
+    lanc = _get_tenant(LancamentoFinanceiro, lancamento_id)
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
@@ -444,7 +458,7 @@ def conciliacao_importar():
 
 def _mov_ou_redirect(movimento_id):
     """Carrega o movimento (auto-escopado por clínica) ou redireciona."""
-    mov = db.session.get(MovimentoBancario, movimento_id)
+    mov = _get_tenant(MovimentoBancario, movimento_id)
     if not mov:
         flash("Movimento não encontrado.", "error")
     return mov
@@ -460,7 +474,7 @@ def conciliacao_conciliar(movimento_id):
     if not mov:
         return redirect(url_for("financeiro.conciliacao"))
     lanc_id = request.form.get("lancamento_id", type=int)
-    lanc = db.session.get(LancamentoFinanceiro, lanc_id) if lanc_id else None
+    lanc = _get_tenant(LancamentoFinanceiro, lanc_id) if lanc_id else None
     if not lanc:
         flash("Lançamento para conciliar não encontrado.", "error")
         return redirect(url_for("financeiro.conciliacao"))
@@ -666,7 +680,7 @@ def caixa_fechar():
 @login_required
 @recepcao_ou_admin
 def caixa_reabrir(fechamento_id):
-    fechamento = db.session.get(FechamentoCaixa, fechamento_id)
+    fechamento = _get_tenant(FechamentoCaixa, fechamento_id)
     if not fechamento:
         flash("Fechamento não encontrado.", "error")
         return redirect(url_for("financeiro.caixa"))
