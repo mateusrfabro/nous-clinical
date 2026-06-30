@@ -1,7 +1,7 @@
 # Nous Clinical — Status de Produção e Pendências
 
 > **Documento interno (PGS).** Para alinhamento entre os sócios. Não vai para o cliente.
-> Atualizado em: 23/06/2026 (noite) · Site: **nousclinical.com** · Hospedagem: **Render**
+> Atualizado em: 30/06/2026 · Site: **nousclinical.com** · Hospedagem: **Render**
 
 ---
 
@@ -38,8 +38,13 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 ### 🟡 Infra e custo — TEM PRAZO
 2. **Plano pago do Render — ANTES dos ~90 dias.** O banco grátis **expira e perde os
    dados**. É a pendência **mais urgente** para uso real. (~US$ 7–15/mês banco + web.)
-3. **Armazenamento (R2/S3)** — logo e exames hoje somem a cada atualização; configurar
-   um bucket barato (Cloudflare R2 ou S3) e preencher as chaves no painel.
+3. **Armazenamento (R2/S3)** — 🟢 **conta + bucket criados e testados ao vivo**
+   (Cloudflare R2, bucket `nous-clinical`, conta do sócio Lucas; upload/download/delete
+   validados localmente). Falta só **colar as 4 chaves no Render** (Environment:
+   `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`;
+   `STORAGE_BACKEND=s3` já vem do render.yaml) e salvar → redeploy. Enquanto não colar,
+   prod segue em disco efêmero (logo/exames somem no deploy). **Token apareceu em print
+   no chat → revogar e regerar** o Account API token do R2 após confirmar em produção.
 
 ### 🟢 Ativar quando quiserem (estão prontos, desligados)
 4. **Assistente com IA** (opcional) — o Suporte gratuito já atende; se quiserem o modo IA,
@@ -77,7 +82,7 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 | Assistente com IA (opcional) | R$ 0 (desligado) | centavos/mês (PGS) ao colar a chave |
 | WhatsApp | R$ 0 (inerte) | pago pela **clínica** à Meta |
 | Nota Fiscal (gateway) | R$ 0 (desligado) | mensalidade do gateway quando emitir (PGS/clínica) |
-| Armazenamento (R2/S3) | R$ 0 (efêmero) | centavos/mês ao configurar |
+| Armazenamento (R2/S3) | R$ 0 (free tier 10 GB) | centavos/mês só se passar de 10 GB; falta colar chaves no Render |
 
 ---
 
