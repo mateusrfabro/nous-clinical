@@ -20,6 +20,14 @@
   var csrf = board.dataset.csrf || "";
   var dragging = null;
 
+  // Neutraliza o drag nativo dos elementos internos (links/botões/inputs): sem
+  // isto, em alguns browsers grb num link inicia o arraste DELE, não do card.
+  Array.prototype.forEach.call(
+    board.querySelectorAll("[data-kanban-card] a, [data-kanban-card] button," +
+                           " [data-kanban-card] select, [data-kanban-card] input"),
+    function (el) { el.setAttribute("draggable", "false"); }
+  );
+
   function bodies() {
     return board.querySelectorAll("[data-kanban-drop]");
   }

@@ -52,7 +52,10 @@
         {% for ag in col.ags %}
         {% set card_moviv = pode_gerir and ag.status != 'atendido' %}
         <article class="kanban-card"{% if card_moviv %} draggable="true" data-kanban-card data-ag-id="{{ ag.id }}" data-status="{{ ag.status }}" data-move-url="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}"{% endif %}>
-          <div class="kanban-card-time">{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</div>
+          <div class="kanban-card-top">
+            {% if card_moviv %}<span class="kanban-card-grip" aria-hidden="true" title="Arraste para mover">⠿</span>{% endif %}
+            <div class="kanban-card-time">{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</div>
+          </div>
           <a class="kanban-card-pac" href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a>
           <div class="kanban-card-prof muted text-sm">
             {{ ag.profissional.nome }}{% if ag.sala %} · {{ ag.sala }}{% endif %}

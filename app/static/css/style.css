@@ -2350,8 +2350,30 @@ textarea:focus-visible {
 .kanban-card-actions { margin-top: 0.2rem; row-gap: 0.2rem; }
 .kanban-empty { text-align: center; padding: 0.4rem 0; }
 /* Drag-and-drop (v2): só ativo p/ recepção/admin (cards com data-kanban-card). */
-.kanban-card[draggable="true"] { cursor: grab; }
-.kanban-card.is-dragging { opacity: 0.5; cursor: grabbing; }
+.kanban-card[draggable="true"] {
+    cursor: grab;
+    /* Sem isto, arrastar sobre o texto vira seleção e o drag não inicia. */
+    -webkit-user-select: none;
+    user-select: none;
+}
+/* Links/botões internos não devem iniciar o próprio drag nativo (sequestra o
+   arraste do card). O clique continua funcionando normalmente. */
+.kanban-card[draggable="true"] a,
+.kanban-card[draggable="true"] button {
+    -webkit-user-drag: none;
+}
+.kanban-card.is-dragging { opacity: 0.45; cursor: grabbing; }
+/* Alça de arraste — afinal o usuário precisa descobrir que dá pra mover. */
+.kanban-card-grip {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    letter-spacing: -2px;
+    user-select: none;
+}
+.kanban-card-top { display: flex; align-items: center; gap: 0.4rem; }
+.kanban-card-top .kanban-card-time { margin: 0; }
 .kanban-col-body.is-drop-over {
     background: rgba(var(--brand-primary-rgb), 0.10);
     outline: 2px dashed rgba(var(--brand-primary-rgb), 0.45);
