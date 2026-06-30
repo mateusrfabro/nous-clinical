@@ -38,13 +38,12 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 ### 🟡 Infra e custo — TEM PRAZO
 2. **Plano pago do Render — ANTES dos ~90 dias.** O banco grátis **expira e perde os
    dados**. É a pendência **mais urgente** para uso real. (~US$ 7–15/mês banco + web.)
-3. **Armazenamento (R2/S3)** — 🟢 **conta + bucket criados e testados ao vivo**
-   (Cloudflare R2, bucket `nous-clinical`, conta do sócio Lucas; upload/download/delete
-   validados localmente). Falta só **colar as 4 chaves no Render** (Environment:
-   `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`;
-   `STORAGE_BACKEND=s3` já vem do render.yaml) e salvar → redeploy. Enquanto não colar,
-   prod segue em disco efêmero (logo/exames somem no deploy). **Token apareceu em print
-   no chat → revogar e regerar** o Account API token do R2 após confirmar em produção.
+3. **Armazenamento (R2/S3)** — ✅ **CONCLUÍDO e confirmado em produção.** Cloudflare R2
+   (bucket `nous-clinical`, conta do sócio Lucas), 4 chaves no Render, upload de logo
+   testado ao vivo (arquivo confirmado no bucket via API). Logo e exames agora
+   **persistem** entre deploys. Free tier 10 GB. **Pendência residual:** o Account API
+   token do R2 **apareceu em print no chat → revogar e regerar** quando possível (risco
+   limitado: o token só acessa o bucket `nous-clinical`).
 
 ### 🟢 Ativar quando quiserem (estão prontos, desligados)
 4. **Assistente com IA** (opcional) — o Suporte gratuito já atende; se quiserem o modo IA,
@@ -82,11 +81,11 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 | Assistente com IA (opcional) | R$ 0 (desligado) | centavos/mês (PGS) ao colar a chave |
 | WhatsApp | R$ 0 (inerte) | pago pela **clínica** à Meta |
 | Nota Fiscal (gateway) | R$ 0 (desligado) | mensalidade do gateway quando emitir (PGS/clínica) |
-| Armazenamento (R2/S3) | R$ 0 (free tier 10 GB) | centavos/mês só se passar de 10 GB; falta colar chaves no Render |
+| Armazenamento (R2/S3) | R$ 0 (free tier 10 GB) ✅ ativo | centavos/mês só se passar de 10 GB |
 
 ---
 
-**Resumo de uma linha:** WhatsApp, Suporte e a Fase 1 da Nota Fiscal estão **em produção,
-testados e auditados** (tudo desligado/seguro). O mais urgente é o **plano pago do Render**
-(prazo dos ~90 dias); e a **emissão de NF** só fecha quando tivermos um **certificado A1 de
-teste**.
+**Resumo de uma linha:** WhatsApp, Suporte, a Fase 1 da Nota Fiscal e o **armazenamento R2
+(logo/exames persistem)** estão **em produção, testados e auditados**. O único item de infra
+**com prazo** é o **plano pago do banco no Render** (~90 dias, senão perde os dados); e a
+**emissão de NF** só fecha quando tivermos um **certificado A1 de teste**.
