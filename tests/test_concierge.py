@@ -7,7 +7,7 @@ só de metadado) e a presença do botão no painel. NÃO chama a Claude API."""
 from datetime import date, timedelta
 
 from app import db
-from app.models import AuditLog, Atendimento, Paciente, Profissional
+from app.models import AuditLog, Atendimento, Paciente, Profissional, Usuario
 
 
 # Exceções "tipadas" reconhecidas pelo serviço via nome de classe (anthropic é
@@ -181,6 +181,19 @@ def test_rota_gera_por_padrao_template(client_admin):
     assert r.status_code == 200
     d = r.get_json()
     assert d["ok"] is True and d["texto"]
+
+
+def test_rota_admin_sem_clinica_fail_closed(app, client_admin):
+    """Admin sem clinica_id (não deveria ocorrer) NÃO gera msg de paciente algum."""
+    from sqlalchemy import update
+    pac = _um_paciente()
+    admin = Usuario.query.filter_by(email="admin@test.com").first()
+    db.session.execute(update(Usuario).where(Usuario.id == admin.id)
+                       .values(clinica_id=None))
+    db.session.commit()
+    r = client_admin.post("/crm/mensagem-ia",
+                          json={"paciente_id": pac.id, "motivo": "retorno"})
+    assert r.status_code == 403   # fail-closed, em vez de vazar/gerar
 
 
 def test_rota_id_invalido(client_admin):

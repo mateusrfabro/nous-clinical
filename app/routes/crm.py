@@ -179,6 +179,10 @@ def registrar_interacao(paciente_id):
     paciente = db.session.get(Paciente, paciente_id)
     if paciente is None:
         abort(404)
+    # Guard explícito FAIL-CLOSED de clínica (consistente com mensagem_ia).
+    if (current_user.clinica_id is None
+            or paciente.clinica_id != current_user.clinica_id):
+        abort(403)
     audit(AuditLog.ACAO_CRM_INTERACAO, recurso_tipo="paciente",
           recurso_id=paciente.id, detalhes="Felicitação de aniversário")
     flash(f"Interação registrada para {paciente.nome_completo}.", "success")
@@ -192,10 +196,18 @@ def _rate_key():
         else (request.remote_addr or "anon")
 
 
+def _rate_key_clinica():
+    """Teto de custo AGREGADO por clínica (além do por-usuário): N operadores não
+    multiplicam o gasto de API sem limite. Cai pro usuário/IP se sem clínica."""
+    cid = getattr(current_user, "clinica_id", None)
+    return f"c:{cid}" if cid else _rate_key()
+
+
 @crm_bp.route("/mensagem-ia", methods=["POST"])
 @login_required
 @recepcao_ou_admin
 @limiter.limit("60 per hour;12 per minute", key_func=_rate_key)
+@limiter.limit("300 per hour", key_func=_rate_key_clinica)
 def mensagem_ia():
     """Concierge: gera o rascunho da mensagem de retorno/reativação de UM paciente
     (recepção revisa e envia). JSON in/out. Por padrão usa TEMPLATE (custo zero);
@@ -212,9 +224,10 @@ def mensagem_ia():
     paciente = db.session.get(Paciente, paciente_id)
     if paciente is None:
         return jsonify({"ok": False, "texto": "Paciente não encontrado."}), 404
-    # Guard explícito de clínica (defesa em profundidade, além do tenant loader).
-    if (current_user.clinica_id is not None
-            and paciente.clinica_id != current_user.clinica_id):
+    # Guard explícito de clínica FAIL-CLOSED (defesa em profundidade, além do
+    # tenant loader): usuário sem clínica ou paciente de outra clínica -> 403.
+    if (current_user.clinica_id is None
+            or paciente.clinica_id != current_user.clinica_id):
         abort(403)
 
     primeiro = ((paciente.nome_completo or "").split() or [""])[0]
