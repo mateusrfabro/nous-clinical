@@ -395,6 +395,31 @@ def conciliacao_detalhe(movimento_id):
         mov=mov, candidatos=candidatos)
 
 
+@financeiro_bp.route("/conciliacao/divergencias")
+@login_required
+@recepcao_ou_admin
+def conciliacao_divergencias():
+    """Os dois lados da divergência num período: movimentos do extrato sem
+    lançamento (pendentes) × receitas pagas sem extrato casado."""
+    dias = request.args.get("dias", 30, type=int)
+    dias = max(1, min(dias, 365))
+    desde_dia = datetime.now(_BR_TZ).date() - timedelta(days=dias)
+    desde_utc = datetime.combine(desde_dia, time.min,
+                                 tzinfo=_BR_TZ).astimezone(timezone.utc)
+    M = MovimentoBancario
+    pendentes = db.session.execute(
+        select(M).where(M.status == M.STATUS_PENDENTE, M.data >= desde_dia)
+        .order_by(M.data.desc(), M.id.desc())
+    ).scalars().all()
+    sem_extrato = lancamentos_nao_conciliados(current_user.clinica_id, desde_utc)
+    total_pend = sum((m.valor for m in pendentes), Decimal("0"))
+    total_sem = sum((x.valor for x in sem_extrato), Decimal("0"))
+    return render_template(
+        "financeiro/divergencias.html",
+        pendentes=pendentes, sem_extrato=sem_extrato,
+        total_pend=total_pend, total_sem=total_sem, dias=dias)
+
+
 @financeiro_bp.route("/conciliacao/importar", methods=["POST"])
 @login_required
 @recepcao_ou_admin

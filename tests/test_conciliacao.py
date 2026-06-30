@@ -242,6 +242,23 @@ def test_lancamentos_sem_extrato(client_admin, app):
         assert any(x.valor == Decimal("300.00") for x in sem)
 
 
+def test_divergencias_painel(client_admin, app):
+    with app.app_context():
+        db.session.add(LancamentoFinanceiro(
+            tipo=LancamentoFinanceiro.TIPO_RECEITA,
+            status=LancamentoFinanceiro.STATUS_PAGO, categoria="consulta",
+            descricao="Recebido sem extrato", valor=Decimal("300.00"),
+            pago_em=datetime.now(timezone.utc)))
+        db.session.commit()
+    _upload(client_admin)   # 2 movimentos pendentes
+    r = client_admin.get("/financeiro/conciliacao/divergencias")
+    assert r.status_code == 200
+    assert "Extrato sem lançamento".encode() in r.data
+    assert "Recebido sem extrato".encode() in r.data
+    assert b"PIX CONSULTA" in r.data          # movimento pendente
+    assert b"300,00" in r.data                # lançamento sem extrato
+
+
 def test_ignorar_e_desfazer(client_admin, app):
     _upload(client_admin)
     with app.app_context():

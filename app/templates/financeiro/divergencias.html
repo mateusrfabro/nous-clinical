@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Divergências — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Divergências de conciliação</h2>
+  <a href="{{ url_for('financeiro.conciliacao') }}" class="btn btn-outline">← Conciliação</a>
+</div>
+
+<form method="GET" class="toolbar no-loading mb-4">
+  <div class="form-group">
+    <label for="dias">Período (dias)</label>
+    <input type="number" id="dias" name="dias" value="{{ dias }}" min="1" max="365" class="w-input-money">
+  </div>
+  <button type="submit" class="btn btn-outline">Aplicar</button>
+</form>
+
+<section class="kpi-grid">
+  <div class="kpi-card {{ 'card-hl-warning' if pendentes else '' }}">
+    <span class="kpi-label">Extrato sem lançamento</span>
+    <span class="kpi-value">{{ pendentes|length }} <span class="kpi-delta">({{ total_pend|brl }})</span></span>
+  </div>
+  <div class="kpi-card {{ 'card-hl-warning' if sem_extrato else '' }}">
+    <span class="kpi-label">Recebido sem extrato</span>
+    <span class="kpi-value">{{ sem_extrato|length }} <span class="kpi-delta">({{ total_sem|brl }})</span></span>
+  </div>
+</section>
+
+<div class="page-header section-title-mt"><h3>Extrato sem lançamento</h3></div>
+<p class="muted text-sm mb-2">Movimentos do banco que ainda não foram casados a um lançamento.</p>
+{% if pendentes %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Data</th><th>Descrição</th><th class="num">Valor</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for m in pendentes %}
+    <tr>
+      <td>{{ m.data|data_br }}</td>
+      <td>{{ m.descricao or '—' }}</td>
+      <td class="num {{ 'economia-pos' if m.tipo == 'credito' else 'economia-neg' }}">{{ '+' if m.tipo == 'credito' else '-' }} {{ m.valor|brl }}</td>
+      <td><a href="{{ url_for('financeiro.conciliacao_detalhe', movimento_id=m.id) }}" class="btn btn-outline btn-sm">Conciliar</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Nenhum movimento do extrato pendente no período.</p></div>
+{% endif %}
+
+<div class="page-header section-title-mt"><h3>Recebido sem extrato</h3></div>
+<p class="muted text-sm mb-2">Receitas pagas no sistema que ainda não apareceram (ou não foram conciliadas) no extrato — confira se entraram na conta.</p>
+{% if sem_extrato %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Data</th><th>Descrição</th><th>Paciente</th><th class="num">Valor</th></tr></thead>
+  <tbody>
+    {% for l in sem_extrato %}
+    <tr>
+      <td>{{ (l.pago_em or l.criado_em)|data_br }}</td>
+      <td>{{ l.descricao or (l.categoria|categoria_label) }}</td>
+      <td>{% if l.paciente %}<a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente_id) }}">{{ l.paciente.nome_completo }}</a>{% else %}—{% endif %}</td>
+      <td class="num">{{ l.valor|brl }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state"><p>Tudo conciliado no período. 🎉</p></div>
+{% endif %}
+{% endblock %}
