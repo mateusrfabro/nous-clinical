@@ -90,3 +90,44 @@ def sugestao_para(mov):
 
     melhor = min(candidatos, key=distancia)
     return melhor if distancia(melhor) <= _JANELA_DIAS else None
+
+
+def candidatos_para(mov, limite=50):
+    """Lançamentos não conciliados compatíveis com o movimento (mesmo tipo),
+    ordenados por proximidade de data — para a CONCILIAÇÃO MANUAL (o usuário
+    escolhe um quando o valor não bate com a sugestão automática). Sem corte de
+    janela: lista tudo que faz sentido, mais próximo primeiro."""
+    L = LancamentoFinanceiro
+    alvo = (L.TIPO_RECEITA if mov.tipo == MovimentoBancario.TIPO_CREDITO
+            else L.TIPO_DESPESA)
+    usados = select(MovimentoBancario.lancamento_id).where(
+        MovimentoBancario.lancamento_id.is_not(None))
+    candidatos = db.session.execute(
+        select(L).where(
+            L.tipo == alvo,
+            L.status != L.STATUS_CANCELADO,
+            L.id.notin_(usados),
+        )
+    ).scalars().all()
+
+    def chave(lanc):
+        d = _data_lancamento(lanc)
+        # mais próximo por data; desempata por |diferença de valor|.
+        return (abs((d - mov.data).days) if d else 10**6,
+                abs(lanc.valor - mov.valor))
+
+    return sorted(candidatos, key=chave)[:limite]
+
+
+def lancamentos_nao_conciliados(clinica_id, desde):
+    """Lançamentos PAGOS (receita) ainda sem movimento conciliado desde uma
+    data — o "outro lado" da divergência (esperado no banco, não apareceu)."""
+    L = LancamentoFinanceiro
+    usados = select(MovimentoBancario.lancamento_id).where(
+        MovimentoBancario.lancamento_id.is_not(None))
+    return db.session.execute(
+        select(L).where(
+            L.tipo == L.TIPO_RECEITA, L.status == L.STATUS_PAGO,
+            L.pago_em >= desde, L.id.notin_(usados),
+        ).order_by(L.pago_em.desc())
+    ).scalars().all()

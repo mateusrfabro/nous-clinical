@@ -29,6 +29,10 @@
     <span class="kpi-label">Conciliados</span>
     <span class="kpi-value">{{ n_conc }}</span>
   </div>
+  <div class="kpi-card {{ 'card-hl-warning' if n_sem_extrato else '' }}">
+    <span class="kpi-label">Recebido sem extrato (30d)</span>
+    <span class="kpi-value">{{ n_sem_extrato }}</span>
+  </div>
 </section>
 
 {% if movimentos %}
@@ -72,6 +76,7 @@
             </form>
             {% endif %}
             {% call actions_menu() %}
+              <a href="{{ url_for('financeiro.conciliacao_detalhe', movimento_id=m.id) }}">Conciliar com outro lançamento…</a>
               {% if sug %}
               <form method="POST" action="{{ url_for('financeiro.conciliacao_criar', movimento_id=m.id) }}" class="no-loading">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

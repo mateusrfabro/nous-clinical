@@ -7,7 +7,9 @@ from zoneinfo import ZoneInfo
 from app import db
 from app.models import LancamentoFinanceiro, MovimentoBancario
 from app.services.ofx import parse_ofx, OFXError
-from app.services.conciliacao import sugestao_para
+from app.services.conciliacao import (
+    sugestao_para, candidatos_para, lancamentos_nao_conciliados,
+)
 
 _BR = ZoneInfo("America/Sao_Paulo")
 
@@ -149,6 +151,53 @@ def test_criar_lancamento_do_movimento(client_admin, app):
         lanc = db.session.get(LancamentoFinanceiro, mov.lancamento_id)
         assert lanc.tipo == "receita" and lanc.valor == Decimal("150.00")
         assert lanc.status == "pago"
+
+
+def test_conciliacao_manual_valor_diferente(client_admin, app):
+    """Conciliação MANUAL: casa o movimento de 150 com um lançamento de valor
+    diferente (ex.: 145 + 5 de tarifa) — o que a sugestão automática não faria."""
+    with app.app_context():
+        db.session.add(LancamentoFinanceiro(
+            tipo=LancamentoFinanceiro.TIPO_RECEITA,
+            status=LancamentoFinanceiro.STATUS_PAGO, categoria="consulta",
+            descricao="Consulta 145", valor=Decimal("145.00"),
+            pago_em=datetime.now(timezone.utc)))
+        db.session.commit()
+    _upload(client_admin)
+    with app.app_context():
+        cred = MovimentoBancario.query.filter_by(fitid="TX001").first()
+        # sem sugestão automática (valor não bate)
+        assert sugestao_para(cred) is None
+        # mas aparece como CANDIDATO manual
+        cands = candidatos_para(cred)
+        assert any(c.valor == Decimal("145.00") for c in cands)
+        cand_id = cands[0].id
+        mov_id = cred.id
+    # tela de detalhe abre
+    assert client_admin.get(f"/financeiro/conciliacao/{mov_id}").status_code == 200
+    # concilia manualmente
+    r = client_admin.post(
+        f"/financeiro/conciliacao/{mov_id}/conciliar",
+        data={"lancamento_id": cand_id}, follow_redirects=True)
+    assert r.status_code == 200
+    with app.app_context():
+        mov = db.session.get(MovimentoBancario, mov_id)
+        assert mov.status == "conciliado" and mov.lancamento_id == cand_id
+
+
+def test_lancamentos_sem_extrato(client_admin, app):
+    """Receita paga não conciliada conta como 'recebido sem extrato'."""
+    with app.app_context():
+        db.session.add(LancamentoFinanceiro(
+            tipo=LancamentoFinanceiro.TIPO_RECEITA,
+            status=LancamentoFinanceiro.STATUS_PAGO, categoria="consulta",
+            descricao="Recebido", valor=Decimal("300.00"),
+            pago_em=datetime.now(timezone.utc)))
+        db.session.commit()
+        desde = datetime.now(timezone.utc).replace(year=2000)
+        clinica_id = LancamentoFinanceiro.query.first().clinica_id
+        sem = lancamentos_nao_conciliados(clinica_id, desde)
+        assert any(x.valor == Decimal("300.00") for x in sem)
 
 
 def test_ignorar_e_desfazer(client_admin, app):

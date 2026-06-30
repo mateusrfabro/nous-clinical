@@ -27,7 +27,10 @@ from app.models import (
 )
 from app.services.audit import audit
 from app.services.ofx import parse_ofx, OFXError
-from app.services.conciliacao import importar_extrato, sugestao_para
+from app.services.conciliacao import (
+    importar_extrato, sugestao_para, candidatos_para,
+    lancamentos_nao_conciliados,
+)
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
@@ -366,11 +369,29 @@ def conciliacao():
                  for m in movimentos if m.status == M.STATUS_PENDENTE}
     n_pend = sum(1 for m in movimentos if m.status == M.STATUS_PENDENTE)
     n_conc = sum(1 for m in movimentos if m.status == M.STATUS_CONCILIADO)
+    # Divergência do outro lado: receitas pagas (últimos 30d) sem extrato casado.
+    desde = datetime.now(timezone.utc) - timedelta(days=30)
+    sem_extrato = lancamentos_nao_conciliados(current_user.clinica_id, desde)
     return render_template(
         "financeiro/conciliacao.html",
         movimentos=movimentos, sugestoes=sugestoes,
-        n_pend=n_pend, n_conc=n_conc,
+        n_pend=n_pend, n_conc=n_conc, n_sem_extrato=len(sem_extrato),
     )
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>")
+@login_required
+@recepcao_ou_admin
+def conciliacao_detalhe(movimento_id):
+    """Conciliação MANUAL: escolher um lançamento existente p/ o movimento
+    quando a sugestão automática não serve (valor não bate exatamente)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    candidatos = candidatos_para(mov)
+    return render_template(
+        "financeiro/conciliacao_detalhe.html",
+        mov=mov, candidatos=candidatos)
 
 
 @financeiro_bp.route("/conciliacao/importar", methods=["POST"])
