@@ -40,7 +40,9 @@ def tarefa_lembretes():
 def index():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
-    return render_template("main/index.html")
+    return render_template(
+        "main/index.html",
+        contato=current_app.config.get("CONTATO_COMERCIAL") or "")
 
 
 @main_bp.route("/buscar")

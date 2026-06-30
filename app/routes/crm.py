@@ -11,14 +11,16 @@ from urllib.parse import quote
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash, abort,
+    jsonify,
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy import select
 
-from app import db
+from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin
-from app.models import Atendimento, Agendamento, Paciente, AuditLog
+from app.models import Atendimento, Agendamento, Paciente, AuditLog, Clinica
 from app.services.audit import audit
+from app.services.concierge import gerar_mensagem
 
 crm_bp = Blueprint("crm", __name__, url_prefix="/crm")
 _BR_TZ = ZoneInfo("America/Sao_Paulo")
@@ -181,3 +183,64 @@ def registrar_interacao(paciente_id):
           recurso_id=paciente.id, detalhes="Felicitação de aniversário")
     flash(f"Interação registrada para {paciente.nome_completo}.", "success")
     return redirect(url_for("crm.aniversariantes"))
+
+
+def _rate_key():
+    """Limita por USUÁRIO (vetor de custo de API), não por IP — a equipe da
+    clínica sai pelo mesmo IP público. Cai pro IP se anônimo."""
+    return f"u:{current_user.id}" if getattr(current_user, "id", None) \
+        else (request.remote_addr or "anon")
+
+
+@crm_bp.route("/mensagem-ia", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+@limiter.limit("60 per hour;12 per minute", key_func=_rate_key)
+def mensagem_ia():
+    """Concierge: gera o rascunho da mensagem de retorno/reativação de UM paciente
+    (recepção revisa e envia). JSON in/out. Por padrão usa TEMPLATE (custo zero);
+    só usa IA se a operadora ligar. Não lê prontuário — só nome, profissional e
+    tempo desde a última consulta."""
+    dados = request.get_json(silent=True) or {}
+    try:
+        paciente_id = int(dados.get("paciente_id"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "texto": "Paciente inválido."}), 400
+    motivo = dados.get("motivo")
+    canal = "email" if dados.get("canal") == "email" else "whatsapp"
+
+    paciente = db.session.get(Paciente, paciente_id)
+    if paciente is None:
+        return jsonify({"ok": False, "texto": "Paciente não encontrado."}), 404
+    # Guard explícito de clínica (defesa em profundidade, além do tenant loader).
+    if (current_user.clinica_id is not None
+            and paciente.clinica_id != current_user.clinica_id):
+        abort(403)
+
+    primeiro = ((paciente.nome_completo or "").split() or [""])[0]
+    clinica_nome = None
+    if current_user.clinica_id:
+        c = db.session.get(Clinica, current_user.clinica_id)
+        clinica_nome = c.nome if c else None
+
+    # Último atendimento -> profissional e tempo desde a última consulta.
+    ult = db.session.execute(
+        select(Atendimento).where(Atendimento.paciente_id == paciente.id)
+        .order_by(Atendimento.criado_em.desc(), Atendimento.id.desc()).limit(1)
+    ).scalars().first()
+    prof = ult.profissional.nome if (ult and ult.profissional) else None
+    dias = None
+    if ult and ult.criado_em:
+        criado = ult.criado_em
+        if criado.tzinfo is None:
+            criado = criado.replace(tzinfo=timezone.utc)
+        dias = (datetime.now(timezone.utc) - criado).days
+
+    ok, texto, fonte = gerar_mensagem(motivo, primeiro, clinica_nome,
+                                      profissional=prof, dias_desde=dias, canal=canal)
+    if ok:
+        # Só metadado (motivo/canal/fonte) — nunca o texto gerado nem PII do paciente.
+        audit(AuditLog.ACAO_CONCIERGE_GERADO, recurso_tipo="paciente",
+              recurso_id=paciente.id,
+              detalhes=f"motivo={motivo} canal={canal} fonte={fonte}")
+    return jsonify({"ok": ok, "texto": texto})

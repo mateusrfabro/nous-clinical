@@ -17,7 +17,7 @@
 <p class="muted mb-4">Pacientes com retorno recomendado pelo profissional que ainda não reagendaram. {{ linhas|length }} pendente(s).</p>
 
 {% if linhas %}
-<div class="table-wrapper">
+<div class="table-wrapper" data-concierge data-concierge-url="{{ url_for('crm.mensagem_ia') }}" data-csrf="{{ csrf_token() }}">
 <table class="table">
   <thead>
     <tr><th>Paciente</th><th>Retorno</th><th>Profissional</th><th>Telefone</th><th>Ações</th></tr>
@@ -41,9 +41,16 @@
       <td>
         <div class="flex-row-gap">
           <a href="{{ url_for('agenda.novo', paciente_id=l.paciente.id) }}" class="btn-link">Agendar retorno</a>
-          {% if l.whatsapp %}
-            <a href="{{ l.whatsapp }}" class="btn-link" target="_blank" rel="noopener">WhatsApp</a>
-          {% endif %}
+          <button type="button" class="btn-link concierge-gen" data-target="{{ l.paciente.id }}">✦ Gerar mensagem</button>
+        </div>
+        <div class="concierge-box" hidden data-box-for="{{ l.paciente.id }}" data-motivo="retorno" data-telefone="{{ l.paciente.telefone or '' }}">
+          <textarea class="concierge-text" rows="4" aria-label="Mensagem de retorno gerada (revise antes de enviar)"></textarea>
+          <p class="muted text-sm concierge-aviso">Rascunho automático — revise e ajuste antes de enviar.</p>
+          <div class="flex-row-gap concierge-actions">
+            <a href="#" class="btn btn-primary btn-sm concierge-wa" target="_blank" rel="noopener" hidden>Abrir WhatsApp</a>
+            <button type="button" class="btn-link concierge-copy">Copiar</button>
+            <button type="button" class="btn-link concierge-regen">Gerar de novo</button>
+          </div>
         </div>
       </td>
     </tr>

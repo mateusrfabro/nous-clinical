@@ -44,12 +44,24 @@ class Config:
     # fora de um request (cron). Vazio = links sao omitidos.
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
 
+    # CTA comercial da landing publica (/). Pode ser um link de WhatsApp
+    # (https://wa.me/55...), um mailto: ou a URL de um formulario. Vazio = o CTA
+    # cai pro "Entrar na plataforma" (nao inventa canal de contato).
+    CONTATO_COMERCIAL = os.getenv("CONTATO_COMERCIAL", "")
+
     # Chatbot de ajuda ("Nous Assistente") via Claude API. A chave fica SO no
     # servidor (nunca vai ao front). AJUDA_IA_ATIVA liga/desliga a feature sem
     # deploy; se a chave faltar, a feature fica inativa mesmo com a flag on.
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
     MODEL_AJUDA = os.getenv("MODEL_AJUDA", "claude-haiku-4-5")
     AJUDA_IA_ATIVA = os.getenv("AJUDA_IA_ATIVA", "false").lower() in ("1", "true", "sim")
+
+    # Concierge IA: redige a mensagem de retorno/reativacao do paciente (a partir
+    # dos paineis de Retornos e Risco de Evasao). Reusa a ANTHROPIC_API_KEY. Feature
+    # DESLIGADA por padrao (CONCIERGE_ATIVO); se a chave faltar, fica inativa mesmo
+    # com a flag on. NUNCA le prontuario — so nome/contexto de agenda (LGPD-safe).
+    CONCIERGE_ATIVO = os.getenv("CONCIERGE_ATIVO", "false").lower() in ("1", "true", "sim")
+    MODEL_CONCIERGE = os.getenv("MODEL_CONCIERGE", "claude-haiku-4-5")
 
     # WhatsApp Business (Cloud API), multi-tenant. Feature INERTE por padrao:
     # WHATSAPP_ATIVO (global) liga o modulo; cada clinica conecta seu numero/token

@@ -44,8 +44,10 @@ def test_painel_lista_retorno_vencido_sem_reagendamento(client_admin, app):
     assert r.status_code == 200
     assert b"Retorno Teste" in r.data
     assert b"Vencido" in r.data
-    # Link de WhatsApp gerado a partir do telefone.
-    assert b"wa.me/" in r.data
+    # Botão "Gerar mensagem" (Concierge) com o telefone do paciente p/ montar o
+    # link de WhatsApp no cliente (substituiu o link estático antigo).
+    assert b"concierge-gen" in r.data
+    assert b'data-telefone="(43) 90000-1234"' in r.data
 
 
 def test_paciente_com_consulta_futura_sai_do_painel(client_admin, app):

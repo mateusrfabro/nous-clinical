@@ -1,14 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Nous Clinical — menos gestão, mais medicina{% endblock %}
+{% block meta_description %}Nous Clinical: agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma de gestão para clínicas e consultórios médicos, com inteligência clínica e LGPD by design.{% endblock %}
 {% block h1_oculto_pub %}{% endblock %}
+{% set cta_primario = contato or url_for('auth.login') %}
+{% set cta_label = 'Falar com a gente' if contato else 'Entrar na plataforma' %}
+{% set cta_externo = contato and (contato.startswith('http') or contato.startswith('mailto')) %}
 {% block content %}
+
+<!-- ===== Hero ===== -->
 <section class="hero">
   <div class="hero-text">
-    <span class="hero-eyebrow">Inteligência para a medicina moderna</span>
+    <span class="hero-eyebrow">Gestão para clínicas e consultórios médicos</span>
     <h1>Menos gestão. <span class="accent">Mais medicina.</span></h1>
-    <p class="hero-sub">Agenda, pacientes, prontuário e financeiro em uma só plataforma — a clínica cuida da saúde do paciente e o Nous cuida do resto, com segurança de dados de saúde.</p>
+    <p class="hero-sub">Agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma — com inteligência clínica e a proteção de dados que a saúde exige. A recepção agenda e recebe, o profissional atende, o gestor enxerga a clínica inteira.</p>
     <div class="hero-actions">
-      <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Entrar na plataforma</a>
+      <a href="{{ cta_primario }}" class="btn btn-primary btn-lg"{% if cta_externo %} target="_blank" rel="noopener"{% endif %}>{{ cta_label }}</a>
+      <a href="#modulos" class="btn btn-outline btn-lg">Ver os módulos</a>
     </div>
   </div>
 
@@ -41,33 +48,194 @@
   </aside>
 </section>
 
+<!-- ===== Faixa de valores ===== -->
 <section class="stat-band">
   <div class="stat-band-item"><div class="stat-band-num">1 só</div><div class="stat-band-label">plataforma para toda a clínica</div></div>
-  <div class="stat-band-item"><div class="stat-band-num">LGPD</div><div class="stat-band-label">dados de saúde protegidos</div></div>
+  <div class="stat-band-item"><div class="stat-band-num">LGPD</div><div class="stat-band-label">dados de saúde protegidos por papel</div></div>
   <div class="stat-band-item"><div class="stat-band-num">−faltas</div><div class="stat-band-label">confirmação e acompanhamento</div></div>
-  <div class="stat-band-item"><div class="stat-band-num">+receita</div><div class="stat-band-label">financeiro ligado à agenda</div></div>
+  <div class="stat-band-item"><div class="stat-band-num">+retorno</div><div class="stat-band-label">CRM traz o paciente de volta</div></div>
 </section>
 
-<section class="card-grid">
-  <div class="card">
-    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
-    <h3>Agenda por profissional</h3>
-    <p class="muted">Visão do dia, status da consulta (confirmado, atendido, faltou) e troca rápida de data.</p>
+<!-- ===== Dores / Para quem é ===== -->
+<section class="lp-section">
+  <span class="lp-eyebrow">Para quem é</span>
+  <h2 class="lp-section-title">Tocar uma clínica não devia ser tocar três cadernos ao mesmo tempo.</h2>
+  <p class="lp-section-sub">Se a operação ainda vive de planilha, agenda de papel e WhatsApp solto, o problema não é falta de esforço — é falta de um lugar só.</p>
+
+  <div class="lp-dores">
+    <div class="lp-dor">
+      <h3>Planilha que ninguém confia</h3>
+      <p class="muted">O dado está em três lugares e nenhum bate.</p>
+      <p class="lp-vira">→ Ficha única do paciente, financeiro conferido e relatório que sai pronto.</p>
+    </div>
+    <div class="lp-dor">
+      <h3>Agenda dupla e furo de sala</h3>
+      <p class="muted">Dois pacientes no mesmo horário, sala ocupada sem ninguém saber.</p>
+      <p class="lp-vira">→ Trava de conflito: o sistema não deixa marcar dois no mesmo horário ou na mesma sala.</p>
+    </div>
+    <div class="lp-dor">
+      <h3>Dinheiro sem conferir</h3>
+      <p class="muted">Fim do mês chega e ninguém sabe ao certo o que entrou.</p>
+      <p class="lp-vira">→ Fluxo de caixa, contas a pagar/receber e caixa fechado todo dia, com o banco batendo.</p>
+    </div>
+    <div class="lp-dor">
+      <h3>Paciente que some</h3>
+      <p class="muted">Ele atendeu, gostou, e nunca mais voltou.</p>
+      <p class="lp-vira">→ O CRM mostra quem está há tempo sem voltar e quem tem retorno pendente.</p>
+    </div>
   </div>
-  <div class="card">
-    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-    <h3>Cadastro de pacientes</h3>
-    <p class="muted">Dados, convênio e histórico clínico e financeiro centralizados e pesquisáveis.</p>
-  </div>
-  <div class="card">
-    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 12h6M9 16h4"/></svg></span>
-    <h3>Prontuário seguro</h3>
-    <p class="muted">Evolução e prescrição acessíveis só para profissional e admin — recepção não vê dado clínico.</p>
-  </div>
-  <div class="card">
-    <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="4" width="3" height="14"/></svg></span>
-    <h3>Financeiro integrado</h3>
-    <p class="muted">Recebimento da consulta, contas a receber e pagar e fluxo de caixa — receita conectada à agenda.</p>
+
+  <h3 class="lp-sub-title">Três perfis, três telas — cada um vê só o que é seu</h3>
+  <div class="card-grid">
+    <div class="card">
+      <h3>Recepção</h3>
+      <p class="muted">Agenda, cadastra, faz check-in e recebe pagamento. Fluxo rápido de balcão, sem acesso a dado sensível que ela não precisa ver.</p>
+    </div>
+    <div class="card">
+      <h3>Profissional</h3>
+      <p class="muted">Vê só a própria agenda, registra o prontuário e emite receita e atestado em PDF. Menos distração, mais foco no atendimento.</p>
+    </div>
+    <div class="card">
+      <h3>Gestor / Dono</h3>
+      <p class="muted">Financeiro, relatórios, auditoria e a marca da clínica. Abre o sistema e enxerga a clínica inteira em uma tela.</p>
+    </div>
   </div>
 </section>
+
+<!-- ===== Módulos ===== -->
+<section class="lp-section" id="modulos">
+  <span class="lp-eyebrow">A plataforma</span>
+  <h2 class="lp-section-title">Tudo que a clínica precisa, num lugar só.</h2>
+  <p class="lp-section-sub">Os recursos marcados como <strong>opcional</strong> já estão prontos e ligam quando você quiser. Os de <strong>roadmap</strong> mostramos como caminho — não como promessa cumprida.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
+      <h3>Agenda</h3>
+      <p class="muted">Quatro formas de ver o dia — lista, semana, grade por horário e Quadro (Kanban) com arrastar entre etapas — com bloqueios e trava de conflito.</p>
+      <p class="lp-benef">Acaba a agenda dupla e o furo de sala; o dia anda sozinho na tela.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      <h3>Pacientes</h3>
+      <p class="muted">Cadastro completo — dados, contato, endereço por CEP, convênio — com histórico de consultas e financeiro reunidos.</p>
+      <p class="lp-benef">A ficha do paciente vira fonte única; ninguém procura dado em três cadernos.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 12h6M9 16h4"/></svg></span>
+      <h3>Prontuário &amp; documentos</h3>
+      <p class="muted">Queixa, evolução e prescrição; receita e atestado em PDF com a marca da clínica; anexo de exames; retorno recomendado. Toda edição é auditada.</p>
+      <p class="lp-benef">Documento clínico padronizado e rastreável — proteção da clínica e do paciente.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="4" width="3" height="14"/></svg></span>
+      <h3>Financeiro + Conciliação</h3>
+      <p class="muted">Fluxo de caixa, contas a pagar e receber, recebimento integrado à agenda, conciliação do extrato (OFX/CSV) e fechamento de caixa diário.</p>
+      <p class="lp-benef">O dinheiro fica conferido e fechado todo dia, com o banco batendo com o sistema.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H4a1 1 0 0 1-1-1V3"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+      <h3>Relatórios / BI</h3>
+      <p class="muted">Indicadores do período prontos e em CSV — faturamento por médico, repasse, dependência de convênio, produtividade, ticket, DRE e risco de evasão.</p>
+      <p class="lp-benef">O gestor decide com número: de qual convênio dependo? quem produz mais? quem vai sumir?</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.5a8.38 8.38 0 0 1-9 8.3 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.1A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5A8.38 8.38 0 0 1 22 11.5z"/></svg></span>
+      <h3>CRM &amp; Retorno</h3>
+      <p class="muted">Painel de retornos pendentes e de aniversariantes, com lembrete de consulta automático por WhatsApp ou e-mail.</p>
+      <p class="lp-benef">Transforma o "ele sumiu" numa lista de quem chamar de volta hoje.</p>
+      <p class="lp-nota">Lembrete por WhatsApp exige número conectado + template aprovado pela Meta; por e-mail, envio configurado.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+      <h3>WhatsApp Business <span class="lp-badge lp-badge-opt">opcional</span></h3>
+      <p class="muted">Cada clínica conecta o próprio número e conversa com o paciente de dentro do sistema, com o token de acesso cifrado.</p>
+      <p class="lp-benef">Atendimento no canal que o paciente já usa, sem ferramenta paralela.</p>
+      <p class="lp-nota">Vem desligado até a clínica conectar o número; as mensagens são pagas pela clínica à Meta.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+      <h3>Agendamento online <span class="lp-badge lp-badge-opt">opcional</span></h3>
+      <p class="muted">Link público com a marca da clínica onde o paciente agenda e confirma sozinho — com QR Code para divulgar.</p>
+      <p class="lp-benef">Menos telefone na recepção; agenda preenchendo fora do horário comercial.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <h3>Auditoria / LGPD</h3>
+      <p class="muted">Trilha das ações sensíveis (como edição de prontuário), consultável e exportável pelo administrador.</p>
+      <p class="lp-benef">A clínica sabe quem fez o quê e quando — proteção jurídica e conformidade.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      <h3>Multi-clínica &amp; White-label</h3>
+      <p class="muted">Uma instalação atende várias clínicas isoladas entre si, cada uma com logo, cor e link próprios.</p>
+      <p class="lp-benef">Permite operar uma rede ou revender o sistema com a marca do cliente.</p>
+    </div>
+    <div class="card">
+      <span class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></span>
+      <h3>Nota Fiscal (NFS-e) <span class="lp-badge lp-badge-road">roadmap</span></h3>
+      <p class="muted">A configuração do emitente por clínica (CNPJ, regime, ISS, inscrição municipal, código de serviço) já está pronta, integrada a um emissor nacional.</p>
+      <p class="lp-nota">A emissão da nota ainda não está liberada — depende de certificado digital A1. Apresentamos como caminho, não como recurso disponível hoje.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Diferenciais ===== -->
+<section class="lp-section">
+  <span class="lp-eyebrow">Diferenciais</span>
+  <h2 class="lp-section-title">O que coloca o Nous à frente.</h2>
+  <ul class="lp-list">
+    <li><strong>Inteligência clínica no fluxo, não em telas soltas.</strong> Retorno recomendado, risco de evasão e produtividade nascem do atendimento e viram ação no CRM.</li>
+    <li><strong>Multi-tenant com white-label de verdade.</strong> Vários clientes isolados, cada um com sua marca — pronto para rede ou revenda.</li>
+    <li><strong>LGPD by design.</strong> Prontuário é dado sensível restrito por papel e toda edição é auditada. Está na arquitetura, não colado depois.</li>
+    <li><strong>Conciliação bancária (OFX/CSV) + fechamento de caixa diário.</strong> Controle financeiro que muitos sistemas de clínica simplesmente não têm.</li>
+    <li><strong>Portal de agendamento online</strong> com a marca da clínica — o paciente marca sozinho, fora do horário comercial.</li>
+    <li><strong>Suporte embutido de custo zero.</strong> A equipe tira dúvida dentro do sistema, sem chamado e sem custo recorrente de ajuda.</li>
+  </ul>
+</section>
+
+<!-- ===== Segurança / LGPD ===== -->
+<section class="lp-section lp-section-dark">
+  <span class="lp-eyebrow">Segurança &amp; conformidade</span>
+  <h2 class="lp-section-title">Saúde exige um nível de cuidado com os dados. Já vem de fábrica.</h2>
+  <ul class="lp-list lp-list-light">
+    <li><strong>Cada clínica é uma ilha.</strong> Os dados de uma clínica não se misturam com os de outra — o isolamento é automático.</li>
+    <li><strong>Cada um vê só o que pode.</strong> O prontuário fica restrito ao profissional e ao administrador; a recepção não acessa.</li>
+    <li><strong>Senha guardada do jeito certo.</strong> Protegidas com Argon2id, padrão forte atual — nunca em texto.</li>
+    <li><strong>Rastro de auditoria.</strong> Ações sensíveis ficam registradas com quem, o quê e quando, exportável pelo gestor.</li>
+    <li><strong>Segredos fora do código.</strong> Credenciais e tokens ficam cifrados ou em variáveis de ambiente, nunca expostos.</li>
+  </ul>
+</section>
+
+<!-- ===== Maturidade honesta ===== -->
+<section class="lp-section">
+  <span class="lp-eyebrow">Transparência</span>
+  <h2 class="lp-section-title">A gente vende o que entrega.</h2>
+  <p class="lp-section-sub">Confiança em software de saúde começa com transparência. Então deixamos claro o que está pronto, o que é opcional e o que ainda é caminho.</p>
+  <div class="lp-trust">
+    <div class="lp-trust-col lp-trust-ready">
+      <div class="lp-trust-head">Pronto e em produção</div>
+      <p>Agenda, pacientes, prontuário, financeiro com conciliação e fechamento de caixa, relatórios/BI, CRM, portal de agendamento, auditoria e multi-clínica white-label. O núcleo de gestão está no ar e em uso.</p>
+    </div>
+    <div class="lp-trust-col lp-trust-opt">
+      <div class="lp-trust-head">Opcional — liga quando quiser</div>
+      <p>WhatsApp Business e o modo de IA do suporte. O WhatsApp tem custo das mensagens pago pela clínica à Meta; o lembrete por WhatsApp exige número conectado e template aprovado.</p>
+    </div>
+    <div class="lp-trust-col lp-trust-road">
+      <div class="lp-trust-head">Roadmap — ainda não liberado</div>
+      <p>Emissão de nota fiscal NFS-e. A configuração do emitente está pronta, mas a emissão ainda não está liberada — depende de certificado digital A1. Não vendemos como pronta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA final ===== -->
+<section class="lp-cta">
+  <h2>Sua clínica gasta tempo demais com gestão?</h2>
+  <p>Vamos mostrar o Nous Clinical funcionando com o fluxo da sua clínica — agenda, financeiro e relatórios, do jeito que o seu dia funciona. Sem compromisso.</p>
+  <div class="hero-actions">
+    <a href="{{ cta_primario }}" class="btn btn-primary btn-lg"{% if cta_externo %} target="_blank" rel="noopener"{% endif %}>{{ cta_label }}</a>
+  </div>
+  <p class="lp-cta-slogan">Menos gestão. Mais medicina. É pra isso que o Nous existe.</p>
+</section>
+
 {% endblock %}

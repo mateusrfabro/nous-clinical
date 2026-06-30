@@ -312,7 +312,7 @@
 <div class="page-header"><h3>Pacientes em risco de evasão</h3></div>
 <p class="muted text-sm mb-2">Ativos sem atendimento há mais de 180 dias e sem consulta futura — candidatos a recall.</p>
 {% if evasao %}
-<div class="table-wrapper"><table class="table">
+<div class="table-wrapper" data-concierge data-concierge-url="{{ url_for('crm.mensagem_ia') }}" data-csrf="{{ csrf_token() }}"><table class="table">
   <thead><tr><th>Paciente</th><th>Convênio</th><th>Último atendimento</th><th>Contato</th></tr></thead>
   <tbody>
     {% for p in evasao %}
@@ -320,7 +320,18 @@
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
       <td>{{ p.convenio or '—' }}</td>
       <td>{{ p.ultimo|data_br }}</td>
-      <td>{% if p.telefone and p.telefone|wa_numero %}<a href="https://wa.me/{{ p.telefone|wa_numero }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Lembrete</a>{% else %}—{% endif %}</td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline concierge-gen" data-target="{{ p.id }}">✦ Gerar mensagem</button>
+        <div class="concierge-box" hidden data-box-for="{{ p.id }}" data-motivo="reativacao" data-telefone="{{ p.telefone or '' }}">
+          <textarea class="concierge-text" rows="4" aria-label="Mensagem de reativação gerada (revise antes de enviar)"></textarea>
+          <p class="muted text-sm concierge-aviso">Rascunho automático — revise e ajuste antes de enviar.</p>
+          <div class="flex-row-gap concierge-actions">
+            <a href="#" class="btn btn-primary btn-sm concierge-wa" target="_blank" rel="noopener" hidden>Abrir WhatsApp</a>
+            <button type="button" class="btn-link concierge-copy">Copiar</button>
+            <button type="button" class="btn-link concierge-regen">Gerar de novo</button>
+          </div>
+        </div>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

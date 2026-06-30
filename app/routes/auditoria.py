@@ -69,6 +69,7 @@ ACAO_LABEL = {
     "conciliacao_desfeito": "Conciliação desfeita",
     "caixa_fechado": "Caixa fechado",
     "caixa_reaberto": "Caixa reaberto",
+    "concierge_gerado": "Mensagem de retorno gerada (IA)",
 }
 
 

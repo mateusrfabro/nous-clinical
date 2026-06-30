@@ -719,6 +719,7 @@ class AuditLog(db.Model):
     ACAO_CONCILIACAO_DESFEITO = "conciliacao_desfeito"      # desfez a conciliação
     ACAO_CAIXA_FECHADO = "caixa_fechado"          # fechamento de caixa do dia
     ACAO_CAIXA_REABERTO = "caixa_reaberto"        # reabertura do caixa
+    ACAO_CONCIERGE_GERADO = "concierge_gerado"    # rascunho de mensagem IA (retorno/reativação)
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

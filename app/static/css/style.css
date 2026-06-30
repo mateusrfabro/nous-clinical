@@ -2535,3 +2535,122 @@ textarea:focus-visible {
     outline-offset: -4px;
     border-radius: var(--radius);
 }
+
+/* Concierge IA — painel de rascunho da mensagem de retorno/reativacao. */
+.concierge-box {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface, #fff);
+    max-width: 30rem;
+}
+.concierge-text {
+    width: 100%;
+    resize: vertical;
+    font: inherit;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border-strong);
+    border-radius: calc(var(--radius) - 2px);
+}
+.concierge-aviso { margin: 0.35rem 0 0.5rem; }
+.concierge-actions { align-items: center; }
+
+/* ============================================================
+   Landing comercial publica (/) — secoes de venda honestas.
+   ============================================================ */
+.lp-section { padding: var(--space-6) 0; }
+.lp-eyebrow {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--primary-text); font-weight: 600; margin-bottom: var(--space-2);
+}
+.lp-section-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+    color: var(--text-primary); line-height: 1.15; letter-spacing: -0.02em;
+    margin: 0 0 var(--space-3); max-width: 24ch;
+}
+.lp-section-sub {
+    font-size: 1.05rem; color: var(--text-secondary);
+    max-width: 62ch; margin: 0 0 var(--space-4); line-height: 1.55;
+}
+.lp-sub-title {
+    font-family: var(--font-heading); color: var(--text-primary);
+    font-size: 1.2rem; margin: var(--space-5) 0 var(--space-3);
+}
+
+/* Dores */
+.lp-dores {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem; margin-bottom: var(--space-4);
+}
+.lp-dor {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.2rem;
+}
+.lp-dor h3 { font-size: 1.02rem; margin: 0 0 0.3rem; color: var(--text-primary); }
+.lp-vira { margin: 0.5rem 0 0; color: var(--primary-text); font-weight: 600; font-size: 0.92rem; }
+
+/* Modulos: beneficio + nota honesta + badge opcional/roadmap */
+.lp-benef { margin: 0.55rem 0 0; font-size: 0.9rem; color: var(--primary-text); font-weight: 600; }
+.lp-nota  { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--text-secondary); font-style: italic; }
+.lp-badge {
+    display: inline-block; vertical-align: middle; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    padding: 0.15rem 0.45rem; border-radius: 999px; margin-left: 0.4rem;
+}
+.lp-badge-opt  { background: rgba(var(--brand-accent-rgb), 0.16); color: var(--accent); }
+.lp-badge-road { background: rgba(245, 158, 11, 0.18); color: #B45309; }
+
+/* Listas (diferenciais / seguranca) */
+.lp-list {
+    list-style: none; padding: 0; margin: 0; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 0.9rem 2rem;
+}
+.lp-list li { position: relative; padding-left: 1.7rem; line-height: 1.5; color: var(--text-secondary); }
+.lp-list li strong { color: var(--text-primary); }
+.lp-list li::before {
+    content: ""; position: absolute; left: 0; top: 0.4em;
+    width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--brand-verde-claro);
+}
+
+/* Faixa escura (seguranca) — navy + texto claro (identidade Nous) */
+.lp-section-dark {
+    background: #1E293B; color: var(--brand-cinza-claro);
+    border-radius: calc(var(--radius) * 2);
+    padding: var(--space-6) var(--space-5); margin: var(--space-5) 0;
+}
+.lp-section-dark .lp-section-title { color: #fff; }
+.lp-section-dark .lp-eyebrow { color: var(--brand-verde-claro); }
+.lp-list-light li { color: var(--brand-cinza-claro); }
+.lp-list-light li strong { color: #fff; }
+
+/* Maturidade honesta — colunas pronto / opcional / roadmap */
+.lp-trust {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;
+}
+.lp-trust-col {
+    border: 1px solid var(--border); border-top-width: 3px; border-radius: var(--radius);
+    padding: 1.1rem 1.2rem; background: var(--bg-elevated);
+}
+.lp-trust-head { font-family: var(--font-heading); font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+.lp-trust-col p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; margin: 0; }
+.lp-trust-ready { border-top-color: var(--success); }
+.lp-trust-opt   { border-top-color: var(--accent); }
+.lp-trust-road  { border-top-color: var(--warning); }
+
+/* CTA final */
+.lp-cta {
+    text-align: center; padding: var(--space-7) var(--space-4);
+    background: rgba(var(--brand-primary-rgb), 0.08);
+    border-radius: calc(var(--radius) * 2); margin: var(--space-6) 0 var(--space-4);
+}
+.lp-cta h2 {
+    font-family: var(--font-heading); font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+    color: var(--text-primary); margin: 0 0 var(--space-2);
+}
+.lp-cta p { color: var(--text-secondary); max-width: 54ch; margin: 0 auto var(--space-4); line-height: 1.55; }
+.lp-cta .hero-actions { justify-content: center; }
+.lp-cta-slogan { font-family: var(--font-heading); font-weight: 600; color: var(--primary-text); margin-top: var(--space-4) !important; }
