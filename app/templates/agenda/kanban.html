@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Agenda (quadro) — Nous Clinical{% endblock %}
 {% block content %}
+{# pode_gerir: recepção/admin movem cards (drag-drop + ações). Profissional não. #}
+{% set pode_gerir = current_user.is_admin or current_user.is_recepcao %}
+{# Colunas que são alvo de drop = status manuais (atendido nunca é manual). #}
+{% set status_moviveis = ['agendado', 'confirmado', 'faltou', 'cancelado'] %}
 <div class="page-header">
   <h2>Agenda — {{ dia|data_br }}</h2>
   {% if current_user.is_admin or current_user.is_recepcao %}
@@ -37,16 +41,17 @@
 
 {% if total %}
 <div class="kanban-scroll">
-  <div class="kanban-board">
+  <div class="kanban-board"{% if pode_gerir %} data-kanban-board data-csrf="{{ csrf_token() }}"{% endif %}>
     {% for col in colunas %}
     <section class="kanban-col" aria-label="{{ col.titulo }}">
       <header class="kanban-col-head">
         <span class="tag {{ col.chave|status_class }}">{{ col.titulo }}</span>
-        <span class="kanban-count">{{ col.ags|length }}</span>
+        <span class="kanban-count" data-kanban-count>{{ col.ags|length }}</span>
       </header>
-      <div class="kanban-col-body">
+      <div class="kanban-col-body"{% if pode_gerir and col.chave in status_moviveis %} data-kanban-drop data-status="{{ col.chave }}"{% endif %}>
         {% for ag in col.ags %}
-        <article class="kanban-card">
+        {% set card_moviv = pode_gerir and ag.status != 'atendido' %}
+        <article class="kanban-card"{% if card_moviv %} draggable="true" data-kanban-card data-ag-id="{{ ag.id }}" data-status="{{ ag.status }}" data-move-url="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}"{% endif %}>
           <div class="kanban-card-time">{{ ag.inicio|hora_br }}–{{ ag.fim|hora_br }}</div>
           <a class="kanban-card-pac" href="{{ url_for('pacientes.detalhe', paciente_id=ag.paciente_id) }}">{{ ag.paciente.nome_completo }}</a>
           <div class="kanban-card-prof muted text-sm">

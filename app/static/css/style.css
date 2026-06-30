@@ -2348,3 +2348,12 @@ textarea:focus-visible {
 .kanban-card-pac { font-weight: 600; }
 .kanban-card-actions { margin-top: 0.2rem; row-gap: 0.2rem; }
 .kanban-empty { text-align: center; padding: 0.4rem 0; }
+/* Drag-and-drop (v2): só ativo p/ recepção/admin (cards com data-kanban-card). */
+.kanban-card[draggable="true"] { cursor: grab; }
+.kanban-card.is-dragging { opacity: 0.5; cursor: grabbing; }
+.kanban-col-body.is-drop-over {
+    background: rgba(var(--brand-primary-rgb), 0.10);
+    outline: 2px dashed rgba(var(--brand-primary-rgb), 0.45);
+    outline-offset: -4px;
+    border-radius: var(--radius);
+}
