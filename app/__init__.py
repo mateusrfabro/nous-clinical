@@ -403,7 +403,7 @@ def create_app(config_name="default"):
         "confirmado": ("Confirmado", "tag-create"),
         "atendido":   ("Atendido", "tag-success"),
         "cancelado":  ("Cancelado", "tag-danger"),
-        "faltou":     ("Faltou", "tag-edit"),
+        "faltou":     ("Faltou", "tag-falta"),
     }
 
     @app.template_filter("status_label")

@@ -124,8 +124,8 @@
   <div class="mt-2">
   {% if por_medico %}
   <div class="table-wrapper"><table class="table">
-    <thead><tr><th>Profissional</th><th>Consultas pagas</th><th>Total recebido</th></tr></thead>
-    <tbody>{% for m in por_medico %}<tr><td>{{ m.nome }}</td><td>{{ m.qtd }}</td><td>{{ m.total|brl }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Profissional</th><th class="num">Consultas pagas</th><th class="num">Total recebido</th></tr></thead>
+    <tbody>{% for m in por_medico %}<tr><td>{{ m.nome }}</td><td class="num">{{ m.qtd }}</td><td class="num">{{ m.total|brl }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty-state"><p>Nenhum recebimento de consulta no período.</p></div>{% endif %}
   </div>
@@ -135,10 +135,10 @@
   <div class="mt-2">
   {% if repasse %}
   <div class="table-wrapper"><table class="table">
-    <thead><tr><th>Profissional</th><th>Recebido</th><th>Comissão</th><th>Repasse</th></tr></thead>
+    <thead><tr><th>Profissional</th><th class="num">Recebido</th><th class="num">Comissão</th><th class="num">Repasse</th></tr></thead>
     <tbody>
-      {% for r in repasse %}<tr><td>{{ r.nome }}</td><td>{{ r.recebido|brl }}</td><td>{{ '%.1f'|format(r.percent) }}%</td><td>{{ r.repasse|brl }}</td></tr>{% endfor %}
-      <tr><td><strong>Total a repassar</strong></td><td></td><td></td><td><strong>{{ total_repasse|brl }}</strong></td></tr>
+      {% for r in repasse %}<tr><td>{{ r.nome }}</td><td class="num">{{ r.recebido|brl }}</td><td class="num">{{ '%.1f'|format(r.percent) }}%</td><td class="num">{{ r.repasse|brl }}</td></tr>{% endfor %}
+      <tr class="table-total"><td>Total a repassar</td><td></td><td></td><td class="num">{{ total_repasse|brl }}</td></tr>
     </tbody>
   </table></div>
   {% else %}<div class="empty-state"><p>Nenhum repasse no período (defina a comissão no cadastro do profissional).</p></div>{% endif %}
@@ -153,8 +153,8 @@
 <p class="muted text-sm mb-2">Quanto cada convênio representa da receita do período (risco de concentração).</p>
 {% if por_convenio %}
 <div class="table-wrapper"><table class="table">
-  <thead><tr><th>Convênio</th><th>Receita gerada</th><th>% da receita</th></tr></thead>
-  <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td>{{ c.total|brl }}</td><td>{{ '%.1f'|format(c.percent) }}%</td></tr>{% endfor %}</tbody>
+  <thead><tr><th>Convênio</th><th class="num">Receita gerada</th><th class="num">% da receita</th></tr></thead>
+  <tbody>{% for c in por_convenio %}<tr><td>{{ c.convenio }}</td><td class="num">{{ c.total|brl }}</td><td class="num">{{ '%.1f'|format(c.percent) }}%</td></tr>{% endfor %}</tbody>
 </table></div>
 {% else %}<div class="empty-state"><p>Nenhum recebimento no período.</p></div>{% endif %}
 
@@ -163,9 +163,9 @@
 <p class="muted text-sm mb-2">Consultas na agenda do período, por profissional.</p>
 {% if produtividade %}
 <div class="table-wrapper"><table class="table">
-  <thead><tr><th>Profissional</th><th>Agendadas</th><th>Atendidas</th><th>Faltas</th><th>Canceladas</th><th>Taxa de atend.</th></tr></thead>
+  <thead><tr><th>Profissional</th><th class="num">Agendadas</th><th class="num">Atendidas</th><th class="num">Faltas</th><th class="num">Canceladas</th><th class="num">Taxa de atend.</th></tr></thead>
   <tbody>
-    {% for p in produtividade %}<tr><td>{{ p.nome }}</td><td>{{ p.total }}</td><td>{{ p.atendidos }}</td><td>{{ p.faltas }}</td><td>{{ p.cancelados }}</td><td>{{ '%.0f'|format(p.taxa_atend) }}%</td></tr>{% endfor %}
+    {% for p in produtividade %}<tr><td>{{ p.nome }}</td><td class="num">{{ p.total }}</td><td class="num">{{ p.atendidos }}</td><td class="num">{{ p.faltas }}</td><td class="num">{{ p.cancelados }}</td><td class="num">{{ '%.0f'|format(p.taxa_atend) }}%</td></tr>{% endfor %}
   </tbody>
 </table></div>
 {% else %}<div class="empty-state"><p>Nenhuma consulta na agenda do período.</p></div>{% endif %}
@@ -175,8 +175,8 @@
   <p class="muted text-sm mb-2">Volume clínico registrado (itens marcados nos atendimentos) — não é faturamento.</p>
   {% if procedimentos %}
   <div class="table-wrapper"><table class="table">
-    <thead><tr><th>Procedimento</th><th>Quantidade</th><th>Total</th></tr></thead>
-    <tbody>{% for p in procedimentos %}<tr><td>{{ p.nome }}</td><td>{{ p.qtd }}</td><td>{{ p.total|brl }}</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Procedimento</th><th class="num">Quantidade</th><th class="num">Total</th></tr></thead>
+    <tbody>{% for p in procedimentos %}<tr><td>{{ p.nome }}</td><td class="num">{{ p.qtd }}</td><td class="num">{{ p.total|brl }}</td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty-state"><p>Nenhum procedimento registrado no período.</p></div>{% endif %}
   </div>
@@ -190,16 +190,16 @@
 <p class="muted text-sm mb-2">Quanto cada paciente gastou no período, nº de consultas pagas e ticket médio por consulta.</p>
 {% if clientes %}
 <div class="table-wrapper"><table class="table">
-  <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th>Total gasto</th><th>Consultas</th><th>Ticket médio</th></tr></thead>
+  <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th class="num">Total gasto</th><th class="num">Consultas</th><th class="num">Ticket médio</th></tr></thead>
   <tbody>
     {% for c in clientes %}
     <tr>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=c.id) }}">{{ c.nome }}</a></td>
       <td>{{ c.cpf or '—' }}</td>
       <td>{{ c.sexo or '—' }}</td>
-      <td>{{ c.total|brl }}</td>
-      <td>{{ c.qtd }}</td>
-      <td>{{ c.ticket|brl }}</td>
+      <td class="num">{{ c.total|brl }}</td>
+      <td class="num">{{ c.qtd }}</td>
+      <td class="num">{{ c.ticket|brl }}</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -250,16 +250,16 @@
 <details class="card mb-2">
   <summary><strong>Pacientes ({{ faixas|length }})</strong></summary>
   <div class="mt-2 table-wrapper"><table class="table">
-    <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th>Idade</th><th>Faixa</th><th>Total gasto</th></tr></thead>
+    <thead><tr><th>Paciente</th><th>CPF</th><th>Sexo</th><th class="num">Idade</th><th>Faixa</th><th class="num">Total gasto</th></tr></thead>
     <tbody>
       {% for p in faixas %}
       <tr>
         <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
         <td>{{ p.cpf or '—' }}</td>
         <td>{{ p.sexo or '—' }}</td>
-        <td>{{ p.idade if p.idade is not none else '—' }}</td>
+        <td class="num">{{ p.idade if p.idade is not none else '—' }}</td>
         <td>{{ p.faixa }}</td>
-        <td>{{ p.total|brl }}</td>
+        <td class="num">{{ p.total|brl }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -275,13 +275,13 @@
 <p class="muted text-sm mb-2">De onde vêm os pacientes da base ativa ("Como conheceu a clínica?") — inteligência comercial. Total: {{ leads_total }} paciente(s).</p>
 {% if leads %}
 <div class="table-wrapper"><table class="table">
-  <thead><tr><th>Origem</th><th>Pacientes</th><th>% da base</th></tr></thead>
+  <thead><tr><th>Origem</th><th class="num">Pacientes</th><th class="num">% da base</th></tr></thead>
   <tbody>
     {% for r in leads %}
     <tr>
       <td>{{ r.origem }}</td>
-      <td>{{ r.qtd }}</td>
-      <td>{{ '%.1f'|format(r.percent) }}%</td>
+      <td class="num">{{ r.qtd }}</td>
+      <td class="num">{{ '%.1f'|format(r.percent) }}%</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -296,11 +296,11 @@
 <p class="muted text-sm mb-2">Resultado operacional do período (regime de caixa — lançamentos pagos).</p>
 <div class="table-wrapper"><table class="table table-dre">
   <tbody>
-    <tr><td>Receita Bruta</td><td class="economia-pos">{{ dre.receita|brl }}</td></tr>
-    <tr><td>(−) Impostos</td><td class="economia-neg">{{ dre.impostos|brl }}</td></tr>
-    <tr><td>(−) Custos <span class="muted text-sm">(insumos)</span></td><td class="economia-neg">{{ dre.custos|brl }}</td></tr>
-    <tr><td>(−) Despesas <span class="muted text-sm">(aluguel, salário, demais)</span></td><td class="economia-neg">{{ dre.despesas|brl }}</td></tr>
-    <tr class="dre-total"><td><strong>= Resultado Operacional</strong></td><td><strong class="{{ 'economia-pos' if dre.resultado >= 0 else 'economia-neg' }}">{{ dre.resultado|brl }}</strong></td></tr>
+    <tr><td>Receita Bruta</td><td class="num economia-pos">{{ dre.receita|brl }}</td></tr>
+    <tr><td>(−) Impostos</td><td class="num economia-neg">{{ dre.impostos|brl }}</td></tr>
+    <tr><td>(−) Custos <span class="muted text-sm">(insumos)</span></td><td class="num economia-neg">{{ dre.custos|brl }}</td></tr>
+    <tr><td>(−) Despesas <span class="muted text-sm">(aluguel, salário, demais)</span></td><td class="num economia-neg">{{ dre.despesas|brl }}</td></tr>
+    <tr class="dre-total table-total"><td>= Resultado Operacional</td><td class="num"><strong class="{{ 'economia-pos' if dre.resultado >= 0 else 'economia-neg' }}">{{ dre.resultado|brl }}</strong></td></tr>
   </tbody>
 </table></div>
 

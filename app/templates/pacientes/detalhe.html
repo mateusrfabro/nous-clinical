@@ -9,11 +9,13 @@
 <div class="card-grid">
   <div class="card">
     <h3>Dados</h3>
-    <p class="muted">CPF: {{ paciente.cpf or '—' }}</p>
-    <p class="muted">Nascimento: {{ paciente.data_nascimento|data_br }} ({{ paciente.data_nascimento|idade }})</p>
-    <p class="muted">Telefone: {{ paciente.telefone or '—' }}</p>
-    <p class="muted">E-mail: {{ paciente.email or '—' }}</p>
-    <p class="muted">Convênio: {{ paciente.convenio or '—' }}</p>
+    <dl class="data-list">
+      <dt>CPF</dt><dd>{{ paciente.cpf or '—' }}</dd>
+      <dt>Nascimento</dt><dd>{{ paciente.data_nascimento|data_br }} ({{ paciente.data_nascimento|idade }})</dd>
+      <dt>Telefone</dt><dd>{{ paciente.telefone or '—' }}</dd>
+      <dt>E-mail</dt><dd>{{ paciente.email or '—' }}</dd>
+      <dt>Convênio</dt><dd>{{ paciente.convenio or '—' }}</dd>
+    </dl>
     {% if paciente.observacoes %}<p class="mt-2">{{ paciente.observacoes }}</p>{% endif %}
   </div>
 </div>
@@ -52,14 +54,14 @@
 <p class="muted">Pago: <span class="economia-pos">{{ total_pago|brl }}</span> &middot; Em aberto: {{ total_pendente|brl }}</p>
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Situação</th></tr></thead>
+  <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th><th>Situação</th></tr></thead>
   <tbody>
     {% for l in paciente.lancamentos %}
     <tr>
       <td>{{ (l.pago_em or l.criado_em)|data_br }}</td>
       <td>{{ l.descricao or '—' }}</td>
       <td>{{ l.categoria|categoria_label }}</td>
-      <td>{{ l.valor|brl }}</td>
+      <td class="num">{{ l.valor|brl }}</td>
       <td><span class="tag {{ l.status|fin_status_class }}">{{ l.status|fin_status_label }}</span></td>
     </tr>
     {% endfor %}

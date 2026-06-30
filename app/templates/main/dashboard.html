@@ -82,14 +82,14 @@
   <h3>Ocupação por profissional (hoje)</h3>
 </div>
 <table class="table">
-  <thead><tr><th>Profissional</th><th>Consultas</th><th>Atendidas</th><th>Faltas</th></tr></thead>
+  <thead><tr><th>Profissional</th><th class="num">Consultas</th><th class="num">Atendidas</th><th class="num">Faltas</th></tr></thead>
   <tbody>
     {% for o in ocupacao %}
     <tr>
       <td>{{ o.nome }}</td>
-      <td>{{ o.total }}</td>
-      <td>{{ o.atendidos }}</td>
-      <td>{% if o.faltas %}<span class="tag tag-edit">{{ o.faltas }}</span>{% else %}0{% endif %}</td>
+      <td class="num">{{ o.total }}</td>
+      <td class="num">{{ o.atendidos }}</td>
+      <td class="num">{% if o.faltas %}<span class="tag tag-falta">{{ o.faltas }}</span>{% else %}0{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>

@@ -1296,6 +1296,13 @@ button[aria-disabled="true"] {
     color: var(--text-primary);
     border-color: rgba(168, 176, 184, 0.20);
 }
+/* Faltou (no-show): âmbar de alerta — distinto do azul de "edição" (tag-edit)
+   e do vermelho de "cancelado" (tag-danger). Semântica própria. */
+.tag-falta {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.30);
+}
 
 /* .muted texto auxiliar — gray-700 (8.6:1 sobre branco) atinge WCAG AA.
    Antes era gray-500 (#adb5bd, 2.4:1) que falhava em texto longo. */
@@ -1975,6 +1982,7 @@ textarea:focus-visible {
 .ag-event.tag-create  { border-left-color: #0f766e; background: rgba(var(--brand-primary-rgb), 0.13); }
 .ag-event.tag-success { border-left-color: #15803d; background: rgba(22, 163, 74, 0.10); }
 .ag-event.tag-edit    { border-left-color: #b45309; background: rgba(245, 158, 11, 0.13); }
+.ag-event.tag-falta   { border-left-color: #b45309; background: rgba(245, 158, 11, 0.13); }
 .ag-event.tag-danger  { border-left-color: #dc2626; background: rgba(239, 68, 68, 0.08); }
 /* Pontinho = cor do profissional (agenda da cor de quem atende). */
 .ag-ev-dot {
@@ -1987,6 +1995,7 @@ textarea:focus-visible {
 }
 /* Consultas canceladas/faltou: esmaecidas e riscadas. */
 .ag-event.tag-danger,
+.ag-event.tag-falta,
 .ag-event.tag-edit { opacity: 0.62; }
 .ag-event.tag-danger .ag-ev-pac { text-decoration: line-through; }
 
@@ -2005,6 +2014,7 @@ textarea:focus-visible {
 .leg-dot.tag-create  { background: #0f766e; }
 .leg-dot.tag-success { background: #15803d; }
 .leg-dot.tag-edit    { background: #b45309; }
+.leg-dot.tag-falta   { background: #b45309; }
 .leg-dot.tag-danger  { background: #dc2626; }
 .leg-dot-bloqueio    { background: repeating-linear-gradient(45deg, #94a3b8, #94a3b8 3px, #cbd5e1 3px, #cbd5e1 6px); }
 
