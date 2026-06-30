@@ -615,6 +615,152 @@ button[aria-disabled="true"] {
     .btn-sm { padding: 0.55rem 0.95rem; }}
 .btn-block { display: block; width: 100%; text-align: center; }
 
+/* ============================================================
+   PADRÃO UI v1 — utilitários e componentes de consistência.
+   (auditoria UX 06/2026: botões, money à direita, ações por linha,
+   segmented control, checkbox inline, linha de total, label/valor.)
+   ============================================================ */
+
+/* Botão destrutivo (Cancelar lançamento, excluir): outline vermelho que
+   preenche no hover. Sempre acompanhado de data-confirm. */
+.btn-danger {
+    background: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+}
+.btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+/* Botão secundário neutro (cinza) — alternativa sóbria ao outline teal. */
+.btn-secondary {
+    background: var(--gray-100);
+    border-color: var(--gray-200);
+    color: var(--text-primary);
+}
+.btn-secondary:hover { background: var(--gray-200); border-color: var(--gray-300, #cbd5e1); }
+
+/* Números/dinheiro/percentual: sempre à direita, alarismos tabulares (compara
+   magnitude de relance). Use em &lt;td class="num"&gt; e &lt;th class="num"&gt;. */
+.num, td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* Checkbox inline (ex.: "Dias de atendimento"): não herda input{width:100%}. */
+.check-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.check-inline input[type="checkbox"] { width: auto; margin: 0; }
+
+/* Ações por linha/card: máx. 2-3 visíveis + menu "⋯ Mais" pro resto.
+   row-actions alinha as ações; actions-more é o popover CSP-safe. */
+.row-actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.actions-more { position: relative; display: inline-flex; }
+.actions-more-toggle { line-height: 1; letter-spacing: 1px; }
+.actions-more-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    min-width: 168px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md, 0 6px 20px rgba(15, 23, 42, 0.12));
+    padding: 0.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.actions-more-menu[hidden] { display: none; }
+/* Cada item do menu (link OU form com 1 botão) ocupa a linha inteira. */
+.actions-more-menu > a,
+.actions-more-menu > form > button,
+.actions-more-menu > button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border: 0;
+    border-radius: calc(var(--radius) - 2px);
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+.actions-more-menu > form { margin: 0; }
+.actions-more-menu > a:hover,
+.actions-more-menu > form > button:hover,
+.actions-more-menu > button:hover { background: var(--gray-100); }
+.actions-more-menu .item-danger { color: var(--danger); }
+.actions-more-menu .item-danger:hover { background: rgba(220, 38, 38, 0.08); }
+
+/* Segmented control (Dia/Grade/Semana/Quadro): container único, segmentos
+   colados, ativo preenchido. Restila o markup .view-switch existente. */
+.view-switch {
+    display: inline-flex;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--white);
+    gap: 0;
+}
+.view-switch > .btn,
+.view-switch > span {
+    border: 0;
+    border-radius: 0;
+    border-right: 1px solid var(--gray-200);
+    padding: 0.5rem 0.95rem;
+    font-size: 0.82rem;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    box-shadow: none;
+}
+.view-switch > *:last-child { border-right: 0; }
+.view-switch > .btn:hover { background: var(--gray-100); color: var(--text-primary); box-shadow: none; }
+.view-switch .is-active,
+.view-switch > .btn-primary {
+    background: var(--brand-verde-claro);
+    color: var(--text-on-ouro);
+    cursor: default;
+}
+
+/* Linha de total em tabelas de relatório: separador forte + fundo sutil. */
+.table-total td, tr.table-total td {
+    border-top: 2px solid var(--gray-300, #cbd5e1);
+    background: var(--gray-100);
+    font-weight: 700;
+}
+
+/* Lista de dados rótulo/valor (ex.: detalhe do paciente) — substitui &lt;p&gt;
+   empilhados por uma dl estruturada e legível. */
+.data-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1rem;
+    margin: 0;
+}
+.data-list dt { color: var(--text-secondary); font-size: 0.85rem; }
+.data-list dd { margin: 0; color: var(--text-primary); }
+
+/* Container de ações no cabeçalho de página (macro section_header). */
+.page-header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+/* Toolbar de filtros no mobile: empilha tudo 100% (acaba a "escada"). */
+@media (max-width: 640px) {
+    .toolbar { align-items: stretch; }
+    .toolbar > *,
+    .toolbar > .form-group { width: 100%; }
+    .toolbar .btn { width: 100%; text-align: center; }
+    .view-switch { width: 100%; }
+    .view-switch > .btn, .view-switch > span { flex: 1; text-align: center; }
+}
+
 /* Cards */
 .card,
 .feature-card,
@@ -1719,10 +1865,8 @@ textarea:focus-visible {
 
 /* ===================== Agenda semanal (grade de horário) =====================
    IMPORTANTE: 52px/hora deve casar com _SEMANA_PX_HORA em app/routes/agenda.py.
-   A altura total da grade vem do servidor via data-grid-height (agenda-week.js). */
-.view-switch { display: inline-flex; gap: 2px; }
-.view-switch .is-active { cursor: default; }
-
+   A altura total da grade vem do servidor via data-grid-height (agenda-week.js).
+   (.view-switch agora é o segmented control definido no bloco "PADRÃO UI v1".) */
 .week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .week {
     min-width: 720px;

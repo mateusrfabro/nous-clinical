@@ -18,6 +18,27 @@
 </select>
 {% endmacro %}
 
+{% macro section_header(titulo, nivel='h2') %}
+{# Cabeçalho de página/seção padrão. Ação opcional à direita via {% call %}:
+   {% call section_header('Agenda') %}<a class="btn btn-primary">+ Novo</a>{% endcall %}
+   nivel='h3' para subseções. #}
+<div class="page-header">
+  <{{ nivel }}>{{ titulo }}</{{ nivel }}>
+  {% if caller %}<div class="page-header-actions">{{ caller() }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro actions_menu(label='Mais ações') %}
+{# Popover "⋯ Mais" para ações secundárias (CSP-safe, controlado por
+   actions-menu.js). Conteúdo (links/forms) vem do {% call %}. #}
+<div class="actions-more">
+  <button type="button" class="btn btn-outline btn-sm actions-more-toggle"
+          data-actions-toggle aria-haspopup="true" aria-expanded="false"
+          aria-label="{{ label }}">⋯</button>
+  <div class="actions-more-menu" role="menu" hidden>{{ caller() }}</div>
+</div>
+{% endmacro %}
+
 {% macro sala_select(name, atual, prompt='Sem sala definida', prof_aware=false) %}
 {# Sala é lista CONTROLADA (RF-03): seleção da lista cadastrada, sem texto
    livre. Preserva valor legado fora da lista como opção marcada.
