@@ -5,6 +5,7 @@ Acesso: recepcao ou admin. Profissional NAO acessa o financeiro.
 Dinheiro sempre Numeric/Decimal (nunca Float). Datas em UTC no DB; o
 intervalo do periodo e calculado no fuso de Brasilia e convertido pra UTC.
 """
+import json
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
@@ -22,6 +23,7 @@ from app import db
 from app.auth_decorators import recepcao_ou_admin
 from app.models import (
     LancamentoFinanceiro, Paciente, Agendamento, AuditLog, MovimentoBancario,
+    FechamentoCaixa,
 )
 from app.services.audit import audit
 from app.services.ofx import parse_ofx, OFXError
@@ -502,3 +504,129 @@ def conciliacao_desfazer(movimento_id):
           recurso_id=mov.id)
     flash("Conciliação desfeita.", "success")
     return redirect(url_for("financeiro.conciliacao"))
+
+
+# ===================== Fechamento de caixa diário =====================
+
+def _dec(valor) -> Decimal:
+    """Parse tolerante de dinheiro do form (aceita '150,50' ou '150.50')."""
+    s = (valor or "").strip().replace(".", "").replace(",", ".") \
+        if (valor and "," in valor) else (valor or "").strip()
+    if not s:
+        return Decimal("0.00")
+    try:
+        return Decimal(s).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return Decimal("0.00")
+
+
+def _esperado_por_forma(dia):
+    """Receitas PAGAS no dia (fuso BR) somadas por forma de pagamento.
+    Retorna dict {forma|'nao_informada': Decimal}."""
+    L = LancamentoFinanceiro
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+    rows = db.session.execute(
+        select(L.forma_pagamento, func.coalesce(func.sum(L.valor), 0))
+        .where(L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
+               L.pago_em >= ini, L.pago_em < fim)
+        .group_by(L.forma_pagamento)
+    ).all()
+    return {(forma or "nao_informada"): Decimal(total) for forma, total in rows}
+
+
+@financeiro_bp.route("/caixa")
+@login_required
+@recepcao_ou_admin
+def caixa():
+    """Fechamento de caixa do dia: esperado (receitas pagas por forma) × contado."""
+    dia = _parse_ref(request.args.get("dia", ""))
+    esperado = _esperado_por_forma(dia)
+    esperado_total = sum(esperado.values(), Decimal("0.00"))
+    # Formas a exibir: as canônicas + 'nao_informada' se houver receita sem forma.
+    formas = list(LancamentoFinanceiro.FORMAS_PAGAMENTO)
+    if "nao_informada" in esperado:
+        formas.append("nao_informada")
+
+    fechamento = db.session.execute(
+        select(FechamentoCaixa).where(FechamentoCaixa.dia == dia)
+    ).scalars().first()
+    contado = {}
+    if fechamento and fechamento.detalhes:
+        try:
+            det = json.loads(fechamento.detalhes)
+            contado = {f: v.get("contado") for f, v in det.items()}
+        except (ValueError, AttributeError):
+            contado = {}
+
+    hoje = datetime.now(_BR_TZ).date()
+    return render_template(
+        "financeiro/caixa.html",
+        dia=dia, formas=formas, esperado=esperado,
+        esperado_total=esperado_total, fechamento=fechamento, contado=contado,
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+        hoje=hoje,
+    )
+
+
+@financeiro_bp.route("/caixa/fechar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def caixa_fechar():
+    dia = _parse_ref(request.form.get("dia", ""))
+    # Esperado é SEMPRE recalculado no servidor (não confia no cliente).
+    esperado = _esperado_por_forma(dia)
+    formas = set(LancamentoFinanceiro.FORMAS_PAGAMENTO) | set(esperado)
+    detalhes = {}
+    contado_total = Decimal("0.00")
+    esperado_total = Decimal("0.00")
+    for f in formas:
+        e = esperado.get(f, Decimal("0.00"))
+        c = _dec(request.form.get(f"contado_{f}", ""))
+        if e == 0 and c == 0:
+            continue   # não polui o snapshot com formas zeradas
+        detalhes[f] = {"esperado": str(e), "contado": str(c)}
+        esperado_total += e
+        contado_total += c
+    divergencia = contado_total - esperado_total
+
+    fechamento = db.session.execute(
+        select(FechamentoCaixa).where(FechamentoCaixa.dia == dia)
+    ).scalars().first()
+    if fechamento is None:
+        fechamento = FechamentoCaixa(dia=dia)
+        db.session.add(fechamento)
+    fechamento.esperado_total = esperado_total
+    fechamento.contado_total = contado_total
+    fechamento.divergencia = divergencia
+    fechamento.detalhes = json.dumps(detalhes)
+    fechamento.observacoes = request.form.get("observacoes", "").strip()[:500] or None
+    fechamento.fechado_por_id = current_user.id
+    fechamento.fechado_em = datetime.now(timezone.utc)
+    db.session.commit()
+    audit(AuditLog.ACAO_CAIXA_FECHADO, recurso_tipo="caixa",
+          recurso_id=fechamento.id,
+          detalhes=f"dia={dia.isoformat()} divergencia={divergencia}")
+    if divergencia == 0:
+        flash("Caixa fechado: bate certinho com o esperado.", "success")
+    else:
+        flash(f"Caixa fechado com divergência de {divergencia:+.2f}.", "error")
+    return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))
+
+
+@financeiro_bp.route("/caixa/<int:fechamento_id>/reabrir", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def caixa_reabrir(fechamento_id):
+    fechamento = db.session.get(FechamentoCaixa, fechamento_id)
+    if not fechamento:
+        flash("Fechamento não encontrado.", "error")
+        return redirect(url_for("financeiro.caixa"))
+    dia = fechamento.dia
+    db.session.delete(fechamento)
+    db.session.commit()
+    audit(AuditLog.ACAO_CAIXA_REABERTO, recurso_tipo="caixa",
+          detalhes=f"dia={dia.isoformat()}")
+    flash("Caixa reaberto.", "success")
+    return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))

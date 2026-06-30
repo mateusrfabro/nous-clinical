@@ -610,6 +610,35 @@ class MovimentoBancario(db.Model):
         return f"<MovimentoBancario {self.id} {self.tipo} {self.valor} {self.status}>"
 
 
+class FechamentoCaixa(db.Model):
+    """Fechamento de caixa diário: confere o ESPERADO (receitas pagas no dia,
+    por forma de pagamento) contra o CONTADO pela recepção, registrando a
+    divergência. Um por (clínica, dia) — reabrir apaga o registro. Os totais
+    são snapshot do momento do fechamento; `detalhes` guarda o por-forma (JSON).
+    Dinheiro Numeric(12,2). `dia` é DATE (fuso BR resolvido na rota).
+    """
+    __tablename__ = "fechamentos_caixa"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "dia", name="uq_fechamento_dia"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    dia = db.Column(db.Date, nullable=False, index=True)
+    esperado_total = db.Column(Numeric(12, 2), nullable=False, default=0)
+    contado_total = db.Column(Numeric(12, 2), nullable=False, default=0)
+    divergencia = db.Column(Numeric(12, 2), nullable=False, default=0)  # contado-esperado
+    detalhes = db.Column(db.Text)        # JSON: {forma: {esperado, contado}}
+    observacoes = db.Column(db.Text)
+    fechado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    fechado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    def __repr__(self):
+        return f"<FechamentoCaixa {self.id} dia={self.dia} div={self.divergencia}>"
+
+
 class Exame(db.Model):
     """Anexo (exame/documento) de um atendimento. DADO SENSÍVEL (LGPD).
 
@@ -688,6 +717,8 @@ class AuditLog(db.Model):
     ACAO_CONCILIACAO_CONCILIADO = "conciliacao_conciliado"  # casou movimento×lançamento
     ACAO_CONCILIACAO_IGNORADO = "conciliacao_ignorado"      # ignorou um movimento
     ACAO_CONCILIACAO_DESFEITO = "conciliacao_desfeito"      # desfez a conciliação
+    ACAO_CAIXA_FECHADO = "caixa_fechado"          # fechamento de caixa do dia
+    ACAO_CAIXA_REABERTO = "caixa_reaberto"        # reabertura do caixa
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)

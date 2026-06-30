@@ -67,6 +67,8 @@ ACAO_LABEL = {
     "conciliacao_conciliado": "Movimento conciliado",
     "conciliacao_ignorado": "Movimento ignorado",
     "conciliacao_desfeito": "Conciliação desfeita",
+    "caixa_fechado": "Caixa fechado",
+    "caixa_reaberto": "Caixa reaberto",
 }
 
 

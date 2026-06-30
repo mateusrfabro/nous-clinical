@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Fechamento de caixa — Nous Clinical{% endblock %}
+{% macro forma_label(f) %}{{ 'Não informada' if f == 'nao_informada' else f|forma_pgto_label }}{% endmacro %}
+{% block content %}
+<div class="page-header">
+  <h2>Fechamento de caixa — {{ dia|data_br }}</h2>
+  <div class="page-header-actions">
+    <a href="{{ url_for('financeiro.fluxo') }}" class="btn btn-outline">Fluxo</a>
+    <a href="{{ url_for('financeiro.conciliacao') }}" class="btn btn-outline">Conciliação</a>
+  </div>
+</div>
+
+<form method="GET" class="toolbar no-loading mb-4">
+  <div class="form-group">
+    <label for="dia">Dia</label>
+    <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
+  </div>
+  <button type="submit" class="btn btn-outline">Ver</button>
+  <a href="{{ url_for('financeiro.caixa', dia=dia_anterior) }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('financeiro.caixa', dia=dia_seguinte) }}" class="btn btn-outline">Próximo →</a>
+</form>
+
+<section class="kpi-grid">
+  <div class="kpi-card">
+    <span class="kpi-label">Esperado (recebido no dia)</span>
+    <span class="kpi-value economia-pos">{{ esperado_total|brl }}</span>
+  </div>
+  {% if fechamento %}
+  <div class="kpi-card">
+    <span class="kpi-label">Contado</span>
+    <span class="kpi-value">{{ fechamento.contado_total|brl }}</span>
+  </div>
+  <div class="kpi-card {{ 'card-hl-success' if fechamento.divergencia == 0 else 'card-hl-danger' }}">
+    <span class="kpi-label">Divergência</span>
+    <span class="kpi-value {{ 'economia-pos' if fechamento.divergencia == 0 else 'economia-neg' }}">{{ fechamento.divergencia|brl }}</span>
+  </div>
+  {% endif %}
+</section>
+
+{% if fechamento %}
+{# ----- Caixa já fechado: resumo + reabrir ----- #}
+<div class="page-header section-title-mt">
+  <h3>Caixa fechado</h3>
+  <form method="POST" action="{{ url_for('financeiro.caixa_reabrir', fechamento_id=fechamento.id) }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline btn-sm" data-confirm="Reabrir o caixa deste dia para reconferir?">Reabrir</button>
+  </form>
+</div>
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Forma de pagamento</th><th class="num">Esperado</th><th class="num">Contado</th><th class="num">Divergência</th></tr></thead>
+  <tbody>
+    {% for f in formas %}
+    {% set e = esperado.get(f, 0) %}
+    {% set c = contado.get(f) %}
+    {% if e or c %}
+    {% set cdec = (c|float) if c is not none else 0 %}
+    <tr>
+      <td>{{ forma_label(f) }}</td>
+      <td class="num">{{ e|brl }}</td>
+      <td class="num">{{ (c|float)|brl if c is not none else '—' }}</td>
+      <td class="num {{ 'economia-neg' if (cdec - (e|float)) != 0 else '' }}">{{ (cdec - (e|float))|brl }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if fechamento.observacoes %}<p class="muted"><strong>Observações:</strong> {{ fechamento.observacoes }}</p>{% endif %}
+<p class="muted text-sm">Fechado em {{ fechamento.fechado_em|datetime_br }}.</p>
+
+{% else %}
+{# ----- Caixa aberto: conferência ----- #}
+<form method="POST" action="{{ url_for('financeiro.caixa_fechar') }}" class="no-loading">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="dia" value="{{ dia.isoformat() }}">
+  <div class="table-wrapper">
+  <table class="table">
+    <thead><tr><th>Forma de pagamento</th><th class="num">Esperado</th><th class="num">Contado</th></tr></thead>
+    <tbody>
+      {% for f in formas %}
+      <tr>
+        <td><label for="contado_{{ f }}">{{ forma_label(f) }}</label></td>
+        <td class="num">{{ esperado.get(f, 0)|brl }}</td>
+        <td class="num"><input type="number" step="0.01" min="0" inputmode="decimal" id="contado_{{ f }}" name="contado_{{ f }}" value="{{ contado.get(f, '') }}" class="w-input-money"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="form-group">
+    <label for="observacoes">Observações (opcional)</label>
+    <textarea id="observacoes" name="observacoes" rows="2" placeholder="Ex.: sangria de R$ 200, troco inicial..."></textarea>
+  </div>
+  <div class="mt-4">
+    <button type="submit" class="btn btn-primary">Fechar caixa</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
