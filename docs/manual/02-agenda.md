@@ -64,7 +64,7 @@ O **Quadro** mostra as consultas do dia em **colunas por status**: **Agendado**,
 em que está. É a melhor visão para enxergar de relance "onde está cada paciente" no
 fluxo do dia: quem ainda não confirmou, quem já foi atendido, quem faltou.
 
-> 🖼️ *(Screenshot da visão Quadro a ser adicionado — a tela está no ar no sistema.)*
+![Agenda na visão Quadro (Kanban), com as consultas do dia em colunas por status](assets/agenda-quadro.png)
 
 **Para mudar o status de uma consulta, você tem dois caminhos:**
 
