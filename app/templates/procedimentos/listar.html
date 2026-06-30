@@ -41,7 +41,7 @@
   <div class="form-group">
     <label class="form-check cursor-pointer"><input type="checkbox" name="ativo" {{ 'checked' if p.ativo }}> Ativo</label>
   </div>
-  <button type="submit" class="btn btn-outline">Salvar</button>
+  <button type="submit" class="btn btn-outline">Salvar item</button>
   <a class="btn-link" href="{{ url_for('procedimentos.precos', procedimento_id=p.id) }}">Preços por convênio{% if p.precos %} ({{ p.precos|length }}){% endif %}</a>
   <button type="submit" class="btn-link btn-link-danger" formaction="{{ url_for('procedimentos.excluir', procedimento_id=p.id) }}" data-confirm="Excluir o item “{{ p.nome }}”? O histórico de atendimentos é preservado.">Excluir</button>
 </form>

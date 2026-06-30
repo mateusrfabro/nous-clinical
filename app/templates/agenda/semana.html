@@ -15,7 +15,7 @@
     <span class="btn btn-primary btn-sm is-active" aria-current="page">Semana</span>
     <a href="{{ url_for('agenda.kanban', dia=ref) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
-  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   {% if not current_user.is_profissional %}
   <div class="form-group form-group-grow">
     <label for="profissional_id">Profissional</label>

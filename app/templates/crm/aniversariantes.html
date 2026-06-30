@@ -25,7 +25,7 @@
       <td>
         <div class="flex-row-gap">
           {% if l.whatsapp %}
-            <a href="{{ l.whatsapp }}" class="btn-link" target="_blank" rel="noopener">WhatsApp 🎉</a>
+            <a href="{{ l.whatsapp }}" class="btn-link" target="_blank" rel="noopener">WhatsApp</a>
           {% else %}
             <span class="muted text-sm">sem telefone</span>
           {% endif %}
@@ -41,6 +41,6 @@
 </table>
 </div>
 {% else %}
-<div class="empty-state"><p>Nenhum aniversariante hoje. 🎂</p></div>
+<div class="empty-state"><p>Nenhum aniversariante hoje.</p></div>
 {% endif %}
 {% endblock %}

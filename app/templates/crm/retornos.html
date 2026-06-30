@@ -41,7 +41,7 @@
       <td>
         <div class="flex-row-gap">
           <a href="{{ url_for('agenda.novo', paciente_id=l.paciente.id) }}" class="btn-link">Agendar retorno</a>
-          <button type="button" class="btn-link concierge-gen" data-target="{{ l.paciente.id }}">✦ Gerar mensagem</button>
+          <button type="button" class="btn-link concierge-gen" data-target="{{ l.paciente.id }}">Gerar mensagem</button>
         </div>
         <div class="concierge-box" hidden data-box-for="{{ l.paciente.id }}" data-motivo="retorno" data-telefone="{{ l.paciente.telefone or '' }}">
           <textarea class="concierge-text" rows="4" aria-label="Mensagem de retorno gerada (revise antes de enviar)"></textarea>

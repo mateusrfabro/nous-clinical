@@ -86,7 +86,7 @@
         <label for="slug">Identificador público (slug)</label>
         <input type="text" id="slug" name="slug" value="{{ clinica.slug or '' }}" placeholder="ex: clinica-centro" pattern="[a-z0-9-]+">
       </div>
-      <button type="submit" class="btn btn-outline">Salvar</button>
+      <button type="submit" class="btn btn-outline">Salvar link</button>
     </form>
     {% if clinica.slug %}
     {% set link_agendar = url_for('portal.agendar', slug=clinica.slug, _external=True) %}

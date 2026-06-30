@@ -20,6 +20,7 @@
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
     <span class="btn btn-primary btn-sm is-active" aria-current="page">Quadro</span>
   </div>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   <div class="form-group">
     <label for="dia">Dia</label>
     <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
@@ -36,8 +37,9 @@
   </div>
   {% endif %}
   <button type="submit" class="btn btn-outline">Filtrar</button>
-  <a href="{{ url_for('agenda.kanban', dia=dia_anterior) }}" class="btn btn-outline">← Anterior</a>
-  <a href="{{ url_for('agenda.kanban', dia=dia_seguinte) }}" class="btn btn-outline">Próximo →</a>
+  <a href="{{ url_for('agenda.kanban', dia=dia_anterior, profissional_id=filtro_prof or '') }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('agenda.kanban', profissional_id=filtro_prof or '') }}" class="btn btn-outline">Hoje</a>
+  <a href="{{ url_for('agenda.kanban', dia=dia_seguinte, profissional_id=filtro_prof or '') }}" class="btn btn-outline">Próximo →</a>
 </form>
 
 {% if total %}

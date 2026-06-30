@@ -8,14 +8,14 @@
 {% if profissionais %}
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Nome</th><th>Especialidade</th><th>Conselho</th><th>Comissão</th><th>Status</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Nome</th><th>Especialidade</th><th>Conselho</th><th class="num">Comissão</th><th>Status</th><th>Ações</th></tr></thead>
   <tbody>
     {% for p in profissionais %}
     <tr>
       <td>{{ p.nome }}</td>
       <td>{{ p.especialidade or '—' }}</td>
       <td>{{ p.registro_conselho or '—' }}</td>
-      <td>{{ '%.1f'|format(p.comissao_percent or 0) }}%</td>
+      <td class="num">{{ '%.1f'|format(p.comissao_percent or 0) }}%</td>
       <td><span class="tag {{ 'tag-success' if p.ativo else 'tag-danger' }}">{{ 'Ativo' if p.ativo else 'Inativo' }}</span></td>
       <td><a class="btn-link" href="{{ url_for('profissionais.editar', profissional_id=p.id) }}">Editar</a></td>
     </tr>

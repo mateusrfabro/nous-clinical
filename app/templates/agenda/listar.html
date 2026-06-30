@@ -16,7 +16,7 @@
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
     <a href="{{ url_for('agenda.kanban', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
-  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   <div class="form-group">
     <label for="dia">Dia</label>
     <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
@@ -33,8 +33,9 @@
   </div>
   {% endif %}
   <button type="submit" class="btn btn-outline">Filtrar</button>
-  <a href="{{ url_for('agenda.listar', dia=dia_anterior) }}" class="btn btn-outline">← Anterior</a>
-  <a href="{{ url_for('agenda.listar', dia=dia_seguinte) }}" class="btn btn-outline">Próximo →</a>
+  <a href="{{ url_for('agenda.listar', dia=dia_anterior, profissional_id=filtro_prof or '') }}" class="btn btn-outline">← Anterior</a>
+  <a href="{{ url_for('agenda.listar', profissional_id=filtro_prof or '') }}" class="btn btn-outline">Hoje</a>
+  <a href="{{ url_for('agenda.listar', dia=dia_seguinte, profissional_id=filtro_prof or '') }}" class="btn btn-outline">Próximo →</a>
 </form>
 
 {% if agendamentos %}
@@ -74,7 +75,7 @@
                   <option value="{{ s }}" {{ 'selected' if ag.status==s }}>{{ s|status_label }}</option>
                 {% endfor %}
               </select>
-              <button type="submit" class="btn btn-outline btn-sm">Salvar</button>
+              <button type="submit" class="btn btn-outline btn-sm">Salvar status</button>
             </form>
             {% call actions_menu() %}
               {% if ag.status in ['agendado','confirmado'] %}

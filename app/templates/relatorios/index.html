@@ -321,7 +321,7 @@
       <td>{{ p.convenio or '—' }}</td>
       <td>{{ p.ultimo|data_br }}</td>
       <td>
-        <button type="button" class="btn btn-sm btn-outline concierge-gen" data-target="{{ p.id }}">✦ Gerar mensagem</button>
+        <button type="button" class="btn btn-sm btn-outline concierge-gen" data-target="{{ p.id }}">Gerar mensagem</button>
         <div class="concierge-box" hidden data-box-for="{{ p.id }}" data-motivo="reativacao" data-telefone="{{ p.telefone or '' }}">
           <textarea class="concierge-text" rows="4" aria-label="Mensagem de reativação gerada (revise antes de enviar)"></textarea>
           <p class="muted text-sm concierge-aviso">Rascunho automático — revise e ajuste antes de enviar.</p>

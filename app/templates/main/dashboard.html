@@ -3,8 +3,8 @@
 {% block content %}
 <div class="page-header">
   <h2>Olá, {{ current_user.nome_responsavel }}</h2>
-  <p class="muted">Resumo de hoje.</p>
 </div>
+<p class="muted mb-4">Resumo de hoje.</p>
 
 <section class="kpi-grid">
   <div class="kpi-card">
@@ -60,6 +60,7 @@
 </div>
 
 {% if agendamentos_hoje %}
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Horário</th><th>Paciente</th><th>Profissional</th><th>Status</th></tr></thead>
   <tbody>
@@ -73,6 +74,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhuma consulta agendada para hoje.</p></div>
 {% endif %}
@@ -81,6 +83,7 @@
 <div class="page-header section-title-mt">
   <h3>Ocupação por profissional (hoje)</h3>
 </div>
+<div class="table-wrapper">
 <table class="table">
   <thead><tr><th>Profissional</th><th class="num">Consultas</th><th class="num">Atendidas</th><th class="num">Faltas</th></tr></thead>
   <tbody>
@@ -94,5 +97,6 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endif %}
 {% endblock %}

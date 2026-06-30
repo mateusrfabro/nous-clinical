@@ -15,7 +15,7 @@
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
     <a href="{{ url_for('agenda.kanban', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
-  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   <div class="form-group">
     <label for="dia">Dia</label>
     <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
