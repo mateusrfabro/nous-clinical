@@ -61,7 +61,7 @@
 <div class="table-wrapper">
 <table class="table">
   <thead>
-    <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Paciente</th><th>Forma</th><th>Valor</th><th>Ações</th></tr>
+    <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Paciente</th><th>Forma</th><th class="num">Valor</th><th>Ações</th></tr>
   </thead>
   <tbody>
     {% for l in lancamentos %}
@@ -73,13 +73,13 @@
         {% if l.paciente %}<a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente_id) }}">{{ l.paciente.nome_completo }}</a>{% else %}—{% endif %}
       </td>
       <td>{{ l.forma_pagamento|forma_pgto_label }}</td>
-      <td class="{{ 'economia-pos' if l.tipo=='receita' else 'economia-neg' }}">
+      <td class="num {{ 'economia-pos' if l.tipo=='receita' else 'economia-neg' }}">
         {{ '+' if l.tipo=='receita' else '-' }} {{ l.valor|brl }}
       </td>
       <td>
         <form method="POST" action="{{ url_for('financeiro.cancelar', lancamento_id=l.id) }}" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link" data-confirm="Cancelar este lançamento? Ele sai do fluxo de caixa.">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancelar este lançamento? Ele sai do fluxo de caixa.">Cancelar</button>
         </form>
       </td>
     </tr>

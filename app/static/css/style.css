@@ -660,10 +660,10 @@ button[aria-disabled="true"] {
 .actions-more { position: relative; display: inline-flex; }
 .actions-more-toggle { line-height: 1; letter-spacing: 1px; }
 .actions-more-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    z-index: 30;
+    /* fixed + posicionado por actions-menu.js: escapa de overflow:hidden da
+       .table e do scroll horizontal do Kanban (senão o menu seria cortado). */
+    position: fixed;
+    z-index: 1000;
     min-width: 168px;
     background: var(--white);
     border: 1px solid var(--gray-200);

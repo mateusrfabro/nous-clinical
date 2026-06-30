@@ -18,9 +18,9 @@
       {{ l.vencimento|data_br }}{% if l.vencido %} <span class="tag tag-danger">Vencida</span>{% endif %}
     {% else %}—{% endif %}
   </td>
-  <td>{{ l.valor|brl }}</td>
+  <td class="num">{{ l.valor|brl }}</td>
   <td>
-    <div class="flex-row-gap">
+    <div class="row-actions">
       <form method="POST" action="{{ url_for('financeiro.pagar', lancamento_id=l.id) }}" class="inline-form no-loading flex-row-gap">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <select name="forma_pagamento" class="text-sm" required>
@@ -29,11 +29,11 @@
             <option value="{{ f }}" {{ 'selected' if l.forma_pagamento==f }}>{{ f|forma_pgto_label }}</option>
           {% endfor %}
         </select>
-        <button type="submit" class="btn-link">Dar baixa</button>
+        <button type="submit" class="btn btn-outline btn-sm">Dar baixa</button>
       </form>
       <form method="POST" action="{{ url_for('financeiro.cancelar', lancamento_id=l.id) }}" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn-link" data-confirm="Cancelar esta conta?">Cancelar</button>
+        <button type="submit" class="btn btn-danger btn-sm" data-confirm="Cancelar esta conta?">Cancelar</button>
       </form>
     </div>
   </td>
@@ -47,7 +47,7 @@
 {% if a_receber %}
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th>Valor</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th class="num">Valor</th><th>Ações</th></tr></thead>
   <tbody>{% for l in a_receber %}{{ linha(l) }}{% endfor %}</tbody>
 </table>
 </div>
@@ -62,7 +62,7 @@
 {% if a_pagar %}
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th>Valor</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Descrição</th><th>Paciente</th><th>Vencimento</th><th class="num">Valor</th><th>Ações</th></tr></thead>
   <tbody>{% for l in a_pagar %}{{ linha(l) }}{% endfor %}</tbody>
 </table>
 </div>

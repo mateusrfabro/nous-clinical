@@ -18,6 +18,19 @@
     });
   }
 
+  function posiciona(toggle, menu) {
+    // Menu é position:fixed — ancora ao botão e mantém dentro da viewport.
+    var r = toggle.getBoundingClientRect();
+    var mw = menu.offsetWidth, mh = menu.offsetHeight;
+    var left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+    var top = r.bottom + 4;
+    if (top + mh > window.innerHeight - 8 && r.top - mh - 4 > 8) {
+      top = r.top - mh - 4;   // abre pra cima se não couber embaixo
+    }
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+  }
+
   document.addEventListener("click", function (ev) {
     var toggle = ev.target.closest("[data-actions-toggle]");
     if (toggle) {
@@ -28,11 +41,16 @@
       fechaTodos(vaiAbrir ? menu : null);
       menu.hidden = !vaiAbrir;
       toggle.setAttribute("aria-expanded", vaiAbrir ? "true" : "false");
+      if (vaiAbrir) posiciona(toggle, menu);   // mede já visível
       return;
     }
     // Clique fora de qualquer menu fecha tudo (deixa o clique no item agir).
     if (!ev.target.closest(".actions-more-menu")) fechaTodos(null);
   });
+
+  // Menu aberto + scroll/resize: fecha (fixed descolaria do botão).
+  window.addEventListener("scroll", function () { fechaTodos(null); }, true);
+  window.addEventListener("resize", function () { fechaTodos(null); });
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key === "Escape") fechaTodos(null);

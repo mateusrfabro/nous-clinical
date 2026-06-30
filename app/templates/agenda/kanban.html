@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import actions_menu %}
 {% block title %}Agenda (quadro) — Nous Clinical{% endblock %}
 {% block content %}
 {# pode_gerir: recepção/admin movem cards (drag-drop + ações). Profissional não. #}
@@ -64,50 +65,72 @@
             <span class="tag tag-success">Chegou {{ ag.checkin_em|hora_br }}</span>
           {% endif %}
 
-          {# ---- Financeiro (recepção/admin) ---- #}
-          {% if current_user.is_admin or current_user.is_recepcao %}
-            {% if ag.lancamento %}
-              <span class="tag tag-success">Recebido</span>
-            {% elif ag.status in ['confirmado','atendido'] %}
-              <a class="btn btn-outline btn-sm" href="{{ url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') }}">Receber</a>
-            {% endif %}
-          {% endif %}
-
-          {# ---- Ações rápidas ---- #}
-          <div class="kanban-card-actions flex-row-gap">
-            {% if current_user.is_admin or current_user.is_recepcao %}
-              {% if ag.status != 'atendido' %}
-                {# Mover entre colunas: cada destino é um POST p/ mudar_status. #}
-                {% set destinos = {
-                  'agendado':   [('confirmado','Confirmar'), ('faltou','Faltou'), ('cancelado','Cancelar')],
-                  'confirmado': [('faltou','Faltou'), ('cancelado','Cancelar')],
-                  'faltou':     [('agendado','Reabrir')],
-                  'cancelado':  [('agendado','Reabrir')],
-                } %}
-                {% for destino, rotulo in destinos.get(ag.status, []) %}
+          {# ---- Ações: 1-2 primárias visíveis + menu "⋯ Mais" pro resto ---- #}
+          {% set wn = ag.paciente.telefone|wa_numero %}
+          {% set receber_url = url_for('financeiro.novo', paciente_id=ag.paciente_id, agendamento_id=ag.id, categoria='consulta', tipo='receita') %}
+          {% set lembrete_url = 'https://wa.me/' ~ wn ~ '?text=' ~ (('Olá ' ~ ag.paciente.nome_completo ~ ', lembrete da sua consulta em ' ~ (ag.inicio|datetime_br) ~ ' com ' ~ ag.profissional.nome ~ '. Confirme sua presença em 1 clique: ' ~ url_confirmacao(ag))|urlencode) %}
+          <div class="kanban-card-actions row-actions">
+            {% if pode_gerir %}
+              {% if ag.status == 'atendido' %}
+                {% if ag.lancamento %}
+                  <span class="tag tag-success">Recebido</span>
+                {% else %}
+                  <a class="btn btn-primary btn-sm" href="{{ receber_url }}">Receber</a>
+                {% endif %}
+                <span class="muted text-sm">Concluído</span>
+              {% else %}
+                {# Ação primária por status #}
+                {% if ag.status == 'agendado' %}
                 <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="inline-form no-loading">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="hidden" name="status" value="{{ destino }}">
-                  <button type="submit" class="btn-link">{{ rotulo }}</button>
+                  <input type="hidden" name="status" value="confirmado">
+                  <button type="submit" class="btn btn-outline btn-sm">Confirmar</button>
                 </form>
-                {% endfor %}
-                {% if ag.status in ['agendado','confirmado'] %}
+                {% elif ag.status == 'confirmado' %}
                 <form method="POST" action="{{ url_for('agenda.checkin', agendamento_id=ag.id) }}" class="inline-form no-loading">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn-link">{{ 'Desfazer check-in' if ag.checkin_em else 'Check-in' }}</button>
+                  <button type="submit" class="btn btn-outline btn-sm">{{ 'Desfazer check-in' if ag.checkin_em else 'Check-in' }}</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="inline-form no-loading">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="status" value="agendado">
+                  <button type="submit" class="btn btn-outline btn-sm">Reabrir</button>
                 </form>
                 {% endif %}
-                <a href="{{ url_for('agenda.editar', agendamento_id=ag.id) }}" class="btn-link">Editar</a>
-                {% set wn = ag.paciente.telefone|wa_numero %}
-                {% if wn %}
-                <a href="https://wa.me/{{ wn }}?text={{ ('Olá ' ~ ag.paciente.nome_completo ~ ', lembrete da sua consulta em ' ~ (ag.inicio|datetime_br) ~ ' com ' ~ ag.profissional.nome ~ '. Confirme sua presença em 1 clique: ' ~ url_confirmacao(ag))|urlencode }}" target="_blank" rel="noopener" class="btn-link">Lembrete</a>
+                {# Receber visível quando há o que receber #}
+                {% if ag.lancamento %}
+                  <span class="tag tag-success">Recebido</span>
+                {% elif ag.status == 'confirmado' %}
+                  <a class="btn btn-primary btn-sm" href="{{ receber_url }}">Receber</a>
                 {% endif %}
-              {% else %}
-                <span class="muted text-sm">Concluído</span>
+                {# Menu ⋯ com as ações secundárias #}
+                {% call actions_menu() %}
+                  {% if ag.status == 'agendado' %}
+                  <form method="POST" action="{{ url_for('agenda.checkin', agendamento_id=ag.id) }}" class="no-loading">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">{{ 'Desfazer check-in' if ag.checkin_em else 'Check-in' }}</button>
+                  </form>
+                  {% endif %}
+                  {% if ag.status in ['agendado','confirmado'] %}
+                  <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="no-loading">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="status" value="faltou">
+                    <button type="submit">Faltou</button>
+                  </form>
+                  <form method="POST" action="{{ url_for('agenda.mudar_status', agendamento_id=ag.id) }}" class="no-loading">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="status" value="cancelado">
+                    <button type="submit" class="item-danger">Cancelar consulta</button>
+                  </form>
+                  {% endif %}
+                  <a href="{{ url_for('agenda.editar', agendamento_id=ag.id) }}">Editar</a>
+                  {% if wn %}<a href="{{ lembrete_url }}" target="_blank" rel="noopener">Lembrete (WhatsApp)</a>{% endif %}
+                {% endcall %}
               {% endif %}
             {% endif %}
             {% if current_user.is_profissional %}
-              <a href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}" class="btn-link">Atender</a>
+              <a class="btn btn-outline btn-sm" href="{{ url_for('agenda.atendimento', agendamento_id=ag.id) }}">Atender</a>
             {% endif %}
           </div>
         </article>
