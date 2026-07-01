@@ -566,11 +566,13 @@ def novo():
         hora = request.form.get("hora", "").strip()
 
         paciente = get_da_clinica(Paciente, paciente_id) if paciente_id else None
-        profissional = (db.session.get(Profissional, profissional_id)
+        profissional = (get_da_clinica(Profissional, profissional_id)
                         if profissional_id else None)
         inicio = _br_para_utc(dia, hora)
 
-        if not (paciente and profissional and inicio):
+        # Revalida `ativo` no servidor: o <select> só lista ativos, mas um POST
+        # forjado poderia enviar um profissional desativado.
+        if not (paciente and profissional and profissional.ativo and inicio):
             flash("Selecione paciente, profissional e horário válidos.", "error")
             return render_template("agenda/form.html",
                                    profissionais=profissionais,
@@ -1120,11 +1122,11 @@ def editar(agendamento_id):
         profissional_id = request.form.get("profissional_id", type=int)
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
-        profissional = (db.session.get(Profissional, profissional_id)
+        profissional = (get_da_clinica(Profissional, profissional_id)
                         if profissional_id else None)
         inicio = _br_para_utc(dia, hora)
 
-        if not (profissional and inicio):
+        if not (profissional and profissional.ativo and inicio):
             flash("Selecione profissional e horário válidos.", "error")
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)

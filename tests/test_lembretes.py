@@ -4,7 +4,8 @@ from zoneinfo import ZoneInfo
 
 from app import db
 from app.models import Profissional, Paciente, Agendamento
-from app.services.lembretes import enviar_lembretes
+from app.services.lembretes import enviar_lembretes, _claim
+from datetime import datetime as _dt
 
 _BR = ZoneInfo("America/Sao_Paulo")
 
@@ -106,6 +107,16 @@ def test_cancelada_nao_recebe_lembrete(app, monkeypatch):
     db.session.commit()
     r = enviar_lembretes(alvo)
     assert r["total"] == 0
+
+
+def test_claim_atomico_so_pega_uma_vez(app):
+    """Q1: a reserva atômica impede dois gatilhos concorrentes de reenviar.
+    O 1º _claim pega (True); o 2º na mesma consulta não (False)."""
+    ag, _ = _consulta_amanha()
+    agora = _dt.now(timezone.utc)
+    assert _claim(ag.id, agora) is True
+    assert _claim(ag.id, agora) is False       # já reservado -> não reenvia
+    assert db.session.get(Agendamento, ag.id).lembrete_enviado_em is not None
 
 
 # ---- endpoint /tarefas/lembretes ----

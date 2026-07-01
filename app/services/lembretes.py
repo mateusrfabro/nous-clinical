@@ -51,11 +51,41 @@ def _corpo(ag):
     return "\n".join(linhas)
 
 
+def _claim(ag_id, agora):
+    """Reserva o lembrete de forma ATÔMICA antes de enviar.
+
+    UPDATE ... WHERE lembrete_enviado_em IS NULL trava a linha: se dois gatilhos
+    (cron + POST /tarefas) rodarem juntos, só um casa o WHERE (o outro vê 0
+    linhas). Isso impede o paciente receber lembrete em dobro. Retorna True se
+    este processo pegou a reserva.
+    """
+    res = db.session.execute(
+        db.update(Agendamento)
+        .where(Agendamento.id == ag_id,
+               Agendamento.lembrete_enviado_em.is_(None))
+        .values(lembrete_enviado_em=agora)
+    )
+    db.session.commit()
+    return res.rowcount == 1
+
+
+def _release(ag_id):
+    """Solta a reserva (volta a NULL) quando o envio falhou de forma
+    transitória — assim a próxima rodada tenta de novo."""
+    db.session.execute(
+        db.update(Agendamento)
+        .where(Agendamento.id == ag_id)
+        .values(lembrete_enviado_em=None)
+    )
+    db.session.commit()
+
+
 def enviar_lembretes(data_alvo=None):
     """Envia lembretes das consultas do dia-alvo (default: amanhã, fuso BR).
 
     Retorna dict com a contagem. Best-effort por consulta — uma falha não
-    interrompe as demais.
+    interrompe as demais. Cada lembrete é reservado atomicamente (`_claim`)
+    antes do envio, então dois gatilhos concorrentes não duplicam a mensagem.
     """
     alvo = data_alvo or (datetime.now(_BR).date() + timedelta(days=1))
     ini = datetime.combine(alvo, time.min, tzinfo=_BR).astimezone(timezone.utc)
@@ -71,44 +101,62 @@ def enviar_lembretes(data_alvo=None):
                   selectinload(Agendamento.profissional))
     ).scalars().all()
 
-    enviados = por_whatsapp = sem_canal = falhas = 0
+    enviados = por_whatsapp = sem_canal = falhas = pulados = 0
     smtp_ok = smtp_configurado()
     agora = datetime.now(timezone.utc)
 
     for ag in ags:
-        # 1) WhatsApp template (proativo correto) — preferido quando configurado.
-        # Best-effort: uma exceção numa consulta NÃO derruba o lote inteiro.
-        try:
-            ok_wa, info_wa = enviar_lembrete_whatsapp(ag)
-        except Exception:   # noqa: BLE001
-            logger.warning("LEMBRETE_WA_EXC", exc_info=True)
-            ok_wa, info_wa = False, "exc"
-        if ok_wa:
-            ag.lembrete_enviado_em = agora
-            por_whatsapp += 1
-            continue
-        # Falha TRANSITÓRIA do WhatsApp (estava configurado, mas a chamada caiu)
-        # justifica retry; "inativo/sem template/sem telefone" não.
-        wa_transitorio = info_wa.startswith("erro") or info_wa == "falha de conexão"
-
-        # 2) E-mail (fallback).
+        # Monta os dados ANTES de reservar (o commit do _claim expira o objeto).
         email = (ag.paciente.email or "").strip() if ag.paciente else ""
-        if email and smtp_ok:
-            if enviar_email(email, "Lembrete de consulta", _corpo(ag)):
-                ag.lembrete_enviado_em = agora
-                enviados += 1
-            else:
-                falhas += 1    # deixa NULL pra tentar de novo
-        elif wa_transitorio:
-            falhas += 1        # WhatsApp configurado mas caiu — tenta depois
-        else:
-            # Sem canal disponível: marca pra não reprocessar todo dia.
-            ag.lembrete_enviado_em = agora
-            sem_canal += 1
+        corpo = _corpo(ag)
 
-    db.session.commit()
+        # Reserva atômica: se outro processo já pegou, pula sem enviar.
+        if not _claim(ag.id, agora):
+            pulados += 1
+            continue
+
+        sucesso = False
+        canal_indisponivel = False
+        try:
+            # 1) WhatsApp template (proativo correto) — preferido quando ativo.
+            try:
+                ok_wa, info_wa = enviar_lembrete_whatsapp(ag)
+            except Exception:   # noqa: BLE001
+                logger.warning("LEMBRETE_WA_EXC", exc_info=True)
+                ok_wa, info_wa = False, "exc"
+            if ok_wa:
+                por_whatsapp += 1
+                sucesso = True
+            else:
+                # Falha TRANSITÓRIA do WhatsApp (configurado mas a chamada caiu)
+                # justifica retry; "inativo/sem template/sem telefone" não.
+                wa_transitorio = (info_wa.startswith("erro")
+                                  or info_wa == "falha de conexão")
+                # 2) E-mail (fallback).
+                if email and smtp_ok:
+                    if enviar_email(email, "Lembrete de consulta", corpo):
+                        enviados += 1
+                        sucesso = True
+                    else:
+                        falhas += 1
+                elif wa_transitorio:
+                    falhas += 1
+                else:
+                    # Sem canal disponível: mantém a reserva pra não reprocessar
+                    # todo dia.
+                    sem_canal += 1
+                    canal_indisponivel = True
+        except Exception:   # noqa: BLE001
+            logger.warning("LEMBRETE_EXC", exc_info=True)
+            falhas += 1
+
+        # Só solta a reserva em falha transitória (envio pendente de retry).
+        # Sucesso e "sem canal" mantêm o carimbo.
+        if not sucesso and not canal_indisponivel:
+            _release(ag.id)
+
     resumo = {"alvo": alvo.isoformat(), "total": len(ags),
               "enviados": enviados, "whatsapp": por_whatsapp,
-              "sem_canal": sem_canal, "falhas": falhas}
+              "sem_canal": sem_canal, "falhas": falhas, "pulados": pulados}
     logger.info("LEMBRETES %s", resumo)
     return resumo

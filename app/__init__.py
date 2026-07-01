@@ -118,6 +118,14 @@ def create_app(config_name="default"):
                 app.logger.warning(
                     "[nous] RATE-LIMIT em memory:// com prod — ineficaz entre "
                     "workers. Configure RATELIMIT_STORAGE_URI (Redis).")
+            # A landing depende de CONTATO_COMERCIAL pro CTA de demonstração.
+            # Vazio em prod => o único caminho de conversão some silenciosamente
+            # (o CTA degrada pra "Entrar"). Avisa alto pra não passar batido.
+            if config_name == "production" and not app.config.get("CONTATO_COMERCIAL"):
+                app.logger.warning(
+                    "[nous] CONTATO_COMERCIAL vazio em prod — landing sem CTA de "
+                    "demonstração (converte pra login). Configure a URL de "
+                    "contato comercial (WhatsApp/mailto).")
 
     # Em testing, o conftest mantem 1 app_context aberto — limpa o cache de
     # user do flask-login antes de cada request pra evitar leak entre clients.

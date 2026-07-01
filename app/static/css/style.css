@@ -2632,7 +2632,27 @@ textarea:focus-visible {
     padding: 0.15rem 0.45rem; border-radius: 999px; margin-left: 0.4rem;
 }
 .lp-badge-opt  { background: rgba(var(--brand-accent-rgb), 0.16); color: var(--accent); }
-.lp-badge-road { background: rgba(245, 158, 11, 0.18); color: #B45309; }
+.lp-badge-road { background: #FDECCF; color: #8A4B08; }  /* contraste AA ~5:1 */
+
+/* Modulos: detalhe recolhivel — reduz densidade sem esconder do SEO (o
+   conteudo continua no HTML). Interatividade nativa, zero JS, a11y de graca. */
+.lp-card-more { margin: 0.6rem 0 0; }
+.lp-card-more > summary {
+    list-style: none; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 0.35rem; font-size: 0.82rem; font-weight: 600;
+    color: var(--brand-primary); user-select: none;
+}
+.lp-card-more > summary::-webkit-details-marker { display: none; }
+.lp-card-more > summary::after {
+    content: "\203A"; font-size: 1rem; line-height: 1;
+    transition: transform 0.15s ease;
+}
+.lp-card-more[open] > summary::after { transform: rotate(90deg); }
+.lp-card-more > summary:hover { text-decoration: underline; }
+.lp-card-more > summary:focus-visible {
+    outline: 2px solid var(--brand-primary); outline-offset: 2px; border-radius: 4px;
+}
+.lp-card-more .muted { margin: 0.5rem 0 0; }
 
 /* Listas (diferenciais / seguranca) */
 .lp-list {

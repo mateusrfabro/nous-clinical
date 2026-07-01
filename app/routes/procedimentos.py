@@ -18,7 +18,7 @@ from app.models import (
     Procedimento, PrecoConvenio, Convenio, ItemAtendimento, AuditLog, Sala,
 )
 from app.services.audit import audit
-from app.services.tenant import clinica_atual
+from app.services.tenant import clinica_atual, get_da_clinica
 
 procedimentos_bp = Blueprint("procedimentos", __name__,
                              url_prefix="/procedimentos")
@@ -182,7 +182,7 @@ def novo():
 @login_required
 @recepcao_ou_admin
 def salvar(procedimento_id):
-    p = db.session.get(Procedimento, procedimento_id)
+    p = get_da_clinica(Procedimento, procedimento_id)
     if not p:
         flash("Item não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))
@@ -237,7 +237,7 @@ def excluir(procedimento_id):
 @recepcao_ou_admin
 def precos(procedimento_id):
     """Tabela de preços por convênio de um item (upsert por convênio)."""
-    p = db.session.get(Procedimento, procedimento_id)
+    p = get_da_clinica(Procedimento, procedimento_id)
     if not p:
         flash("Item não encontrado.", "error")
         return redirect(url_for("procedimentos.listar"))

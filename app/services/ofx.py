@@ -16,10 +16,15 @@ Uso:
 """
 from __future__ import annotations
 
+import hashlib
+import logging
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation
+
+logger = logging.getLogger(__name__)
 
 
 class OFXError(ValueError):
@@ -49,6 +54,21 @@ def _campo(bloco: str, tag: str) -> str:
     """Valor de uma tag-folha: do `>` até a quebra de linha ou o próximo `<`."""
     m = re.search(r"<" + tag + r">\s*([^\r\n<]*)", bloco, re.I)
     return m.group(1).strip() if m else ""
+
+
+def _valor_ofx(bruto: str) -> Decimal | None:
+    """TRNAMT -> Decimal. OFX canônico é ponto-decimal (US: "1234.56"), mas
+    alguns bancos BR exportam vírgula ("1.234,56" = milhar '.' + decimal ',').
+    Detecta o sabor pela presença de vírgula. Retorna None se ilegível."""
+    s = (bruto or "").strip().replace(" ", "")
+    if not s:
+        return None
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    try:
+        return Decimal(s)
+    except (InvalidOperation, ValueError):
+        return None
 
 
 def _para_data(dtposted: str) -> date | None:
@@ -89,21 +109,38 @@ def parse_ofx(conteudo: bytes | str) -> ExtratoOFX:
         conta=_campo(texto, "ACCTID"),
     )
 
+    vistos: Counter = Counter()
     for bloco in _STMTTRN_RE.findall(texto):
-        bruto = _campo(bloco, "TRNAMT").replace(",", ".")
-        try:
-            valor = Decimal(bruto)
-        except (InvalidOperation, ValueError):
+        valor = _valor_ofx(_campo(bloco, "TRNAMT"))
+        if valor is None:
+            # Não engolir em silêncio: um valor ilegível some da conciliação e
+            # vira divergência de caixa fantasma. Loga pra rastrear.
+            logger.warning("OFX_TRNAMT_ILEGIVEL bruto=%r", _campo(bloco, "TRNAMT"))
             continue
         dt = _para_data(_campo(bloco, "DTPOSTED"))
         if dt is None:
+            logger.warning("OFX_DTPOSTED_ILEGIVEL")
             continue
+        descricao = (_campo(bloco, "MEMO") or _campo(bloco, "NAME"))[:200]
+        tipo = "credito" if valor >= 0 else "debito"
+        fitid = _campo(bloco, "FITID")[:80]
+        if not fitid:
+            # Banco não forneceu FITID: gera chave sintética ESTÁVEL a partir do
+            # conteúdo, pra reimportação do mesmo extrato deduplicar (senão cada
+            # reimport recria a transação — caixa fantasma). O índice de
+            # ocorrência separa transações idênticas dentro do mesmo arquivo.
+            base = f"{dt.isoformat()}|{valor}|{tipo}|{descricao}"
+            n = vistos[base]
+            vistos[base] += 1
+            h = hashlib.sha1(base.encode("utf-8"),
+                             usedforsecurity=False).hexdigest()[:24]
+            fitid = f"SYN:{h}:{n}"
         extrato.transacoes.append(TransacaoOFX(
             data=dt,
             valor=abs(valor).quantize(Decimal("0.01")),
-            tipo="credito" if valor >= 0 else "debito",
-            descricao=(_campo(bloco, "MEMO") or _campo(bloco, "NAME"))[:200],
-            fitid=_campo(bloco, "FITID")[:80],
+            tipo=tipo,
+            descricao=descricao,
+            fitid=fitid,
         ))
 
     if not extrato.transacoes:

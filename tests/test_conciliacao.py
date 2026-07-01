@@ -113,6 +113,62 @@ def test_ofx_parser_rejeita_lixo():
         pass
 
 
+# ---- Q3: TRNAMT com decimal-vírgula (alguns bancos BR) não pode sumir ----
+
+_OFX_VIRGULA = """OFXHEADER:100
+<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS>
+<BANKACCTFROM><ACCTID>9</BANKACCTFROM>
+<BANKTRANLIST>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20260607<TRNAMT>1.234,56<FITID>TXBR<MEMO>PIX GRANDE</STMTTRN>
+</BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>
+"""
+
+
+def test_ofx_valor_decimal_virgula_br():
+    ext = parse_ofx(_OFX_VIRGULA)
+    assert len(ext.transacoes) == 1          # não engoliu a transação
+    assert ext.transacoes[0].valor == Decimal("1234.56")
+    assert ext.transacoes[0].tipo == "credito"
+
+
+# ---- Q2: sem FITID gera chave sintética estável p/ deduplicar reimport ----
+
+_OFX_SEM_FITID = """OFXHEADER:100
+<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS>
+<BANKACCTFROM><ACCTID>7</BANKACCTFROM>
+<BANKTRANLIST>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20260608<TRNAMT>99.90<MEMO>SEM FITID</STMTTRN>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20260608<TRNAMT>99.90<MEMO>SEM FITID</STMTTRN>
+</BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>
+"""
+
+
+def test_ofx_sem_fitid_gera_sintetico_estavel():
+    ext = parse_ofx(_OFX_SEM_FITID)
+    assert len(ext.transacoes) == 2
+    f0, f1 = ext.transacoes[0].fitid, ext.transacoes[1].fitid
+    assert f0.startswith("SYN:") and f1.startswith("SYN:")
+    assert f0 != f1                           # ocorrências idênticas não colidem
+    # Estável: reparsear o MESMO arquivo dá exatamente os mesmos fitids
+    ext2 = parse_ofx(_OFX_SEM_FITID)
+    assert [t.fitid for t in ext2.transacoes] == [f0, f1]
+
+
+def test_ofx_reimport_sem_fitid_nao_duplica(client_admin, app):
+    def _up():
+        return client_admin.post(
+            "/financeiro/conciliacao/importar",
+            data={"extrato": (io.BytesIO(_OFX_SEM_FITID.encode("utf-8")),
+                              "s.ofx")},
+            content_type="multipart/form-data", follow_redirects=True)
+    _up()
+    with app.app_context():
+        assert MovimentoBancario.query.count() == 2
+    _up()   # reimport do mesmo extrato: dedup pela chave sintética
+    with app.app_context():
+        assert MovimentoBancario.query.count() == 2
+
+
 # ---------------- acesso ----------------
 
 def test_conciliacao_profissional_negado(client_prof):

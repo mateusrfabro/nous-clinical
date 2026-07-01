@@ -34,6 +34,15 @@ def test_produto_alias_renderiza_a_landing(client):
     assert 'rel="canonical"' in body and body.rstrip().endswith("</html>")
 
 
+def test_modulos_detalhe_recolhivel(client):
+    """U2: cada card de módulo enxuga a densidade num <details> nativo (o texto
+    segue no HTML — bom p/ SEO — só recolhido por padrão)."""
+    body = client.get("/").get_data(as_text=True)
+    assert "lp-card-more" in body and "Ver detalhes" in body
+    # o detalhe do card continua presente no HTML (não foi removido)
+    assert "Kanban" in body and "conciliação do extrato" in body
+
+
 def test_cta_usa_contato_comercial_quando_configurado(app, client):
     app.config["CONTATO_COMERCIAL"] = "https://wa.me/5543999999999"
     try:

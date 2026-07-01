@@ -15,6 +15,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin
@@ -72,8 +73,10 @@ def _retornos_pendentes(janela_dias: int):
     # determinística). Ignora atendimento "vazio" (ex: registro criado só pra
     # anexar exame) — não conta como consulta nem limpa um retorno legítimo.
     todos = db.session.execute(
-        select(Atendimento).order_by(
-            Atendimento.criado_em.desc(), Atendimento.id.desc())
+        select(Atendimento).options(
+            selectinload(Atendimento.paciente),
+            selectinload(Atendimento.profissional),
+        ).order_by(Atendimento.criado_em.desc(), Atendimento.id.desc())
     ).scalars().all()
     ultimo_por_paciente = {}
     for a in todos:
