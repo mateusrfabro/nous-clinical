@@ -36,17 +36,18 @@
     </a>
     {% else %}
     <a href="{{ href }}" class="brand-link" aria-label="Nous Clinical">
+        {# Marca = badge navy (igual ao favicon): aro fino teal p/ ler tanto no
+           header branco quanto na sidebar navy; símbolo de rede centralizado. #}
         <svg class="logo-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
-            <defs>
-                <linearGradient id="nous-mark" x1="6" y1="58" x2="58" y2="6" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#6FB59C"/><stop offset="1" stop-color="#43B8A5"/>
-                </linearGradient>
-            </defs>
-            <path d="M40 8 A26 26 0 1 0 56 32" stroke="url(#nous-mark)" stroke-width="3" stroke-linecap="round"/>
-            <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="url(#nous-mark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-            <circle cx="31" cy="13" r="3.2" fill="#6FB59C"/><circle cx="45" cy="20" r="4" fill="#43B8A5"/>
-            <circle cx="52" cy="32" r="3.2" fill="#43B8A5"/><circle cx="43" cy="34" r="3.6" fill="#6FB59C"/>
-            <circle cx="39" cy="45" r="3" fill="#43B8A5"/>
+            <rect width="64" height="64" rx="14" fill="#1E293B"/>
+            <rect x="1.1" y="1.1" width="61.8" height="61.8" rx="13" fill="none" stroke="#43B8A5" stroke-opacity="0.45" stroke-width="1.4"/>
+            <g transform="translate(32,32) scale(0.66) translate(-30,-31)">
+                <path d="M40 8 A26 26 0 1 0 56 32" stroke="#43B8A5" stroke-width="3.2" stroke-linecap="round"/>
+                <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="#6FB59C" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+                <circle cx="31" cy="13" r="3.3" fill="#6FB59C"/><circle cx="45" cy="20" r="4.1" fill="#43B8A5"/>
+                <circle cx="52" cy="32" r="3.3" fill="#43B8A5"/><circle cx="43" cy="34" r="3.7" fill="#6FB59C"/>
+                <circle cx="39" cy="45" r="3.1" fill="#43B8A5"/>
+            </g>
         </svg>
         <span class="logo-text-group">
             <span class="logo-text">Nous</span>

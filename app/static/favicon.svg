@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#1E293B"/>
-  <path d="M38 12 A22 22 0 1 0 50 30" stroke="#43B8A5" stroke-width="3" stroke-linecap="round" fill="none"/>
-  <circle cx="30" cy="16" r="3" fill="#6FB59C"/>
-  <circle cx="42" cy="22" r="3.4" fill="#43B8A5"/>
-  <circle cx="48" cy="32" r="2.8" fill="#43B8A5"/>
-  <text x="32" y="46" font-family="Poppins,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" fill="#43B8A5" text-anchor="middle">N</text>
+  <rect x="1.1" y="1.1" width="61.8" height="61.8" rx="13" fill="none" stroke="#43B8A5" stroke-opacity="0.45" stroke-width="1.4"/>
+  <g transform="translate(32,32) scale(0.66) translate(-30,-31)">
+    <path d="M40 8 A26 26 0 1 0 56 32" stroke="#43B8A5" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="#6FB59C" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" fill="none"/>
+    <circle cx="31" cy="13" r="3.3" fill="#6FB59C"/><circle cx="45" cy="20" r="4.1" fill="#43B8A5"/>
+    <circle cx="52" cy="32" r="3.3" fill="#43B8A5"/><circle cx="43" cy="34" r="3.7" fill="#6FB59C"/>
+    <circle cx="39" cy="45" r="3.1" fill="#43B8A5"/>
+  </g>
 </svg>
