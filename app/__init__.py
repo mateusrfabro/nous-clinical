@@ -378,7 +378,9 @@ def create_app(config_name="default"):
         elif _clinica_wl:
             _favicon_url = _url_for("configuracoes.favicon", v=_fav_v)
         else:
-            _favicon_url = _url_for("static", filename="favicon.svg")
+            # v= força o navegador a rebuscar o favicon quando o desenho muda
+            # (SVG favicon fica preso em cache agressivo). Bump ao alterar o arte.
+            _favicon_url = _url_for("static", filename="favicon.svg", v="badge2")
 
         # Suporte de ajuda (custo zero): mostra o widget p/ equipe logada e já
         # leva as perguntas sugeridas (do FAQ). Superadmin/anônimo ficam de fora.
