@@ -19,9 +19,16 @@ from app.services.passwords import hash_senha
 
 @pytest.fixture
 def app():
-    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="nous-test-")
-    os.close(fd)
-    os.environ["TEST_DATABASE_URL"] = f"sqlite:///{db_path}"
+    # Paridade dev/prod: se NOUS_TEST_DB_URL vier setada (CI com serviço
+    # Postgres), roda contra ela; senão, SQLite temp por teste (padrão local).
+    pg_url = os.getenv("NOUS_TEST_DB_URL")
+    if pg_url:
+        db_path = None
+        os.environ["TEST_DATABASE_URL"] = pg_url
+    else:
+        fd, db_path = tempfile.mkstemp(suffix=".db", prefix="nous-test-")
+        os.close(fd)
+        os.environ["TEST_DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["SECRET_KEY"] = "test-secret"
 
     app = create_app("testing")
@@ -45,10 +52,11 @@ def app():
     limiter.enabled = True
     os.environ.pop("TEST_DATABASE_URL", None)
     shutil.rmtree(updir, ignore_errors=True)
-    try:
-        os.unlink(db_path)
-    except OSError:
-        pass
+    if db_path:
+        try:
+            os.unlink(db_path)
+        except OSError:
+            pass
 
 
 def _novo_usuario(email, tipo, nome="Teste"):

@@ -48,6 +48,40 @@ jobs:
             --cov=app --cov-report=term-missing \
             --cov-fail-under=70
 
+  test-postgres:
+    name: pytest (Postgres — paridade prod)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Roda a MESMA suíte contra Postgres (prod usa PG; dev/CI-base usam SQLite).
+    # Pega divergências de dialeto — ordenação com acento, ILIKE, Decimal×float.
+    # Informativo por ora: promover a blocking após o 1º run verde.
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pg
+          POSTGRES_DB: nous_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Run tests against Postgres
+        env:
+          SECRET_KEY: ci-test-secret-not-for-prod
+          NOUS_TEST_DB_URL: postgresql+psycopg2://postgres:pg@localhost:5432/nous_test
+        run: pytest tests/ -q --ignore=tests/load
+
   lint:
     name: ruff
     runs-on: ubuntu-latest
