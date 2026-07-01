@@ -54,8 +54,7 @@ jobs:
     timeout-minutes: 15
     # Roda a MESMA suíte contra Postgres (prod usa PG; dev/CI-base usam SQLite).
     # Pega divergências de dialeto — ordenação com acento, ILIKE, Decimal×float.
-    # Informativo por ora: promover a blocking após o 1º run verde.
-    continue-on-error: true
+    # BLOQUEANTE: passou verde no 1º run (2026-07-01), sem divergência de dialeto.
     services:
       postgres:
         image: postgres:16
