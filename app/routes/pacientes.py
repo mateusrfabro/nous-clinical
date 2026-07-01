@@ -18,6 +18,7 @@ from app import db
 from app.auth_decorators import recepcao_ou_admin, equipe_required
 from app.models import Paciente, Agendamento, Atendimento, Exame, AuditLog
 from app.services.audit import audit
+from app.services.tenant import get_da_clinica
 
 pacientes_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 
@@ -178,7 +179,7 @@ def novo():
 def detalhe(paciente_id):
     # Eager-load do histórico (evita N+1: o template itera agendamentos
     # acessando profissional/atendimento e os lançamentos por linha).
-    paciente = db.session.get(
+    paciente = get_da_clinica(
         Paciente, paciente_id,
         options=[
             selectinload(Paciente.agendamentos).selectinload(Agendamento.profissional),
@@ -250,7 +251,7 @@ def buscar_cep(cep):
 @login_required
 @recepcao_ou_admin
 def editar(paciente_id):
-    paciente = db.session.get(Paciente, paciente_id)
+    paciente = get_da_clinica(Paciente, paciente_id)
     if not paciente:
         flash("Paciente não encontrado.", "error")
         return redirect(url_for("pacientes.listar"))

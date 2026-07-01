@@ -8,11 +8,11 @@ import io
 from flask import Blueprint, redirect, url_for, flash, send_file, abort
 from flask_login import login_required, current_user
 
-from app import db
 from app.auth_decorators import clinico_required
 from app.models import Agendamento, AuditLog
 from app.services.audit import audit
 from app.services.documentos_pdf import receita_pdf, atestado_pdf
+from app.services.tenant import get_da_clinica
 
 documentos_bp = Blueprint("documentos", __name__, url_prefix="/documentos")
 
@@ -29,7 +29,7 @@ def _pode(atendimento) -> bool:
 
 
 def _carrega(agendamento_id):
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         return None, None
     return ag, ag.atendimento

@@ -24,6 +24,7 @@ from app.models import (
 from app.routes.pacientes import _valida_cpf, _parse_data
 from app.services.audit import audit
 from app.services.tokens import ler_token_confirmacao
+from app.services.tenant import get_da_clinica
 
 agenda_bp = Blueprint("agenda", __name__, url_prefix="/agenda")
 
@@ -564,7 +565,7 @@ def novo():
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
 
-        paciente = db.session.get(Paciente, paciente_id) if paciente_id else None
+        paciente = get_da_clinica(Paciente, paciente_id) if paciente_id else None
         profissional = (db.session.get(Profissional, profissional_id)
                         if profissional_id else None)
         inicio = _br_para_utc(dia, hora)
@@ -643,7 +644,7 @@ def novo():
 @login_required
 @recepcao_ou_admin
 def mudar_status(agendamento_id):
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -671,7 +672,7 @@ def mudar_status(agendamento_id):
 def checkin(agendamento_id):
     """Marca/desmarca a chegada do paciente (fila do dia). Chegar confirma a
     presença (agendado -> confirmado)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -1101,7 +1102,7 @@ def confirmar_publico(token):
 def editar(agendamento_id):
     """Reagenda a consulta (profissional/dia/hora/convênio/obs) com checagem
     de conflito (ignorando o próprio agendamento)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -1217,7 +1218,7 @@ def aplicar_campos_prontuario(registro, ag):
 @clinico_required
 def atendimento(agendamento_id):
     """Registra/edita o prontuario de uma consulta. Dado sensivel (LGPD)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))

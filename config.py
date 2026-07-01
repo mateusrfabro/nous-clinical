@@ -153,6 +153,13 @@ class ProductionConfig(Config):
     }
     CACHE_TYPE = "RedisCache" if os.getenv("CACHE_REDIS_URL") else "SimpleCache"
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "")
+    # Rate-limit em prod precisa de storage COMPARTILHADO entre workers do
+    # gunicorn — senão o limite (login 5/min, anti-enumeração) vira 5×N_workers e
+    # fica ineficaz. Usa o RATELIMIT_STORAGE_URI explícito, senão o Redis do
+    # cache; só cai pra memory:// (com aviso no boot) se nenhum existir.
+    RATELIMIT_STORAGE_URI = (os.getenv("RATELIMIT_STORAGE_URI")
+                             or os.getenv("CACHE_REDIS_URL")
+                             or "memory://")
 
 
 config = {

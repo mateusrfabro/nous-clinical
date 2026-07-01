@@ -26,6 +26,21 @@ def clinica_atual():
     return None
 
 
+def get_da_clinica(model, id_, **kw):
+    """`db.session.get` + guard EXPLÍCITO de clínica. Fecha o edge de identity-map
+    em que o `with_loader_criteria` não re-filtra um objeto já carregado na sessão.
+    Retorna None se inexistente OU de outra clínica. Superadmin (clinica_atual
+    None) não filtra. Use em rota tenant-scoped no lugar de `db.session.get`."""
+    from app import db
+    obj = db.session.get(model, id_, **kw)
+    if obj is None:
+        return None
+    cid = clinica_atual()
+    if cid is not None and getattr(obj, "clinica_id", None) != cid:
+        return None
+    return obj
+
+
 def _clinica_unica(session):
     """Fallback single-tenant: se existe exatamente 1 clínica, é ela."""
     from app.models import Clinica

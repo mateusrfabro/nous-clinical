@@ -283,3 +283,26 @@ def test_ignorar_e_desfazer(client_admin, app):
                       follow_redirects=True)
     with app.app_context():
         assert db.session.get(MovimentoBancario, mov_id).status == "pendente"
+
+
+def test_criar_nao_duplica_receita(client_recepcao, app):
+    """#2: 'criar a partir do movimento' é bloqueado quando já existe um
+    lançamento que casa — senão duplicaria a receita no faturamento/DRE."""
+    _upload(client_recepcao)
+    mov = db.session.execute(
+        db.select(MovimentoBancario).where(
+            MovimentoBancario.tipo == MovimentoBancario.TIPO_CREDITO)
+    ).scalars().first()
+    pago = datetime.combine(mov.data, time(12, 0),
+                            tzinfo=_BR).astimezone(timezone.utc)
+    db.session.add(LancamentoFinanceiro(
+        tipo=LancamentoFinanceiro.TIPO_RECEITA, valor=mov.valor,
+        status=LancamentoFinanceiro.STATUS_PAGO, pago_em=pago,
+        descricao="Consulta recebida"))
+    db.session.commit()
+    antes = len(db.session.execute(db.select(LancamentoFinanceiro)).scalars().all())
+    r = client_recepcao.post(f"/financeiro/conciliacao/{mov.id}/criar",
+                             follow_redirects=True)
+    depois = len(db.session.execute(db.select(LancamentoFinanceiro)).scalars().all())
+    assert depois == antes          # NÃO criou um segundo lançamento (duplicata)
+    assert "Conciliar".encode() in r.data

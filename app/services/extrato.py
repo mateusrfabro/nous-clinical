@@ -77,6 +77,10 @@ def _num_br(valor):
     # Se tem vírgula, ela é o decimal (formato BR) e ponto é milhar.
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
+    elif s.count(".") >= 1 and len(s.rsplit(".", 1)[1]) == 3:
+        # Ponto + 3 dígitos no fim, sem vírgula = milhar (1.500 = 1500), não
+        # decimal — senão um crédito de R$ 1.500 entraria como R$ 1,50.
+        s = s.replace(".", "")
     try:
         v = Decimal(s)
     except InvalidOperation:

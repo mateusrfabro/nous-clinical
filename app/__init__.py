@@ -110,6 +110,14 @@ def create_app(config_name="default"):
                 "[nous] BOOT version=%s migration_head=%s db=%s env=%s",
                 app_version(), head, dialect, config_name,
             )
+            # Aviso: rate-limit por-worker em prod (gunicorn multi-worker) é
+            # ineficaz — o limite vira N×. Setar RATELIMIT_STORAGE_URI/Redis.
+            if (config_name == "production"
+                    and str(app.config.get("RATELIMIT_STORAGE_URI", ""))
+                    .startswith("memory://")):
+                app.logger.warning(
+                    "[nous] RATE-LIMIT em memory:// com prod — ineficaz entre "
+                    "workers. Configure RATELIMIT_STORAGE_URI (Redis).")
 
     # Em testing, o conftest mantem 1 app_context aberto — limpa o cache de
     # user do flask-login antes de cada request pra evitar leak entre clients.
@@ -151,7 +159,11 @@ def create_app(config_name="default"):
         from flask_login import current_user
         # Superadmin é cross-tenant (gerencia todas) -> sem escopo (None).
         if current_user.is_authenticated and not current_user.is_superadmin:
-            g.clinica_id = current_user.clinica_id
+            # FAIL-CLOSED: não-superadmin SEM clínica (não deveria ocorrer) recebe
+            # sentinela inexistente (-1) -> o escopo filtra TUDO, em vez de desligar
+            # e o usuário "ver todas as clínicas".
+            g.clinica_id = (current_user.clinica_id
+                            if current_user.clinica_id is not None else -1)
         else:
             g.clinica_id = None
 

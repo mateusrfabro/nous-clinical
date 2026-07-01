@@ -113,6 +113,10 @@ def _parse_valor(bruto: str):
     s = bruto.strip().replace("R$", "").replace(" ", "")
     if "," in s:                       # formato BR: '.' milhar, ',' decimal
         s = s.replace(".", "").replace(",", ".")
+    elif s.count(".") >= 1 and len(s.rsplit(".", 1)[1]) == 3:
+        # Ponto seguido de 3 dígitos no fim, SEM vírgula = milhar BR (1.234 =
+        # mil duzentos e trinta e quatro), não decimal. Evita virar R$ 1,23.
+        s = s.replace(".", "")
     try:
         v = Decimal(s)
     except (InvalidOperation, ValueError):
@@ -481,6 +485,15 @@ def conciliacao_conciliar(movimento_id):
     if lanc.movimento is not None and lanc.movimento.id != mov.id:
         flash("Esse lançamento já está conciliado com outro movimento.", "error")
         return redirect(url_for("financeiro.conciliacao"))
+    # Tipo tem que bater: crédito do banco = receita; débito = despesa. Senão
+    # concilia coisas incompatíveis e mascara divergência de caixa.
+    tipo_ok = (LancamentoFinanceiro.TIPO_RECEITA
+               if mov.tipo == MovimentoBancario.TIPO_CREDITO
+               else LancamentoFinanceiro.TIPO_DESPESA)
+    if lanc.tipo != tipo_ok:
+        flash("Tipo incompatível: crédito casa com receita; débito, com despesa.",
+              "error")
+        return redirect(url_for("financeiro.conciliacao"))
     mov.lancamento_id = lanc.id
     mov.status = MovimentoBancario.STATUS_CONCILIADO
     mov.conciliado_em = datetime.now(timezone.utc)
@@ -502,6 +515,13 @@ def conciliacao_criar(movimento_id):
         return redirect(url_for("financeiro.conciliacao"))
     if mov.status == MovimentoBancario.STATUS_CONCILIADO:
         flash("Movimento já conciliado.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    # Se já existe um lançamento que casa com este movimento, NÃO criar outro
+    # (duplicaria a receita no faturamento/DRE) — empurra pro "Conciliar".
+    from app.services.conciliacao import sugestao_para
+    if sugestao_para(mov) is not None:
+        flash('Já existe um lançamento parecido com este — use "Conciliar" em '
+              'vez de "Criar" para não duplicar a receita.', "error")
         return redirect(url_for("financeiro.conciliacao"))
     L = LancamentoFinanceiro
     tipo = (L.TIPO_RECEITA if mov.tipo == MovimentoBancario.TIPO_CREDITO
@@ -571,10 +591,13 @@ def conciliacao_desfazer(movimento_id):
 
 def _dec(valor) -> Decimal:
     """Parse tolerante de dinheiro do form (aceita '150,50' ou '150.50')."""
-    s = (valor or "").strip().replace(".", "").replace(",", ".") \
-        if (valor and "," in valor) else (valor or "").strip()
+    s = (valor or "").strip().replace("R$", "").replace(" ", "")
     if not s:
         return Decimal("0.00")
+    if "," in s:                       # BR: '.' milhar, ',' decimal
+        s = s.replace(".", "").replace(",", ".")
+    elif s.count(".") >= 1 and len(s.rsplit(".", 1)[1]) == 3:
+        s = s.replace(".", "")         # ponto de milhar sem vírgula (1.234 = 1234)
     try:
         return Decimal(s).quantize(Decimal("0.01"))
     except (InvalidOperation, ValueError):
@@ -593,7 +616,7 @@ def _esperado_por_forma(dia):
                L.pago_em >= ini, L.pago_em < fim)
         .group_by(L.forma_pagamento)
     ).all()
-    return {(forma or "nao_informada"): Decimal(total) for forma, total in rows}
+    return {(forma or "nao_informada"): Decimal(str(total)) for forma, total in rows}
 
 
 @financeiro_bp.route("/caixa")
@@ -691,9 +714,13 @@ def caixa_reabrir(fechamento_id):
         flash("Fechamento não encontrado.", "error")
         return redirect(url_for("financeiro.caixa"))
     dia = fechamento.dia
+    # Preserva o snapshot (esperado/contado/divergência) na trilha ANTES de
+    # apagar — senão reabrir destrói a evidência do que foi contado.
+    snap = (f"dia={dia.isoformat()} esperado={fechamento.esperado_total} "
+            f"contado={fechamento.contado_total} "
+            f"divergencia={fechamento.divergencia}")
     db.session.delete(fechamento)
     db.session.commit()
-    audit(AuditLog.ACAO_CAIXA_REABERTO, recurso_tipo="caixa",
-          detalhes=f"dia={dia.isoformat()}")
+    audit(AuditLog.ACAO_CAIXA_REABERTO, recurso_tipo="caixa", detalhes=snap)
     flash("Caixa reaberto.", "success")
     return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))

@@ -18,6 +18,7 @@ from app.models import Agendamento, Atendimento, Exame, AuditLog
 from app.routes.agenda import aplicar_campos_prontuario
 from app.services.audit import audit
 from app.services.storage import get_storage
+from app.services.tenant import get_da_clinica
 
 exames_bp = Blueprint("exames", __name__, url_prefix="/exames")
 
@@ -47,7 +48,7 @@ def _pode(atendimento) -> bool:
 @login_required
 @clinico_required
 def upload(agendamento_id):
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -102,7 +103,7 @@ def upload(agendamento_id):
 @login_required
 @clinico_required
 def download(exame_id):
-    ex = db.session.get(Exame, exame_id)
+    ex = get_da_clinica(Exame, exame_id)
     if not ex:
         abort(404)
     if not _pode(ex.atendimento):
@@ -125,7 +126,7 @@ def download(exame_id):
 @login_required
 @clinico_required
 def excluir(exame_id):
-    ex = db.session.get(Exame, exame_id)
+    ex = get_da_clinica(Exame, exame_id)
     if not ex:
         flash("Exame não encontrado.", "error")
         return redirect(url_for("agenda.listar"))

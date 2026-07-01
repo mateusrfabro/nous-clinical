@@ -13,6 +13,7 @@ from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from flask import current_app
+from sqlalchemy.orm import selectinload
 
 from app import db
 from app.models import Agendamento
@@ -36,11 +37,12 @@ def _corpo(ag):
     if quando.tzinfo is None:
         quando = quando.replace(tzinfo=timezone.utc)
     quando_br = quando.astimezone(_BR).strftime("%d/%m/%Y às %H:%M")
+    pac_nome = ag.paciente.nome_completo if ag.paciente else "paciente"
+    prof_nome = ag.profissional.nome if ag.profissional else "seu profissional"
     linhas = [
-        f"Olá, {ag.paciente.nome_completo}.",
+        f"Olá, {pac_nome}.",
         "",
-        f"Lembrete da sua consulta em {quando_br} "
-        f"com {ag.profissional.nome}.",
+        f"Lembrete da sua consulta em {quando_br} com {prof_nome}.",
     ]
     link = _link_confirmacao(ag)
     if link:
@@ -65,7 +67,8 @@ def enviar_lembretes(data_alvo=None):
             Agendamento.status.in_([Agendamento.STATUS_AGENDADO,
                                     Agendamento.STATUS_CONFIRMADO]),
             Agendamento.lembrete_enviado_em.is_(None),
-        )
+        ).options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional))
     ).scalars().all()
 
     enviados = por_whatsapp = sem_canal = falhas = 0
