@@ -18,9 +18,10 @@ jobs:
   test:
     name: pytest + coverage
     runs-on: ubuntu-latest
-    # A instrumentação de coverage deixa a suíte mais lenta; 10 min ficou justo
-    # depois de crescer a suíte (2FA/LGPD/etc.) e estava cancelando por timeout.
-    timeout-minutes: 20
+    # A instrumentação de coverage deixa a suíte ~50% mais lenta (o job Postgres,
+    # sem cov, roda em ~13min; com cov passou de 20). Argon2id nos testes soma.
+    # 30min dá margem folgada no runner.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
