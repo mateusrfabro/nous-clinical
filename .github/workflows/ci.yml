@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # Inclui a branch de trabalho/deploy (Render publica dela) — senão o CI não
+    # roda nos nossos pushes e o gate não protege a produção.
+    branches: [main, feat/nous-rebrand-financeiro]
   pull_request:
-    branches: [main]
+    branches: [main, feat/nous-rebrand-financeiro]
 
 # Cancela runs antigos da mesma branch quando push novo chegar — evita fila
 # acumular em pushes consecutivos.
@@ -76,9 +78,9 @@ jobs:
     name: bandit + pip-audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Nao bloqueia o merge enquanto a base nao for revisada — gera report
-    # informativo. Promover pra blocking depois do primeiro pente fino.
-    continue-on-error: true
+    # BLOQUEANTE: base revisada (bandit limpo com usedforsecurity=False nos
+    # hashes de dedup; pip-audit limpo após o bump do cryptography). Uma nova
+    # CVE ou finding de segurança agora reprova o build.
 
     steps:
       - uses: actions/checkout@v4

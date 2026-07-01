@@ -129,7 +129,8 @@ def parse_csv(conteudo):
         desc = (r[cols["desc"]].strip() if cols["desc"] is not None
                 and cols["desc"] < len(r) else "")
         fit = hashlib.sha1(
-            f"{d.isoformat()}|{valor}|{desc}".encode()).hexdigest()[:16]
+            f"{d.isoformat()}|{valor}|{desc}".encode(),
+            usedforsecurity=False).hexdigest()[:16]
         ext.transacoes.append(TransacaoOFX(
             data=d, valor=abs(valor).quantize(Decimal("0.01")),
             tipo="credito" if valor >= 0 else "debito",
