@@ -44,6 +44,9 @@ jobs:
           # SECRET_KEY é exigido pelo create_app(). Em CI, qualquer string
           # serve — não é uma chave de prod.
           SECRET_KEY: ci-test-secret-not-for-prod
+          # Coverage via sys.monitoring (PEP 669, Python 3.12) — overhead quase
+          # zero. Sem isso o tracer clássico dobrava o tempo (passava de 30min).
+          COVERAGE_CORE: sysmon
         # Exclui tests/load (Locust) — é teste de carga, não unit/integration.
         # Threshold 70% — base atual ~75%, deixa folga pra novos testes.
         run: |
