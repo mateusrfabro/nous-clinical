@@ -39,20 +39,31 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
   usa `CONTATO_COMERCIAL` (WhatsApp/e-mail/form do comercial); sem ele, cai em "Entrar".
 - ✅ **Padronização de UI/UX e acessibilidade** — design system consistente (botões, valores
   alinhados, menu de ações "⋯", segmented control) e correções de contraste/teclado (WCAG).
-- ✅ **Manual do Usuário** — texto atualizado com as telas novas (Quadro, Painel, Financeiro,
-  WhatsApp). *Pendência menor:* gerar o screenshot real da visão **Quadro** antes do próximo PDF
-  (hoje o manual usa um placeholder sinalizado).
+- ✅ **Manual do Usuário** — texto + **screenshot real da visão Quadro** e **PDF regerado**
+  (`Manual-Nous-Clinical.pdf`).
+- ✅ **Landing comercial otimizada p/ conversão** — CTA "Agendar demonstração" → WhatsApp do
+  comercial, navbar contextual, message match, barra sticky no mobile. Ver `docs/CAMPANHA-COLD-EMAIL.md`
+  (estratégia + copy + LGPD/Brevo do cold e-mail).
 - ✅ **Documentação técnica, comercial e de projeto** — atualizada
   (`docs/COMERCIAL-NOUS.md` para o comercial; `docs/12-conciliacao-e-caixa.md` técnica).
 
 ## 2. Qualidade e segurança
 
-- ✅ **Suíte de testes: 365 verdes.**
-- ✅ **Auditoria adversarial multi-agente** em várias rodadas (módulo fiscal, Suporte,
-  UI/perf/segurança/a11y e o financeiro avançado): problemas levantados →
-  **verificados e corrigidos** (ou descartados como falso-positivo). 0 P0 em aberto.
+- ✅ **Suíte de testes: 400+ verdes** (inclui testes novos de IDOR multi-tenant, parse de
+  dinheiro BR e Concierge fail-closed).
+- ✅ **Auditoria adversarial multi-agente** em várias rodadas (fiscal, Suporte, UI/perf/
+  segurança/a11y, financeiro, e o **núcleo inteiro** — tenant/auth/financeiro/uploads/agenda):
+  **0 Crítico/Alto explorável**. Achados verificados e **corrigidos**:
+  - **Multi-tenant fail-closed** — usuário sem clínica não "vê tudo" (sentinela); guard explícito
+    de clínica (`get_da_clinica`) nas rotas de paciente/agenda/prontuário/exame (defesa contra
+    IDOR por identity-map).
+  - **Dinheiro** — ponto de milhar BR sem vírgula não vira mais centavo (`1.234` = R$ 1.234) no
+    caixa e na conciliação; conciliação não casa tipo incompatível nem duplica receita.
+  - **Rate-limit** em produção usa Redis (não `memory://` por-worker).
 - ✅ **Nenhum segredo vazado no repositório** (credenciais só em variáveis de ambiente).
 - ✅ WhatsApp já passara por auditoria (1 vazamento cross-tenant achado e **corrigido**).
+- 🟡 **Mapeado p/ evoluir (não-bloqueante):** agendamento público tem só honeypot+rate-limit
+  contra spam (avaliar CAPTCHA/confirmação se houver abuso).
 - ✅ **Defesa em profundidade** no financeiro: guard explícito de `clinica_id` nas
   mutações, além do escopo automático por clínica.
 
