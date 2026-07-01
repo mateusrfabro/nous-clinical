@@ -1,5 +1,20 @@
 # Checklist do bucket R2 (armazenamento de exames) — ação do sócio
 
+> **✅ AUDITADO EM 2026-07-01 — bucket `nous-clinical` está correto.**
+> - Acesso público: **OFF** (sem custom domain, sem public dev URL) — privado.
+> - Credencial "R2 Account Token": escopo **mínimo** (`Applied to: nous-clinical`,
+>   `Object Read & Write`) — não é admin nem conta-inteira. Nada a trocar.
+> - Versioning / Bucket Lock: **deixados desligados de propósito** — reter/travar
+>   arquivos conflitaria com a exclusão de exames da **anonimização LGPD**.
+> - Lifecycle: regra de abort de multipart já ativa.
+> - ⚠️ **Localização: EUA (ENAM)** — transferência internacional; registrar no
+>   RIPD/DPA quando formalizar a papelada de LGPD (Cloudflare tem DPA).
+>
+> _O checklist detalhado abaixo fica como referência._
+
+---
+
+
 > **Por que isso importa:** os exames dos pacientes (PDFs/imagens) são **dado
 > sensível de saúde (LGPD)**. No código, eles já são servidos **só por rota
 > autenticada** com checagem de papel (nunca link público). O que falta é
