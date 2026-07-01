@@ -41,9 +41,15 @@
                 <button type="submit" class="btn btn-primary btn-block">Entrar na plataforma</button>
             </form>
 
-            {% if not portal_clinica %}
+            {% if portal_clinica %}
+            {# Portal da clínica: quem chega é o PACIENTE — pode se agendar. #}
             <div class="auth-divider">ou</div>
             <p class="auth-alt"><a href="{{ url_for('agenda.agendar_online') }}">Agendar uma consulta</a></p>
+            {% elif contato_comercial %}
+            {# Site comercial: quem chega é dono/recepção — oferece a demonstração. #}
+            <div class="auth-divider">ou</div>
+            <p class="auth-alt">Ainda não é cliente?
+                <a href="{{ contato_comercial }}" target="_blank" rel="noopener">Agende uma demonstração</a></p>
             {% endif %}
 
             <p class="auth-secure">

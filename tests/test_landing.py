@@ -43,6 +43,26 @@ def test_modulos_detalhe_recolhivel(client):
     assert "Kanban" in body and "conciliação do extrato" in body
 
 
+def test_stat_band_usa_fatos_verificaveis(client):
+    """M1: a faixa de números anuncia fatos do produto (verificáveis), não
+    pseudo-KPI de resultado que soaria como promessa vazia."""
+    body = client.get("/").get_data(as_text=True)
+    assert "formas de ver a agenda" in body and "perfis de acesso" in body
+    assert "+retorno" not in body        # não finge métrica de resultado medida
+
+
+def test_login_comercial_oferece_demo_nao_agendamento_paciente(app, client):
+    """M2: no site comercial (não portal), quem chega no login é dono/recepção
+    — mostra a demonstração, não o fluxo público de agendar consulta."""
+    app.config["CONTATO_COMERCIAL"] = "https://wa.me/5543999999999"
+    try:
+        body = client.get("/login").get_data(as_text=True)
+        assert "Agende uma demonstração" in body
+        assert "Agendar uma consulta" not in body
+    finally:
+        app.config["CONTATO_COMERCIAL"] = ""
+
+
 def test_cta_usa_contato_comercial_quando_configurado(app, client):
     app.config["CONTATO_COMERCIAL"] = "https://wa.me/5543999999999"
     try:
