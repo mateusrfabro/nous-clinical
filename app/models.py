@@ -122,6 +122,19 @@ class Usuario(UserMixin, db.Model):
     senha_atualizada_em = db.Column(db.DateTime(timezone=True))
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
+    # Proteção anti-brute-force POR CONTA (o rate-limit por IP não cobre ataque
+    # distribuído a UMA conta). Persistido no DB porque prod é multi-worker.
+    tentativas_falhas = db.Column(db.Integer, nullable=False, default=0)
+    bloqueado_ate = db.Column(db.DateTime(timezone=True))
+    # Último IP de login OK — dispara alerta por e-mail quando muda (acesso novo).
+    ultimo_login_ip = db.Column(db.String(45))
+
+    # 2FA/TOTP (opcional, recomendado p/ admin/superadmin). O segredo fica
+    # CIFRADO em repouso (Fernet, services/cripto.py) — mesmo padrão do token
+    # WhatsApp. `totp_ativado` só vira True após o usuário confirmar 1 código.
+    totp_secret = db.Column(db.String(255))
+    totp_ativado = db.Column(db.Boolean, nullable=False, default=False)
+
     profissional = db.relationship(
         "Profissional", back_populates="usuario", uselist=False
     )
@@ -212,6 +225,10 @@ class Profissional(db.Model):
 
 class Paciente(db.Model):
     __tablename__ = "pacientes"
+    # Índice pros relatórios que filtram "novos pacientes" por período.
+    __table_args__ = (
+        db.Index("ix_pac_clinica_criado", "clinica_id", "criado_em"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     nome_completo = db.Column(db.String(150), nullable=False, index=True)
@@ -233,6 +250,9 @@ class Paciente(db.Model):
     origem = db.Column(db.String(20))
 
     ativo = db.Column(db.Boolean, nullable=False, default=True)
+    # LGPD art. 18 (direito ao esquecimento): marca quando os dados pessoais
+    # foram anonimizados. NULL = paciente normal. Ver services/anonimizacao.py.
+    anonimizado_em = db.Column(db.DateTime(timezone=True))
     clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
@@ -349,9 +369,11 @@ class Atendimento(db.Model):
     atendimento e do dia (regra aplicada na rota, nao no modelo).
     """
     __tablename__ = "atendimentos"
-    # Índice composto pros relatórios/CRM que filtram/ordenam por data.
+    # Índices compostos pros relatórios/CRM que filtram/ordenam por data e por
+    # retorno recomendado (painel de retornos + badge de contagem).
     __table_args__ = (
         db.Index("ix_atend_clinica_criado", "clinica_id", "criado_em"),
+        db.Index("ix_atend_clinica_retorno", "clinica_id", "retorno_em"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -680,6 +702,10 @@ class AuditLog(db.Model):
     ACAO_SENHA_REDEFINIDA = "senha_redefinida"
     ACAO_PACIENTE_CRIADO = "paciente_criado"
     ACAO_PACIENTE_EDITADO = "paciente_editado"
+    ACAO_PACIENTE_ANONIMIZADO = "paciente_anonimizado"  # LGPD art. 18
+    ACAO_LOGIN_BLOQUEADO = "login_bloqueado"            # conta travada por brute-force
+    ACAO_2FA_ATIVADO = "2fa_ativado"
+    ACAO_2FA_DESATIVADO = "2fa_desativado"
     ACAO_AGENDAMENTO_CRIADO = "agendamento_criado"
     ACAO_AGENDAMENTO_STATUS = "agendamento_status"
     ACAO_AGENDAMENTO_EDITADO = "agendamento_editado"

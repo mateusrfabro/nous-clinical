@@ -15,10 +15,11 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from app.auth_decorators import recepcao_ou_admin, equipe_required
+from app.auth_decorators import recepcao_ou_admin, equipe_required, admin_required
 from app.models import Paciente, Agendamento, Atendimento, Exame, AuditLog
 from app.services.audit import audit
 from app.services.tenant import get_da_clinica
+from app.services.anonimizacao import anonimizar_paciente
 
 pacientes_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 
@@ -290,3 +291,33 @@ def editar(paciente_id):
         return redirect(url_for("pacientes.detalhe", paciente_id=paciente.id))
 
     return render_template("pacientes/form.html", paciente=paciente, form={})
+
+
+@pacientes_bp.route("/<int:paciente_id>/anonimizar", methods=["POST"])
+@login_required
+@admin_required
+def anonimizar(paciente_id):
+    """LGPD art. 18 (direito ao esquecimento): anonimiza o paciente — zera PII,
+    apaga prontuário e exames, PRESERVA o financeiro (obrigação fiscal). Só
+    admin, com confirmação. IRREVERSÍVEL e auditado."""
+    paciente = get_da_clinica(Paciente, paciente_id)
+    if not paciente:
+        flash("Paciente não encontrado.", "error")
+        return redirect(url_for("pacientes.listar"))
+    if paciente.anonimizado_em:
+        flash("Este paciente já foi anonimizado.", "info")
+        return redirect(url_for("pacientes.detalhe", paciente_id=paciente.id))
+    # Exige digitar ANONIMIZAR pra evitar clique acidental numa ação irreversível.
+    if request.form.get("confirmacao", "").strip().upper() != "ANONIMIZAR":
+        flash("Para anonimizar, digite ANONIMIZAR no campo de confirmação.", "error")
+        return redirect(url_for("pacientes.detalhe", paciente_id=paciente.id))
+
+    resumo = anonimizar_paciente(paciente)
+    db.session.commit()
+    audit(AuditLog.ACAO_PACIENTE_ANONIMIZADO, recurso_tipo="paciente",
+          recurso_id=paciente_id,
+          detalhes=(f"atend={resumo['atendimentos']} exames={resumo['exames']} "
+                    f"lanc={resumo['lancamentos']}"))
+    flash("Paciente anonimizado (LGPD). Dados pessoais e clínicos removidos; "
+          "o histórico financeiro foi preservado sem identificação.", "success")
+    return redirect(url_for("pacientes.detalhe", paciente_id=paciente.id))

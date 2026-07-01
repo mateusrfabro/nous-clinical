@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, urljoin
 
 from flask import (
@@ -16,12 +16,17 @@ from app.services.passwords import hash_senha, check_senha, check_dummy
 from app.services.audit import audit
 from app.services.pii import mask_email as _mask_email
 from app.services.notificacoes import enviar_link_recuperacao
+from app.services.email import enviar_email
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
 _RECUPERACAO_SALT = "recuperar-senha"
 _RECUPERACAO_TTL_SEG = 3600  # 1 hora
+
+# Lockout por-conta: N falhas seguidas bloqueiam a conta por M minutos.
+_MAX_TENTATIVAS = 5
+_BLOQUEIO_MIN = 15
 
 
 def _usuario_por_email(email: str) -> Usuario | None:
@@ -59,6 +64,32 @@ def _agora_utc():
     return datetime.now(timezone.utc)
 
 
+def _as_utc(dt):
+    """Normaliza um DateTime que pode vir naive (SQLite) pra aware em UTC."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _alertar_login_novo(usuario, ip):
+    """Best-effort: avisa por e-mail quando o login vem de um IP diferente do
+    último conhecido. Não bloqueia o login se o e-mail falhar (ou SMTP off)."""
+    anterior = usuario.ultimo_login_ip
+    if anterior and anterior != ip and usuario.email:
+        quando = _agora_utc().strftime("%d/%m/%Y %H:%M UTC")
+        corpo = (
+            f"Olá, {usuario.nome_responsavel}.\n\n"
+            f"Detectamos um acesso à sua conta Nous Clinical em {quando}, "
+            f"de um endereço diferente do habitual (IP {ip}).\n\n"
+            "Se foi você, pode ignorar este aviso. Se não reconhece, "
+            "troque sua senha imediatamente em 'Esqueci a senha'."
+        )
+        try:
+            enviar_email(usuario.email, "Novo acesso à sua conta Nous", corpo)
+        except Exception:   # noqa: BLE001
+            logger.warning("ALERTA_LOGIN_FALHA", exc_info=True)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"],
                error_message="Muitas tentativas de login. Aguarde 1 minuto.")
@@ -70,7 +101,19 @@ def login():
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
 
+        ip = _client_ip()
         usuario = _usuario_por_email(email)
+
+        # Conta travada por brute-force (falhas consecutivas)? Recusa antes de
+        # checar a senha. Mensagem clara pro dono legítimo; só afeta conta real.
+        if usuario and _as_utc(usuario.bloqueado_ate) \
+                and _as_utc(usuario.bloqueado_ate) > _agora_utc():
+            logger.warning("LOGIN_BLOQUEADO_TENTATIVA email=%s ip=%s",
+                           _mask_email(email), ip)
+            flash("Muitas tentativas. Por segurança, esta conta ficou bloqueada "
+                  "por alguns minutos. Tente novamente em instantes.", "error")
+            return render_template("auth/login.html", email_anterior=email)
+
         novo_hash = None
         if usuario:
             senha_ok, novo_hash = check_senha(senha, usuario.senha_hash)
@@ -79,26 +122,43 @@ def login():
             senha_ok = False
 
         if usuario and senha_ok:
-            if novo_hash:
-                usuario.senha_hash = novo_hash
-                db.session.commit()
             if not getattr(usuario, "ativo", True):
                 logger.warning("LOGIN_BLOQUEADO email=%s motivo=inativo",
                                _mask_email(email))
                 flash("Conta desativada. Contate o administrador.", "error")
                 return render_template("auth/login.html", email_anterior=email)
+            if novo_hash:
+                usuario.senha_hash = novo_hash
+            # Sucesso: zera contador de falhas e alerta se o IP mudou.
+            usuario.tentativas_falhas = 0
+            usuario.bloqueado_ate = None
+            _alertar_login_novo(usuario, ip)
+            usuario.ultimo_login_ip = ip
+            db.session.commit()
             session.clear()
             session.permanent = True
             login_user(usuario)
             logger.info("LOGIN_OK usuario=%s tipo=%s ip=%s",
-                        usuario.id, usuario.tipo, _client_ip())
+                        usuario.id, usuario.tipo, ip)
             audit(AuditLog.ACAO_LOGIN_OK, usuario_id=usuario.id,
                   detalhes=f"tipo={usuario.tipo}")
             proximo = _proximo_url_seguro(request.args.get("next"))
             return redirect(proximo or url_for("main.dashboard"))
 
+        # Falha: incrementa o contador da conta existente e bloqueia no limite.
+        if usuario:
+            usuario.tentativas_falhas = (usuario.tentativas_falhas or 0) + 1
+            if usuario.tentativas_falhas >= _MAX_TENTATIVAS:
+                usuario.bloqueado_ate = _agora_utc() + timedelta(minutes=_BLOQUEIO_MIN)
+                usuario.tentativas_falhas = 0
+                audit(AuditLog.ACAO_LOGIN_BLOQUEADO, usuario_id=usuario.id,
+                      detalhes=f"bloqueio={_BLOQUEIO_MIN}min")
+                logger.warning("LOGIN_CONTA_BLOQUEADA email=%s ip=%s",
+                               _mask_email(email), ip)
+            db.session.commit()
+
         logger.warning("LOGIN_FAIL email=%s ip=%s existe=%s",
-                       _mask_email(email), _client_ip(), bool(usuario))
+                       _mask_email(email), ip, bool(usuario))
         audit(AuditLog.ACAO_LOGIN_FAIL,
               detalhes=f"email={_mask_email(email)} existe={bool(usuario)}")
         flash("E-mail ou senha incorretos.", "error")

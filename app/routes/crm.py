@@ -58,39 +58,38 @@ def _pacientes_com_consulta_futura():
     ).scalars())
 
 
-def _retornos_pendentes(janela_dias: int):
-    """Retornos due (<= hoje+janela) considerando só o ÚLTIMO atendimento.
+def _atendimentos_retorno_due(limite, *, hydrate):
+    """Núcleo compartilhado: os atendimentos cujo retorno está due (<= limite).
 
-    Regra (sócio): o paciente perde a flag toda vez que se consulta — o médico
-    precisa marcar um novo retorno pra ele voltar ao CRM. Logo, olhamos apenas
-    o atendimento mais recente de cada paciente: se ele não tem retorno_em (ou
-    já está fora da janela, ou o paciente já reagendou), não aparece.
+    Regra (sócio): olha só o ÚLTIMO atendimento (não-vazio) de cada paciente —
+    o paciente perde a flag quando volta a se consultar. `hydrate=True` carrega
+    paciente/profissional (pro painel que renderiza os cards); `hydrate=False`
+    pula o selectinload (pro badge de CONTAGEM, que roda em TODA página e não
+    precisa dos objetos nem montar links).
     """
-    hoje = datetime.now(_BR_TZ).date()   # data BR (container em UTC)
-    limite = hoje + timedelta(days=janela_dias)
-
-    # Último atendimento por paciente (mais recente; id desempata de forma
-    # determinística). Ignora atendimento "vazio" (ex: registro criado só pra
-    # anexar exame) — não conta como consulta nem limpa um retorno legítimo.
-    todos = db.session.execute(
-        select(Atendimento).options(
-            selectinload(Atendimento.paciente),
-            selectinload(Atendimento.profissional),
-        ).order_by(Atendimento.criado_em.desc(), Atendimento.id.desc())
-    ).scalars().all()
+    q = select(Atendimento).order_by(
+        Atendimento.criado_em.desc(), Atendimento.id.desc())
+    if hydrate:
+        q = q.options(selectinload(Atendimento.paciente),
+                      selectinload(Atendimento.profissional))
     ultimo_por_paciente = {}
-    for a in todos:
+    for a in db.session.execute(q).scalars():
         if not (a.queixa or a.evolucao or a.prescricao or a.retorno_em):
             continue
         ultimo_por_paciente.setdefault(a.paciente_id, a)
 
     com_futuro = _pacientes_com_consulta_futura()
+    return [a for a in ultimo_por_paciente.values()
+            if a.retorno_em is not None and a.retorno_em <= limite
+            and a.paciente_id not in com_futuro]
+
+
+def _retornos_pendentes(janela_dias: int):
+    """Retornos due (<= hoje+janela), com os dados pro painel (cards + WhatsApp)."""
+    hoje = datetime.now(_BR_TZ).date()   # data BR (container em UTC)
+    limite = hoje + timedelta(days=janela_dias)
     linhas = []
-    for a in ultimo_por_paciente.values():
-        if a.retorno_em is None or a.retorno_em > limite:
-            continue
-        if a.paciente_id in com_futuro:
-            continue
+    for a in _atendimentos_retorno_due(limite, hydrate=True):
         dias = (a.retorno_em - hoje).days
         primeiro_nome = (a.paciente.nome_completo.split()[0]
                          if a.paciente and a.paciente.nome_completo else "")
@@ -111,8 +110,10 @@ def _retornos_pendentes(janela_dias: int):
 
 
 def contar_retornos_pendentes():
-    """KPI: nº de retornos já vencidos (retorno_em <= hoje) sem reagendamento."""
-    return sum(1 for x in _retornos_pendentes(0))
+    """KPI (badge em toda página): nº de retornos já vencidos (<= hoje) sem
+    reagendamento. Contagem leve — sem hidratar objetos nem montar links."""
+    hoje = datetime.now(_BR_TZ).date()
+    return len(_atendimentos_retorno_due(hoje, hydrate=False))
 
 
 @crm_bp.route("/retornos")

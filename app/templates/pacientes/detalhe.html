@@ -93,4 +93,29 @@
 <div class="empty-state"><p>Nenhum exame ou documento anexado.</p></div>
 {% endif %}
 {% endif %}
+
+{% if current_user.is_admin %}
+<div class="page-header section-title-mt"><h3>LGPD — direito ao esquecimento</h3></div>
+{% if paciente.anonimizado_em %}
+<div class="alert alert-info">Paciente <strong>anonimizado</strong> em
+  {{ paciente.anonimizado_em|data_br }}. Dados pessoais e clínicos removidos;
+  o histórico financeiro foi preservado sem identificação (obrigação fiscal).</div>
+{% else %}
+<details class="card">
+  <summary class="lp-danger-summary">Anonimizar este paciente (LGPD art. 18)</summary>
+  <p class="muted mt-2">Remove <strong>permanentemente</strong> os dados pessoais
+    (nome, CPF, contato), o <strong>prontuário</strong> e os <strong>exames</strong>
+    deste paciente. O histórico financeiro é <strong>preservado sem o nome</strong>
+    (a lei fiscal exige guardá-lo). <strong>Ação irreversível.</strong></p>
+  <form method="POST" action="{{ url_for('pacientes.anonimizar', paciente_id=paciente.id) }}"
+        class="mt-2" data-confirm="Anonimizar este paciente é IRREVERSÍVEL. Continuar?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="anon-conf">Digite <strong>ANONIMIZAR</strong> para confirmar</label>
+    <input type="text" id="anon-conf" name="confirmacao" class="form-input"
+           autocomplete="off" placeholder="ANONIMIZAR">
+    <button type="submit" class="btn btn-danger mt-2">Anonimizar definitivamente</button>
+  </form>
+</details>
+{% endif %}
+{% endif %}
 {% endblock %}

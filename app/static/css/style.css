@@ -1694,6 +1694,9 @@ body.app {
 }
 .lp-faq-item > p a { color: var(--primary-text); font-weight: 600; }
 
+/* Ação destrutiva recolhida (ex.: anonimização LGPD) */
+.lp-danger-summary { cursor: pointer; font-weight: 600; color: var(--danger); }
+
 /* Stats de credibilidade da landing */
 .stat-band {
     display: grid;
