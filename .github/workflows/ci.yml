@@ -18,7 +18,9 @@ jobs:
   test:
     name: pytest + coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # A instrumentação de coverage deixa a suíte mais lenta; 10 min ficou justo
+    # depois de crescer a suíte (2FA/LGPD/etc.) e estava cancelando por timeout.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
