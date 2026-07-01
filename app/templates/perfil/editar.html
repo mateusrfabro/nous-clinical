@@ -38,5 +38,18 @@
     </div>
     <button type="submit" class="btn btn-primary">Trocar senha</button>
   </form>
+
+  <div class="card mt-4">
+    <div class="page-header"><h3>Verificação em duas etapas (2FA)</h3></div>
+    <p class="muted">Uma camada a mais de segurança: além da senha, o login pede
+      um código do seu app autenticador. Recomendado para administradores.</p>
+    <p class="mt-2">
+      Status:
+      {% if current_user.totp_ativado %}<strong class="text-success">Ativado</strong>
+      {% else %}<strong class="muted">Desativado</strong>{% endif %}
+    </p>
+    <a href="{{ url_for('perfil.dois_fatores') }}" class="btn btn-outline mt-2">
+      {{ 'Gerenciar 2FA' if current_user.totp_ativado else 'Ativar 2FA' }}</a>
+  </div>
 </div>
 {% endblock %}

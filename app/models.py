@@ -134,6 +134,9 @@ class Usuario(UserMixin, db.Model):
     # WhatsApp. `totp_ativado` só vira True após o usuário confirmar 1 código.
     totp_secret = db.Column(db.String(255))
     totp_ativado = db.Column(db.Boolean, nullable=False, default=False)
+    # Códigos de recuperação do 2FA (uso único) guardados como HASH — JSON de
+    # lista de sha256. Permite entrar se o usuário perder o autenticador.
+    totp_recovery = db.Column(db.Text)
 
     profissional = db.relationship(
         "Profissional", back_populates="usuario", uselist=False

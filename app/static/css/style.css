@@ -1696,6 +1696,31 @@ body.app {
 
 /* Ação destrutiva recolhida (ex.: anonimização LGPD) */
 .lp-danger-summary { cursor: pointer; font-weight: 600; color: var(--danger); }
+.text-success { color: var(--success-text); }
+
+/* 2FA: QR, chave manual e códigos de recuperação */
+.qr-box {
+    display: inline-block; align-self: flex-start;
+    background: var(--white); padding: 0.6rem;
+    border: 1px solid var(--gray-200); border-radius: var(--radius);
+    line-height: 0;
+}
+.qr-box svg { width: 200px; height: 200px; }
+.totp-key {
+    display: inline-block; margin-top: 0.3rem; padding: 0.35rem 0.6rem;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 1rem; letter-spacing: 2px;
+    word-break: break-all; user-select: all;
+}
+.recovery-list {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
+}
+.recovery-list code {
+    display: block; text-align: center; padding: 0.5rem;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 1rem; letter-spacing: 1px; user-select: all;
+}
 
 /* Stats de credibilidade da landing */
 .stat-band {

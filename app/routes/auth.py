@@ -17,6 +17,8 @@ from app.services.audit import audit
 from app.services.pii import mask_email as _mask_email
 from app.services.notificacoes import enviar_link_recuperacao
 from app.services.email import enviar_email
+from app.services.cripto import decifrar
+from app.services import totp as totp_svc
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
@@ -90,6 +92,22 @@ def _alertar_login_novo(usuario, ip):
             logger.warning("ALERTA_LOGIN_FALHA", exc_info=True)
 
 
+def _finalizar_login(usuario, ip, proximo):
+    """Completa o login (usado direto ou após a 2ª etapa de 2FA): alerta de IP
+    novo, zera lockout, regenera a sessão (anti-fixation) e autentica."""
+    _alertar_login_novo(usuario, ip)
+    usuario.ultimo_login_ip = ip
+    usuario.tentativas_falhas = 0
+    usuario.bloqueado_ate = None
+    db.session.commit()
+    session.clear()
+    session.permanent = True
+    login_user(usuario)
+    logger.info("LOGIN_OK usuario=%s tipo=%s ip=%s", usuario.id, usuario.tipo, ip)
+    audit(AuditLog.ACAO_LOGIN_OK, usuario_id=usuario.id, detalhes=f"tipo={usuario.tipo}")
+    return redirect(proximo or url_for("main.dashboard"))
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"],
                error_message="Muitas tentativas de login. Aguarde 1 minuto.")
@@ -129,21 +147,20 @@ def login():
                 return render_template("auth/login.html", email_anterior=email)
             if novo_hash:
                 usuario.senha_hash = novo_hash
-            # Sucesso: zera contador de falhas e alerta se o IP mudou.
-            usuario.tentativas_falhas = 0
-            usuario.bloqueado_ate = None
-            _alertar_login_novo(usuario, ip)
-            usuario.ultimo_login_ip = ip
-            db.session.commit()
-            session.clear()
-            session.permanent = True
-            login_user(usuario)
-            logger.info("LOGIN_OK usuario=%s tipo=%s ip=%s",
-                        usuario.id, usuario.tipo, ip)
-            audit(AuditLog.ACAO_LOGIN_OK, usuario_id=usuario.id,
-                  detalhes=f"tipo={usuario.tipo}")
+                db.session.commit()
             proximo = _proximo_url_seguro(request.args.get("next"))
-            return redirect(proximo or url_for("main.dashboard"))
+            # 2FA ativo: a senha está certa, mas o login só completa após o
+            # código. Guarda a pendência na sessão (ainda NÃO autenticado).
+            if usuario.totp_ativado:
+                usuario.tentativas_falhas = 0
+                usuario.bloqueado_ate = None
+                db.session.commit()
+                session.clear()
+                session["2fa_user_id"] = usuario.id
+                session["2fa_next"] = proximo or ""
+                session["2fa_ip"] = ip
+                return redirect(url_for("auth.login_2fa"))
+            return _finalizar_login(usuario, ip, proximo)
 
         # Falha: incrementa o contador da conta existente e bloqueia no limite.
         if usuario:
@@ -166,6 +183,41 @@ def login():
                                erro_login=True, email_anterior=email)
 
     return render_template("auth/login.html")
+
+
+@auth_bp.route("/login/2fa", methods=["GET", "POST"])
+@limiter.limit("10 per minute;60 per hour", methods=["POST"],
+               error_message="Muitas tentativas. Aguarde um pouco.")
+def login_2fa():
+    """2ª etapa do login pra contas com 2FA. Aceita o código do app (TOTP) ou
+    um código de recuperação (uso único). A pendência vive na sessão até aqui."""
+    uid = session.get("2fa_user_id")
+    if not uid:
+        return redirect(url_for("auth.login"))
+    usuario = db.session.get(Usuario, uid)
+    if not usuario or not usuario.totp_ativado:
+        session.clear()
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        codigo = request.form.get("codigo", "")
+        segredo = decifrar(usuario.totp_secret)
+        ok = bool(segredo) and totp_svc.verificar(segredo, codigo)
+        if not ok:
+            # fallback: código de recuperação (consome de uso único)
+            novo_blob = totp_svc.consumir_recuperacao(codigo, usuario.totp_recovery)
+            if novo_blob is not None:
+                usuario.totp_recovery = novo_blob
+                db.session.commit()
+                ok = True
+        if ok:
+            ip = session.get("2fa_ip") or _client_ip()
+            proximo = _proximo_url_seguro(session.get("2fa_next")) or None
+            return _finalizar_login(usuario, ip, proximo)
+        audit(AuditLog.ACAO_LOGIN_FAIL, usuario_id=usuario.id, detalhes="2fa_incorreto")
+        flash("Código de verificação inválido.", "error")
+
+    return render_template("auth/login_2fa.html")
 
 
 @auth_bp.route("/logout", methods=["POST"])
