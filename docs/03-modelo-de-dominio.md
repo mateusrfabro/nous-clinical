@@ -33,6 +33,9 @@ Campos de white-label: `slug` (identificador público único), `tema`, `cor_prim
 ### `Usuario` — autenticação
 `email` (único), `senha_hash` (Argon2id), `tipo` (papel), `ativo`, `clinica_id`
 (**nullable**: o superadmin não pertence a clínica), `telegram_chat_id`.
+**2FA/TOTP** (opcional): `totp_secret` (cifrado, `services/cripto.py`), `totp_ativado`,
+`totp_recovery` (JSON de hashes, uso único). **Lockout**: `tentativas_falhas`,
+`bloqueado_ate` (5 falhas → 15min); `ultimo_login_ip` (alerta de acesso novo).
 Propriedades: `is_superadmin/is_admin/is_profissional/is_recepcao`.
 `tipo ∈ {superadmin, admin, profissional, recepcao}` — ver [doc 4](04-multitenant-e-rbac.md).
 
@@ -45,6 +48,8 @@ login em `profissionais.novo`.
 `nome_completo`, `cpf` (único, **obrigatório no form**), `data_nascimento`
 (obrigatório no form), contato, endereço (preenchível via CEP), `convenio`,
 `observacoes`, `ativo`. CPF validado por dígitos verificadores.
+**LGPD art. 18** (`anonimizado_em`): admin anonimiza via `services/anonimizacao.py` —
+zera PII + apaga prontuário/exames, **preserva o financeiro** (obrigação fiscal).
 
 ### `Agendamento`
 `paciente` + `profissional` + `inicio`/`fim` (UTC) + `status` + `valor`/`convenio`

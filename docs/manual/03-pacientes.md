@@ -119,6 +119,22 @@ A ficha tem:
 
 ---
 
+## Anonimizar um paciente (LGPD — direito ao esquecimento)
+
+A LGPD dá ao paciente o direito de pedir que seus dados sejam **apagados**. Para atender isso, o sistema tem a **anonimização** — disponível **só para o administrador**, na própria ficha do paciente.
+
+**O que a anonimização faz:**
+- **Apaga os dados pessoais** (nome, CPF, telefone, e-mail, endereço, observações);
+- **Apaga o prontuário e os exames** anexados;
+- **Preserva o histórico financeiro** (valores, datas, forma de pagamento) **sem o nome** — porque a **lei fiscal exige** guardar esses lançamentos.
+
+**Como fazer (admin):**
+1. Abra a ficha do paciente.
+2. Vá até o quadro **LGPD — direito ao esquecimento** (no fim da página).
+3. Clique em **Anonimizar este paciente**, leia o aviso, digite a palavra **ANONIMIZAR** para confirmar e conclua.
+
+> ⚠️ **É irreversível.** Depois de anonimizado, os dados pessoais e clínicos **não voltam**. A ação fica **registrada na Auditoria** (quem fez e quando), sem expor os dados apagados. Use somente diante de um pedido legítimo de exclusão.
+
 ## Perguntas rápidas
 
 **Sou médico e não vejo o botão "+ Novo paciente". Por quê?**

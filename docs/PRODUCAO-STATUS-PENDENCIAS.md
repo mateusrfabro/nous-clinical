@@ -1,7 +1,7 @@
 # Nous Clinical — Status de Produção e Pendências
 
 > **Documento interno (PGS).** Para alinhamento entre os sócios. Não vai para o cliente.
-> Atualizado em: 30/06/2026 · Site: **nousclinical.com** · Hospedagem: **Render**
+> Atualizado em: 01/07/2026 · Site: **nousclinical.com** · Hospedagem: **Render**
 
 ---
 
@@ -46,11 +46,22 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
   (estratégia + copy + LGPD/Brevo do cold e-mail).
 - ✅ **Documentação técnica, comercial e de projeto** — atualizada
   (`docs/COMERCIAL-NOUS.md` para o comercial; `docs/12-conciliacao-e-caixa.md` técnica).
+- ✅ **Hardening custo-zero (01/07)** — rodada de auditoria com agentes + melhorias sem custo:
+  - **2FA (verificação em duas etapas)** por app autenticador — opcional por usuário, com QR e
+    **códigos de recuperação**. Recomendado p/ admin. (Manual: *Meu Perfil*.)
+  - **Anonimização de paciente (LGPD art. 18 — direito ao esquecimento)** — admin apaga PII +
+    prontuário + exames e **preserva o financeiro** (obrigação fiscal). Auditado.
+  - **Login mais seguro** — bloqueio da conta após 5 erros (15 min) + **aviso por e-mail** de
+    acesso de novo dispositivo.
+  - **Dependência com CVE corrigida** (`cryptography` 46→48; 5 CVEs) e **gate de segurança do
+    CI agora bloqueante** (bandit + pip-audit); o CI passou a **rodar na branch de deploy**.
+  - **Testes rodam também contra Postgres** no CI (paridade dev/prod) — passou sem divergência.
 
 ## 2. Qualidade e segurança
 
-- ✅ **Suíte de testes: 400+ verdes** (inclui testes novos de IDOR multi-tenant, parse de
-  dinheiro BR e Concierge fail-closed).
+- ✅ **Suíte de testes: 419 verdes** (inclui IDOR multi-tenant, parse de dinheiro BR, Concierge
+  fail-closed, **2FA**, **anonimização LGPD**, **lockout de login** e conciliação/dedup OFX).
+  A suíte roda em SQLite **e em Postgres** (paridade com produção).
 - ✅ **Auditoria adversarial multi-agente** em várias rodadas (fiscal, Suporte, UI/perf/
   segurança/a11y, financeiro, e o **núcleo inteiro** — tenant/auth/financeiro/uploads/agenda):
   **0 Crítico/Alto explorável**. Achados verificados e **corrigidos**:

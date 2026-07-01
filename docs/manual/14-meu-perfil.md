@@ -29,6 +29,28 @@ Use o segundo quadro, **Trocar senha**, quando quiser definir uma senha nova (vo
 
 > ⚠️ **Atenção:** se você errar a **Senha atual**, ou se a **Nova senha** e a **Confirme** não forem iguais, o sistema avisa e a troca não acontece. Confira e tente de novo.
 
+## Verificação em duas etapas (2FA)
+
+É uma **camada extra de segurança**: além da senha, o login passa a pedir um **código de 6 dígitos** que muda a cada 30 segundos num app do seu celular. Assim, mesmo que alguém descubra sua senha, não entra sem o seu telefone. **Recomendado principalmente para administradores.**
+
+**Como ativar:**
+
+1. Instale no celular um app autenticador — **Google Authenticator**, **Authy** ou **Microsoft Authenticator** (todos gratuitos).
+2. No **Meu perfil**, no quadro **Verificação em duas etapas (2FA)**, clique em **Ativar 2FA**.
+3. **Escaneie o QR Code** que aparece na tela com o app (ou digite a chave manual, se preferir).
+4. O app vai mostrar um **código de 6 dígitos**. Digite esse código na tela e clique em **Ativar 2FA**.
+5. O sistema mostra **8 códigos de recuperação**. **Guarde-os num lugar seguro** (gerenciador de senhas ou papel guardado) — eles são a **única** forma de entrar se você perder o celular.
+
+**No próximo login**, depois da senha, o sistema pede o código do app. Abra o autenticador, digite os 6 dígitos e pronto.
+
+> 🔑 **Perdeu o celular / trocou de aparelho?** Use um dos **códigos de recuperação** que você guardou (cada um funciona **uma vez**). Não tem mais nenhum? Peça a outro **administrador** para desativar seu 2FA, ou redefina pelo **"Esqueci a senha"**.
+
+> ⚠️ **Para desativar** o 2FA, entre em **Meu perfil → Gerenciar 2FA** e confirme a **sua senha**.
+
+## Bloqueio por tentativas
+
+Por segurança, se alguém errar a senha da sua conta **5 vezes seguidas**, a conta fica **bloqueada por 15 minutos**. É uma proteção automática contra quem fica "chutando" senha. Se isso te acontecer sem querer, é só **esperar alguns minutos** e tentar de novo com a senha certa. Você também recebe um **e-mail de aviso** quando há um acesso de um local/dispositivo diferente do habitual.
+
 ## Esqueci a senha
 
 Se você **não consegue entrar** porque esqueceu a senha, não dá para usar a tela acima (ela exige a senha atual). Faça assim, na tela de entrada:

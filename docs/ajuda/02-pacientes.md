@@ -32,3 +32,10 @@ No detalhe ou na lista, use **Editar** para atualizar os dados.
 
 > **Convênio é select, não texto livre** — para aparecer na lista, ele precisa
 > estar cadastrado em *Cadastro de Itens → Convênios* (recepção/admin).
+
+## Anonimizar (LGPD — direito ao esquecimento) — só admin
+No fim da ficha do paciente, o **administrador** pode **anonimizar** o cadastro
+para atender um pedido de exclusão (LGPD): apaga os **dados pessoais**, o
+**prontuário** e os **exames**, mas **preserva o financeiro sem o nome** (exigência
+fiscal). Exige digitar **ANONIMIZAR** para confirmar. **É irreversível** e fica
+registrado na Auditoria.

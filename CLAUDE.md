@@ -36,10 +36,15 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 ## Modelos (`app/models.py`)
 - **Clinica** — tenant. Escopo automático via `app/services/tenant.py`.
 - **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id, clinica_id).
+  **2FA/TOTP opcional** (`totp_secret` cifrado via `services/cripto.py`, `totp_ativado`,
+  `totp_recovery`=hashes uso-único). **Lockout por-conta** (`tentativas_falhas`/`bloqueado_ate`,
+  5 falhas→15min) + `ultimo_login_ip` (alerta e-mail de acesso novo). Ver `services/totp.py`.
 - **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor,
   `duracao_padrao_min`, `comissao_percent`, **`sala`**.
 - **Paciente** — cadastro (nome/CPF/nascimento/**telefone** **obrigatórios no form**, contato,
   endereço via CEP, convênio, observações). Cadastro só por recepção/admin (médico não cadastra).
+  **Anonimização LGPD (art. 18)**: `anonimizado_em` + `services/anonimizacao.py` — admin apaga
+  PII + prontuário + exames, **preserva o financeiro** (fiscal). Rota `POST /pacientes/<id>/anonimizar`.
 - **Agendamento** — paciente + profissional + início/fim + status + valor/convênio + **sala**
   (puxada do profissional) + checkin_em. Duração selecionável (30/60/90/120).
 - **Atendimento** — prontuário (queixa/evolução/prescrição, retorno CRM, **atestado:
@@ -97,7 +102,11 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
 - App factory + Talisman (CSP sem unsafe-inline) + CSRF + Flask-Limiter + Cache.
 - Auth: login/logout/esqueci-senha/redefinir-senha, Argon2id + rehash-on-login,
   anti timing-attack, anti open-redirect, anti session-fixation, token de reset 1-uso.
-- Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
+  **2FA/TOTP** (RFC 6238 hand-rolled em `services/totp.py`; login 2 etapas em `/login/2fa`;
+  enrollment em `/perfil/2fa` com QR via `segno`; códigos de recuperação). **Lockout por-conta**
+  (5 falhas→15min) + alerta de e-mail em IP novo.
+- Services: `passwords`, `totp` (2FA), `anonimizacao` (LGPD art. 18), `cripto` (Fernet),
+  `storage` (uploads), `email` (SMTP), `audit`, `pii`,
   `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health),
   `ajuda` ("Suporte Nous": busca local na base `docs/ajuda/*.md` filtrada por papel —
   **custo zero, sempre ON** p/ equipe logada; rota `/ajuda/buscar`, widget em `base.html`.

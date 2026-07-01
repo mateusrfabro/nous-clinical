@@ -37,6 +37,12 @@ Preparei um **playbook completo** (em `docs/CAMPANHA-COLD-EMAIL.md`) com:
   saúde + dinheiro). **Nenhuma falha grave**; os pontos de melhora encontrados foram **corrigidos**
   (isolamento entre clínicas reforçado, contas de dinheiro à prova de erro de digitação, proteção
   contra abuso). Isso é **argumento de venda** com clínica (LGPD, confiança).
+- **2 novos trunfos de venda (feitos em 01/07):**
+  - **Verificação em duas etapas (2FA)** — o médico/gestor pode exigir um código do celular além
+    da senha (mesmo padrão de banco). Passa **seriedade** pra quem cuida de dado de paciente.
+  - **"Direito ao esquecimento" (LGPD) pronto** — se um paciente pedir pra apagar os dados, o
+    sistema faz **do jeito certo** (apaga o pessoal e o clínico, guarda só o financeiro que a lei
+    exige). É resposta pronta pra uma pergunta que clínica faz — e poucos concorrentes têm.
 - **Visual padronizado:** botões, telas e a agenda ficaram consistentes; o app está mais profissional.
 - **Manual do usuário** atualizado, com print real da tela de Quadro, e **PDF novo** pra enviar a
   clientes/onboarding.
