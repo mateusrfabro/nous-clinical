@@ -210,6 +210,17 @@ input, select, textarea {
     border: 1px solid var(--border-strong);
 }
 input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 0.7; }
+/* Checkbox/radio NUNCA herdam o box/width dos inputs de texto (senão viram uma
+   caixa larga). Nativos, com a cor da marca no check. */
+input[type="checkbox"], input[type="radio"] {
+    width: auto !important;
+    height: auto;
+    background: initial;
+    border: 0;
+    box-shadow: none;
+    accent-color: var(--brand-primary);
+    cursor: pointer;
+}
 
 /* Bloqueia o autofill amarelo do Chrome em fundo dark — sem isso o
    campo de email/senha pisca amarelo flagrante depois que o navegador
@@ -366,9 +377,9 @@ h1, h2, h3, h4, h5, h6 {
     content: "";
     position: absolute;
     inset: -10% -20%;
+    /* Um só foco de luz, suave — a cor "assina" sem gritar (menos cara de IA). */
     background:
-        radial-gradient(ellipse 50% 70% at 5% 90%, rgba(22, 163, 74, 0.20), transparent 70%),
-        radial-gradient(ellipse 45% 60% at 95% 5%, rgba(var(--brand-accent-rgb), 0.12), transparent 70%);
+        radial-gradient(ellipse 55% 70% at 8% 88%, rgba(var(--brand-primary-rgb), 0.09), transparent 72%);
     pointer-events: none;
     z-index: -1;
 }
@@ -848,17 +859,23 @@ button[aria-disabled="true"] {
 .auth-brand {
     position: relative;
     background:
-        radial-gradient(760px 480px at 16% 12%, rgba(var(--brand-primary-rgb), 0.22), transparent 55%),
-        radial-gradient(680px 500px at 92% 90%, rgba(var(--brand-accent-rgb), 0.16), transparent 55%),
+        radial-gradient(760px 480px at 16% 12%, rgba(var(--brand-primary-rgb), 0.16), transparent 58%),
+        radial-gradient(680px 500px at 92% 90%, rgba(var(--brand-accent-rgb), 0.10), transparent 58%),
         var(--brand-verde);
     color: var(--text-on-brand);
-    padding: var(--space-6) var(--space-5);
+    padding: var(--space-5) var(--space-5);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: var(--space-5);
+    justify-content: center;   /* centra o conteúdo -> não estoura/corta */
+    gap: var(--space-4);
     overflow: hidden;
     isolation: isolate;
+    /* Não estica junto com o formulário (grid): fixa na altura da tela, então o
+       conteúdo fica sempre centrado e visível — nunca cai abaixo da dobra. */
+    align-self: start;
+    position: sticky;
+    top: 65px;
+    height: calc(100vh - 65px);
 }
 /* rede de nós (canvas), atrás do conteúdo */
 .auth-net {
@@ -1652,12 +1669,25 @@ body.app {
 .stat-band {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem;
-    margin: var(--space-5) 0;
+    gap: 0;
+    margin: var(--space-6) 0;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: calc(var(--radius) * 1.5);
+    box-shadow: 0 12px 34px -22px rgba(30, 41, 59, 0.28);
+    overflow: hidden;
 }
-.stat-band-item { text-align: center; padding: 1rem; }
-.stat-band-num { font-family: var(--font-heading); font-size: 2rem; font-weight: 700; color: var(--brand-verde-claro); line-height: 1; }
-.stat-band-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.35rem; }
+.stat-band-item {
+    text-align: center; padding: 1.7rem 1rem;
+    border-right: 1px solid var(--border);
+}
+.stat-band-item:last-child { border-right: 0; }
+.stat-band-num { font-family: var(--font-heading); font-size: 1.9rem; font-weight: 700; color: var(--brand-verde-claro); line-height: 1; letter-spacing: -0.02em; }
+.stat-band-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.4rem; }
+@media (max-width: 640px) {
+    .stat-band-item { border-right: 0; border-bottom: 1px solid var(--border); }
+    .stat-band-item:last-child { border-bottom: 0; }
+}
 
 /* Cards de feature com icone (landing) */
 .feature-ico {
@@ -2683,3 +2713,62 @@ textarea:focus-visible {
     }
     body.public { padding-bottom: 4rem; }
 }
+
+/* ============ Toggle switch (on/off de configuração) ============ */
+.toggle-field {
+    display: flex; align-items: center; gap: 0.7rem;
+    cursor: pointer; line-height: 1.4;
+}
+.toggle-field > input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    /* !important vence o reset global de checkbox (width:auto !important). */
+    width: 44px !important; height: 25px; flex: 0 0 auto; margin: 0;
+    background: var(--gray-300); border: 0; border-radius: 999px;
+    position: relative; cursor: pointer; transition: background .18s ease;
+    box-shadow: none;
+}
+.toggle-field > input[type="checkbox"]::after {
+    content: ""; position: absolute; top: 2.5px; left: 2.5px;
+    width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(30, 41, 59, .35); transition: transform .18s ease;
+}
+.toggle-field > input[type="checkbox"]:checked { background: var(--brand-verde-claro); }
+.toggle-field > input[type="checkbox"]:checked::after { transform: translateX(19px); }
+.toggle-field > input[type="checkbox"]:focus-visible {
+    outline: none; box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .35);
+}
+.toggle-field-text { font-size: 0.92rem; color: var(--text-secondary); }
+
+/* Login: em telas de altura média, esconde sub/chips pra a marca nunca cortar. */
+@media (max-height: 780px) {
+    .auth-brand-sub, .auth-chips { display: none; }
+}
+
+/* ============ Módulos agrupados por família (landing) ============ */
+.lp-family { margin-top: var(--space-6); }
+.lp-family:first-of-type { margin-top: var(--space-5); }
+.lp-family-title {
+    font-family: var(--font-heading);
+    font-size: 1.02rem; font-weight: 600; color: var(--text-primary);
+    letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 0.7rem;
+    margin: 0 0 var(--space-3);
+    padding-bottom: 0.65rem; border-bottom: 1px solid var(--border);
+}
+.lp-family-kicker {
+    font-family: var(--font-heading);
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--primary-text);
+    background: rgba(var(--brand-primary-rgb), 0.10);
+    padding: 0.22rem 0.5rem; border-radius: 6px; line-height: 1;
+}
+/* Cor do ícone por família — identidade visual por grupo (sutil). */
+.lp-fam-dinheiro .feature-ico    { background: rgba(111, 181, 156, 0.16); color: #3d7d6b; }
+.lp-fam-relacao .feature-ico     { background: rgba(183, 167, 245, 0.20); color: #5a4bb0; }
+.lp-fam-plataforma .feature-ico  { background: rgba(30, 41, 59, 0.08);   color: #334155; }
+.lp-fam-plataforma .lp-family-kicker { color: #334155; background: rgba(30, 41, 59, 0.08); }
+.lp-fam-relacao .lp-family-kicker    { color: #5a4bb0; background: rgba(183, 167, 245, 0.18); }
+.lp-fam-dinheiro .lp-family-kicker   { color: #3d7d6b; background: rgba(111, 181, 156, 0.16); }
+
+/* Nota de rodapé de card: menos "apagada", sem itálico prolongado (M5). */
+.lp-nota { font-style: normal; font-size: 0.8rem; }

@@ -20,9 +20,9 @@
   <form method="POST" action="{{ url_for('configuracoes.fiscal') }}" class="card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <label class="check mb-4">
+    <label class="toggle-field mb-4">
       <input type="checkbox" name="ativo" {{ 'checked' if cfg and cfg.ativo }}>
-      <span>Emissão de nota fiscal <strong>ativa</strong> para esta clínica</span>
+      <span class="toggle-field-text">Emissão de nota fiscal <strong>ativa</strong> para esta clínica</span>
     </label>
 
     <div class="form-group">
