@@ -34,6 +34,27 @@ def test_produto_alias_renderiza_a_landing(client):
     assert 'rel="canonical"' in body and body.rstrip().endswith("</html>")
 
 
+def test_hero_mostra_screenshot_real_honesto(client):
+    """U3: o hero traz um screenshot REAL do produto (prova de que existe), com
+    legenda honesta de que os dados são de demonstração e alt descritivo."""
+    body = client.get("/").get_data(as_text=True)
+    assert "images/hero-agenda" in body            # imagem real do produto
+    assert "Tela real do Nous Clinical" in body    # legenda honesta
+    assert "dados de demonstração" in body
+    assert 'alt="Tela real' in body                # a11y: não é decorativo
+    assert "hero-mock-row" not in body             # o mock decorativo saiu
+
+
+def test_faq_mata_objecoes(client):
+    """PM: FAQ que antecipa as objeções do comprador médico (dados, saída,
+    instalação, celular, LGPD, atendimento)."""
+    body = client.get("/").get_data(as_text=True)
+    assert "Perguntas frequentes" in body and 'id="faq"' in body
+    for pergunta in ("são meus", "quiser sair", "instalar", "no celular",
+                     "LGPD"):
+        assert pergunta in body
+
+
 def test_modulos_detalhe_recolhivel(client):
     """U2: cada card de módulo enxuga a densidade num <details> nativo (o texto
     segue no HTML — bom p/ SEO — só recolhido por padrão)."""

@@ -22,32 +22,19 @@
     <p class="hero-microcommit muted text-sm">Demonstração de ~20 min, sem compromisso — mostramos com o fluxo da sua clínica.</p>
   </div>
 
-  <aside class="hero-visual" aria-hidden="true">
-    <div class="hero-visual-head">
-      <svg class="logo-mark" viewBox="0 0 64 64" fill="none">
-        <defs><linearGradient id="nous-hero" x1="6" y1="58" x2="58" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#6FB59C"/><stop offset="1" stop-color="#43B8A5"/></linearGradient></defs>
-        <path d="M40 8 A26 26 0 1 0 56 32" stroke="url(#nous-hero)" stroke-width="3" stroke-linecap="round"/>
-        <path d="M31 13 L45 20 L52 32 M45 20 L43 34 L39 45" stroke="url(#nous-hero)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-        <circle cx="31" cy="13" r="3.2" fill="#6FB59C"/><circle cx="45" cy="20" r="4" fill="#43B8A5"/>
-        <circle cx="52" cy="32" r="3.2" fill="#43B8A5"/><circle cx="43" cy="34" r="3.6" fill="#6FB59C"/><circle cx="39" cy="45" r="3" fill="#43B8A5"/>
-      </svg>
-      <div>
-        <div class="hero-visual-title">Agenda de hoje</div>
-        <div class="hero-visual-sub">Visão clara da operação do dia</div>
+  <aside class="hero-visual">
+    <figure class="hero-shot">
+      <div class="hero-shot-frame">
+        <div class="hero-shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+        <picture>
+          <source srcset="{{ url_for('static', filename='images/hero-agenda.webp') }}" type="image/webp">
+          <img src="{{ url_for('static', filename='images/hero-agenda.png') }}"
+               width="1720" height="1130" decoding="async"
+               alt="Tela real do Nous Clinical: a agenda do dia em quadro (Kanban), com consultas distribuídas entre a Dra. Ana e o Dr. Bruno nas colunas Agendado, Confirmado, Atendido e Faltou.">
+        </picture>
       </div>
-    </div>
-    <div class="hero-mock-row">
-      <span class="hero-mock-dot" data-dot-teal></span>
-      <span class="hero-mock-main"><span class="hero-mock-name">Maria Oliveira</span><br><span class="hero-mock-meta">09:00 · Dra. Ana · Confirmado</span></span>
-    </div>
-    <div class="hero-mock-row">
-      <span class="hero-mock-dot" data-dot-sage></span>
-      <span class="hero-mock-main"><span class="hero-mock-name">João Pereira</span><br><span class="hero-mock-meta">09:30 · Dr. Bruno · Atendido</span></span>
-    </div>
-    <div class="hero-mock-row">
-      <span class="hero-mock-dot" data-dot-lilac></span>
-      <span class="hero-mock-main"><span class="hero-mock-name">Carla Mendes</span><br><span class="hero-mock-meta">10:00 · Dra. Ana · Agendado</span></span>
-    </div>
+      <figcaption class="hero-shot-cap">Tela real do Nous Clinical — dados de demonstração.</figcaption>
+    </figure>
   </aside>
 </section>
 
@@ -245,7 +232,7 @@
 </section>
 
 <!-- ===== Segurança / LGPD ===== -->
-<section class="lp-section lp-section-dark">
+<section class="lp-section lp-section-dark" id="seguranca">
   <span class="lp-eyebrow">Segurança &amp; conformidade</span>
   <h2 class="lp-section-title">Saúde exige um nível de cuidado com os dados. Já vem de fábrica.</h2>
   <ul class="lp-list lp-list-light">
@@ -275,6 +262,47 @@
       <div class="lp-trust-head">Roadmap — ainda não liberado</div>
       <p>Emissão de nota fiscal NFS-e. A configuração do emitente está pronta, mas a emissão ainda não está liberada — depende de certificado digital A1. Não vendemos como pronta.</p>
     </div>
+  </div>
+</section>
+
+<!-- ===== FAQ: mata as objeções do comprador médico ===== -->
+<section class="lp-section" id="faq">
+  <span class="lp-eyebrow">Perguntas frequentes</span>
+  <h2 class="lp-section-title">O que todo dono de clínica pergunta antes.</h2>
+  <div class="lp-faq">
+    <details class="lp-faq-item">
+      <summary>Os dados dos meus pacientes são meus?</summary>
+      <p>Sim, sempre. Os dados são da clínica. A gente só os processa para o sistema
+        funcionar — não vende, não compartilha e não usa para treinar nada.</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>E se eu quiser sair? Perco tudo?</summary>
+      <p>Não. Você exporta seus relatórios e dados em CSV (faturamento, DRE,
+        convênios, pacientes) e os documentos clínicos — receita, atestado e
+        prontuário — em PDF. Sem sequestro de dados.</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>Preciso instalar alguma coisa?</summary>
+      <p>Não. É na nuvem: abre no navegador do computador. Nada para instalar,
+        configurar servidor ou atualizar — você entra e usa.</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>Funciona no celular?</summary>
+      <p>Funciona. A agenda e o dia a dia da recepção rodam no navegador do
+        celular — a mesma tela da demonstração acima abre no seu telefone.</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>É seguro para dado de paciente e LGPD?</summary>
+      <p>Prontuário é dado sensível: só o profissional e o administrador acessam,
+        e toda edição fica registrada (quem, o quê, quando). Cada clínica é
+        isolada das outras e as senhas usam Argon2id (padrão atual). Detalhes na
+        seção <a href="#seguranca">Segurança &amp; conformidade</a>.</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>Quem me atende quando eu precisar?</summary>
+      <p>Uma pessoa de verdade, direto no WhatsApp — sem call center e sem robô.
+        Você fala com quem faz o produto.</p>
+    </details>
   </div>
 </section>
 
