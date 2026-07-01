@@ -70,7 +70,7 @@ cidade — no futuro pode permitir integração direta sem gateway.
    -> backend cadastra o emitente no gateway, guarda gateway_empresa_id, valida
 2. No recebimento pago (LancamentoFinanceiro), botão "Emitir NF" (só se ativo)
    -> monta dados: tomador = paciente (CPF/nome); serviço = descrição GENÉRICA
-      ("Serviços médicos"); valor; código LC116; ISS
+      ("Serviços de saúde", conforme a profissão); valor; código LC116; ISS
    -> gateway.emitir() -> cria NotaFiscal status=enviando
 3. Status assíncrono: webhook do gateway -> /fiscal/webhook (fail-closed, assinado)
    -> autorizada (numero, pdf, xml) | rejeitada (mensagem_erro)
@@ -100,7 +100,7 @@ cidade — no futuro pode permitir integração direta sem gateway.
 - Segredos do gateway **cifrados** (`services/cripto.py`, Fernet — já usado no WhatsApp).
 - O **certificado A1 vai pro gateway**, não fica no nosso servidor → menos exposição.
 - Escopo por `clinica_id` (anti-IDOR); webhook **fail-closed** + assinatura.
-- **Descrição da nota genérica** (sigilo médico + LGPD) — nunca diagnóstico/procedimento.
+- **Descrição da nota genérica** (sigilo profissional + LGPD) — nunca diagnóstico/procedimento.
 - A nota guarda **CPF do paciente** (PII) → tratar como dado pessoal; acesso auditado.
 - Dinheiro sempre **`Numeric(12,2)`**.
 
@@ -110,12 +110,12 @@ cidade — no futuro pode permitir integração direta sem gateway.
 2. **Inscrição Municipal** ativa, habilitada a emitir NFS-e na prefeitura.
 3. **Regime tributário** (Simples Nacional × Lucro Presumido/Real).
 4. **Alíquota de ISS** do município (e se há ISS retido).
-5. **Código de serviço LC 116**: medicina **4.01** (consultas) / clínicas e hospitais
-   **4.03**, com o CNAE correspondente.
+5. **Código de serviço LC 116** — **varia por profissão** (ex.: medicina **4.01** consultas /
+   odontologia **4.02** / clínicas e hospitais **4.03**), com o CNAE correspondente.
 6. Dados cadastrais do prestador (razão social, CNPJ, endereço).
 
-## 4. Específico de serviços médicos
-- Descrição genérica ("Serviços médicos"/"Consulta médica") — sigilo + LGPD.
+## 4. Específico de serviços de saúde
+- Descrição genérica ("Serviços de saúde"/"Consulta", conforme a profissão) — sigilo + LGPD.
 - **CPF do paciente** como tomador (PF). Sem retenções no geral quando o tomador é PF;
   retenções (ISS/IRRF/PIS/COFINS/CSLL) só quando o tomador é PJ (convênio/empresa).
 

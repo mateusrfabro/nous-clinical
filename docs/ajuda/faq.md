@@ -6,7 +6,7 @@ rotas: [/]
 # Perguntas frequentes
 
 **Por que não consigo marcar a consulta como "atendido"?**
-"Atendido" não é manual — vem só do registro do prontuário pelo médico. Registre o
+"Atendido" não é manual — vem só do registro do prontuário pelo profissional. Registre o
 atendimento e a consulta vira "atendido".
 
 **Não consigo agendar — diz "conflito de horário".**
@@ -14,7 +14,7 @@ Já existe consulta do mesmo profissional naquele intervalo. Escolha outro horá
 ou veja se a sala/horário está livre.
 
 **Diz "sala ocupada".**
-Já há outra consulta naquela **sala** no mesmo horário (mesmo de outro médico).
+Já há outra consulta naquela **sala** no mesmo horário (mesmo de outro profissional).
 Escolha outra sala ou outro horário.
 
 **Não consigo agendar em uma data — está bloqueada.**
@@ -25,7 +25,7 @@ Veja em Agenda → Bloqueios, ou ajuste a disponibilidade no cadastro do profiss
 Convênio é lista controlada. Cadastre-o em **Cadastro de Itens → Convênios** (recepção/admin).
 
 **Sou da recepção e não vejo o prontuário / o financeiro de aluguel.**
-É por design: prontuário é LGPD (só médico/admin); aluguel/salário/imposto são do admin.
+É por design: prontuário é LGPD (só profissional/admin); aluguel/salário/imposto são do admin.
 
 **Esqueci minha senha.**
 Na tela de login, clique em **"Esqueci a senha"** e siga o link enviado por e-mail.

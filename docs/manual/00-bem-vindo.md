@@ -7,7 +7,7 @@
 O **Nous Clinical** é o sistema que organiza a sua clínica: agenda, pacientes,
 prontuário, financeiro e relatórios — tudo em um lugar. O lema diz a ideia toda:
 
-> **Menos gestão. Mais medicina.**
+> **Menos gestão. Mais cuidado.**
 
 Você não precisa entender de tecnologia. Se sabe usar WhatsApp e e-mail, sabe usar
 o Nous. Quando tiver dúvida de "como faço tal coisa", procure o capítulo do módulo
@@ -26,7 +26,7 @@ tela de cada um mais simples.
 |---|---|---|
 | **Administrador** | Dono(a) ou gestor(a) da clínica | Vê **tudo** da clínica: agenda, pacientes, financeiro, **relatórios**, **auditoria**, cadastro de profissionais e a **personalização da marca**. |
 | **Recepção** | Recepcionista / secretária | Agenda consultas, cadastra pacientes, cuida do financeiro do dia a dia e dos cadastros. **Não** vê prontuário nem relatórios. |
-| **Profissional** | Médico(a) e demais profissionais de saúde | Vê a **própria agenda**, registra o **atendimento (prontuário)** e acessa os pacientes que atende. |
+| **Profissional** | Quem atende — médico, dentista, psicólogo, fisioterapeuta, nutricionista etc. | Vê a **própria agenda**, registra o **atendimento (prontuário)** e acessa os pacientes que atende. |
 | **Recepção × despesas** | — | Detalhe importante: a recepção **não** vê nem lança despesas de aluguel, salário e imposto. Isso é só do administrador. |
 
 > 🔒 **Quem acessa:** ao longo do manual, as caixas com o cadeado avisam qual papel

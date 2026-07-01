@@ -63,7 +63,7 @@ A feature é **default-OFF**: o código está em produção, mas inerte até lig
    `RATELIMIT_STORAGE_URI=redis://...` (o Redis já está no `docker-compose`) pra o
    teto valer global. Sem isso, o limite é N× o configurado (N = nº de workers).
 4. Conferir: logado, aparece o balão de ajuda; pergunta "como agendo?" responde;
-   pergunta médica/de prontuário (p/ recepção) é recusada (guardrail).
+   pergunta clínica/de prontuário (p/ recepção) é recusada (guardrail).
 
 > Sem a chave **ou** com `AJUDA_IA_ATIVA=false`, o widget nem aparece — zero custo.
 

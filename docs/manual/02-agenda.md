@@ -5,7 +5,8 @@ acompanha quem chegou, registra confirmações e faltas, reagenda e bloqueia hor
 em que o profissional não atende.
 
 > 🔒 **Quem acessa:** a **Recepção** e o **Administrador** marcam, reagendam e mudam o
-> status das consultas de todos os profissionais. O **Profissional** (médico) vê
+> status das consultas de todos os profissionais. O **Profissional** (quem atende — médico,
+> dentista, psicólogo, fisio…) vê
 > **apenas a própria agenda** e abre cada consulta para atender — ele não marca consultas
 > nem mexe na agenda dos colegas.
 
@@ -32,7 +33,7 @@ uma data no campo **Dia** e clique em **Filtrar**.
 
 > 💡 **Dica:** o campo **Profissional** (com a opção **Todos**) filtra a lista por um
 > profissional específico. Esse filtro aparece para a recepção e o administrador; o
-> médico já vê só a si mesmo, então não precisa dele.
+> profissional já vê só a si mesmo, então não precisa dele.
 
 ### Visão Grade (dia em colunas de horário)
 
@@ -82,7 +83,7 @@ nele para ver opções como **Faltou**, **Cancelar consulta**, **Check-in**, **E
 > registra o prontuário — e, depois disso, a consulta fica "trancada".
 
 > 🔒 **Quem acessa:** só a **Recepção** e o **Administrador** arrastam cards e mudam
-> status no Quadro. O **profissional** (médico) vê o quadro da própria agenda, mas no
+> status no Quadro. O **profissional** vê o quadro da própria agenda, mas no
 > lugar das ações de status tem o botão **Atender** para abrir o prontuário.
 
 ---
@@ -98,7 +99,7 @@ Os campos:
 
 - **Paciente \*** — escolha na lista. Não está na lista? Use o link **Cadastre o
   paciente** logo abaixo do campo para cadastrá-lo antes.
-- **Profissional \*** — o médico que vai atender.
+- **Profissional \*** — quem vai atender.
 - **Dia \*** e **Hora \*** — a data e o horário de início.
 - **Duração** — quanto tempo a consulta ocupa: **30**, **60**, **90** ou **120 min**.
   Ao escolher o profissional, o sistema já sugere a duração padrão dele; você pode trocar.
@@ -120,7 +121,7 @@ Os campos:
 Para evitar erros comuns, o sistema **não deixa salvar** nestes casos — ele mostra um
 aviso em vermelho explicando o motivo, e você corrige e tenta de novo:
 
-- **Conflito de horário do profissional** — o mesmo médico já tem outra consulta que
+- **Conflito de horário do profissional** — o mesmo profissional já tem outra consulta que
   encosta nesse horário. O aviso diz das que horas até que horas ele já está ocupado.
 - **Sala ocupada** — já existe consulta na **mesma sala** naquele horário. Escolha outra
   sala ou outro horário.
@@ -129,7 +130,7 @@ aviso em vermelho explicando o motivo, e você corrige e tenta de novo:
 - **Data no passado** — não dá para marcar uma consulta para um dia que já passou.
 
 > ⚠️ **Atenção:** essas travas valem o porquê de existirem — evitam marcar dois pacientes
-> na mesma sala ou no mesmo horário do médico. Se aparecer o aviso, é o sistema te
+> na mesma sala ou no mesmo horário do profissional. Se aparecer o aviso, é o sistema te
 > protegendo de um conflito real, não um erro do programa.
 
 ---
@@ -195,7 +196,7 @@ Para abrir, clique em **Bloqueios** na barra da Agenda.
 Para criar um bloqueio:
 
 1. Escolha o **Profissional** (a recepção e o administrador escolhem qualquer um; o
-   próprio médico só bloqueia a sua agenda).
+   próprio profissional só bloqueia a sua agenda).
 2. Escolha o **Motivo** (férias, congresso, reunião, ausência).
 3. Informe a **Data início \*** e, se for mais de um dia, a **Data fim**.
 4. Decida o tipo de bloqueio:
@@ -216,7 +217,7 @@ Os bloqueios ativos aparecem na lista **Bloqueios vigentes**. Para apagar um, cl
 ## Perguntas rápidas
 
 **Por que não consigo marcar nesse horário?**
-Provavelmente há um conflito: o médico já tem consulta nesse horário, a sala está
+Provavelmente há um conflito: o profissional já tem consulta nesse horário, a sala está
 ocupada, ou existe um bloqueio (férias/reunião) no período. O aviso em vermelho diz qual
 é o caso. Escolha outro horário, outra sala ou outro profissional.
 
@@ -229,6 +230,6 @@ O status **Atendido** só surge quando o **profissional registra o prontuário**
 algo que se marque à mão. Uma vez atendida, a consulta fica "trancada" na agenda. Se
 houve engano no atendimento, fale com o profissional ou o administrador.
 
-**O médico vê a agenda dos outros?**
+**O profissional vê a agenda dos outros?**
 Não. Cada profissional vê **somente a própria agenda**. Quem enxerga e organiza a agenda
 de todos é a **recepção** e o **administrador**.

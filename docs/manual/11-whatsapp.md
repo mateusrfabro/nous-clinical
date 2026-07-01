@@ -8,7 +8,7 @@ só o lugar de onde você responde.
 
 > 🔒 **Quem acessa:** **quem conecta** o número é só o **Administrador** (na tela
 > **Configurar conexão**). **Quem usa** a caixa de entrada para ler e responder são a
-> **Recepção** e o **Administrador**. O **Profissional** (médico) não usa este módulo.
+> **Recepção** e o **Administrador**. O **Profissional** não usa este módulo.
 
 > ⚠️ **Importante: vem desligado.** O WhatsApp **não funciona sozinho**. Ele só começa a
 > receber e enviar mensagens **depois que o Administrador conectar** o número da clínica

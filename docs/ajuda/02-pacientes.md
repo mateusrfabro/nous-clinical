@@ -7,7 +7,7 @@ rotas: [/pacientes, /pacientes/novo, /pacientes/<id>]
 
 ## O que é
 O cadastro dos pacientes da clínica. **Quem cadastra é a recepção ou o admin** — o
-médico não cadastra paciente. O profissional vê apenas os pacientes com quem tem
+profissional não cadastra paciente. O profissional vê apenas os pacientes com quem tem
 agendamento.
 
 ## Como cadastrar um paciente

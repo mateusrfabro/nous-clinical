@@ -54,7 +54,7 @@ a lembrar o paciente de remarcar.
 
 ## Emitir atestado (dias + CID)
 
-O bloco **Atestado médico (opcional)** serve para gerar o PDF do atestado.
+O bloco **Atestado (opcional)** serve para gerar o PDF do atestado.
 
 1. Em **Dias de afastamento**, informe quantos dias o paciente fica afastado.
 2. Em **CID**, informe o código (ex.: **J11**), se for o caso.

@@ -1,6 +1,6 @@
 # Nous Clinical
 
-**Menos gestão. Mais medicina.** SaaS de **gestão de clínica** com inteligência clínica —
+**Menos gestão. Mais cuidado.** SaaS de **gestão de clínica** (área da saúde em geral) com inteligência clínica —
 agenda, pacientes, prontuário e financeiro. Flask + SQLAlchemy + PostgreSQL, com plataforma
 de segurança/auth/CI reaproveitada de um projeto irmão (Aggron).
 

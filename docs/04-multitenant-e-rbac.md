@@ -1,7 +1,7 @@
 # 4. Multi-tenant & RBAC
 
 > **Leia isto antes de criar/alterar qualquer rota.** É o coração da segurança
-> do produto. Errar aqui vaza dado entre clínicas (ou entre médicos) — risco de
+> do produto. Errar aqui vaza dado entre clínicas (ou entre profissionais) — risco de
 > negócio e de LGPD.
 
 ## Parte A — Isolamento multi-tenant
@@ -106,9 +106,9 @@ consistente com os gates. Mantenha os dois em sincronia.
 
 ### Escopos de papel ALÉM do decorator (cuidado)
 Alguns controles são **dentro da view**, não no decorator:
-- **Médico só vê os pacientes dele**: `pacientes.listar/detalhe` filtram por
+- **Profissional só vê os pacientes dele**: `pacientes.listar/detalhe` filtram por
   `_ids_pacientes_do_profissional()`. (decorator é `equipe_required`).
-- **Médico só atende a própria agenda**: guard em `agenda.atendimento`
+- **Profissional só atende a própria agenda**: guard em `agenda.atendimento`
   (`ag.profissional_id == current_user.profissional.id`).
 - **Recepção não vê/age em despesa sensível**: `financeiro._filtro_categoria()`
   esconde `aluguel/salario/imposto` nas listas/sums, e `pagar`/`cancelar`/`novo`

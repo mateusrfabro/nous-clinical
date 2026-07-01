@@ -16,7 +16,7 @@ Em **Configurações → Aparência** a clínica define sua identidade:
 A mudança vale **ao salvar** (a última ação prevalece).
 
 ## Profissionais
-Em **Profissionais** o admin cadastra os médicos. Ao cadastrar, o sistema **cria o
+Em **Profissionais** o admin cadastra os profissionais. Ao cadastrar, o sistema **cria o
 login** do profissional junto. Defina especialidade, registro, cor na agenda,
 duração padrão, comissão, sala padrão e a **disponibilidade** (dias/horários/pausa).
 

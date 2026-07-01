@@ -24,7 +24,7 @@ na **central de ajuda do próprio sistema**, já respeitando o seu papel.
 
 - ✅ Explica **como usar** as telas e funções do Nous.
 - ✅ Respeita o seu papel: não mostra para a recepção coisas de prontuário, por exemplo.
-- ❌ **Não dá conselho médico** (diagnóstico, medicação) — não é a função dele.
+- ❌ **Não dá conselho clínico** (diagnóstico, medicação) — não é a função dele.
 - ❌ **Não acessa dados reais** de pacientes, agenda ou financeiro. Ele te diz
   *onde clicar* para ver a informação; quem mostra o dado é o sistema, não ele.
 

@@ -14,7 +14,7 @@ O que cada perfil pode fazer no sistema:
 - CRM (retornos e aniversariantes) e Cadastro de Itens (convênios/salas/itens).
 - **NÃO** acessa: prontuário (LGPD), Relatórios, Auditoria.
 
-## Profissional (médico)
+## Profissional (quem atende — médico, dentista, psicólogo, fisio…)
 - Vê a **própria agenda** e registra o **atendimento** (prontuário).
 - Acessa Pacientes **limitado** aos seus (com quem tem agendamento).
 - Pode criar **bloqueios** da própria agenda.

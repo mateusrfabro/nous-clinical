@@ -15,20 +15,20 @@ Os cartões que podem aparecer são:
 3. **Entrada semanal** — quanto a clínica já recebeu nesta semana (de segunda a domingo). Clicar neste cartão leva ao **Financeiro** da semana.
 4. **Faltas hoje** — quantos pacientes **faltaram** hoje, com a **porcentagem** entre parênteses (faltas sobre as consultas do dia que não foram canceladas). Ajuda a sentir, na hora, se o dia está com muita ausência.
 5. **A receber em atraso** — o total de **contas a receber que já venceram** e ainda não foram pagas, com a quantidade de contas entre parênteses. Quando há valor em atraso, o cartão aparece em **destaque vermelho**; clicar leva a **Contas a receber / pagar**.
-6. **Profissionais ativos** — quantos médicos estão cadastrados e ativos. Para o administrador, clicar abre a lista de **Profissionais**.
+6. **Profissionais ativos** — quantos profissionais estão cadastrados e ativos. Para o administrador, clicar abre a lista de **Profissionais**.
 7. **Pacientes ativos** — quantos pacientes estão cadastrados e ativos. Clicar abre a lista de **Pacientes**.
 
 > 💡 **Dica:** os cartões que têm um link mudam o ponteiro do mouse para uma mãozinha. Se passar o mouse e ele virar mãozinha, é porque dá para clicar e ir direto àquela tela.
 
 ## Ocupação por profissional (hoje)
 
-Mais abaixo, gestores e recepção veem a tabela **Ocupação por profissional (hoje)** — uma linha por médico que tem consulta no dia, com três números:
+Mais abaixo, gestores e recepção veem a tabela **Ocupação por profissional (hoje)** — uma linha por profissional que tem consulta no dia, com três números:
 
 - **Consultas** — quantas consultas o profissional tem hoje (sem contar as canceladas).
 - **Atendidas** — quantas dessas já viraram atendimento (prontuário registrado).
 - **Faltas** — quantos pacientes faltaram com aquele profissional.
 
-É a visão rápida de como está rendendo o dia de cada médico: quem já "rodou" a agenda, quem ainda tem fila e onde estão concentrando as faltas.
+É a visão rápida de como está rendendo o dia de cada profissional: quem já "rodou" a agenda, quem ainda tem fila e onde estão concentrando as faltas.
 
 > 🔒 **Quem acessa:** essa tabela aparece **só para o administrador e a recepção**. O profissional não a vê.
 
@@ -49,11 +49,11 @@ A mesma tela mostra coisas diferentes para cada papel. Isso protege informação
 
 > 🔒 **Quem acessa:** os cartões com **dinheiro** (**Faturamento hoje**, **Entrada semanal**, **A receber em atraso**), o cartão **Faltas hoje** e a tabela de **Ocupação** são números de gestão e aparecem **só para o administrador e a recepção**. O **profissional** não vê nenhum deles.
 
-**Profissional (médico)** vê uma tela mais enxuta: apenas o cartão **Consultas hoje** e a **Agenda de hoje** com **as suas próprias consultas** — não as dos colegas. Não aparecem os números de dinheiro (faturamento, entrada, a receber), nem as faltas, nem a ocupação, nem os totais de pacientes e profissionais da clínica.
+**Profissional** vê uma tela mais enxuta: apenas o cartão **Consultas hoje** e a **Agenda de hoje** com **as suas próprias consultas** — não as dos colegas. Não aparecem os números de dinheiro (faturamento, entrada, a receber), nem as faltas, nem a ocupação, nem os totais de pacientes e profissionais da clínica.
 
-![Painel do profissional: só as consultas do próprio médico](assets/prof-painel.png)
+![Painel do profissional: só as consultas do próprio profissional](assets/prof-painel.png)
 
-> ⚠️ **Atenção:** se você é médico e o cartão **Consultas hoje** está em **0**, confira se a recepção já marcou seus pacientes do dia. O número conta só as consultas marcadas **com você**.
+> ⚠️ **Atenção:** se você é profissional e o cartão **Consultas hoje** está em **0**, confira se a recepção já marcou seus pacientes do dia. O número conta só as consultas marcadas **com você**.
 
 ## Busca rápida (campo Buscar)
 
@@ -70,10 +70,10 @@ No alto da tela, ao lado do nome da clínica, existe o campo **Buscar**. Use-o p
 ## Perguntas rápidas
 
 **Por que meu Painel é diferente do da recepção?**
-Porque o sistema mostra cada coisa para quem precisa. Médico vê só as próprias consultas; recepção e administrador veem os números da clínica inteira, inclusive o financeiro.
+Porque o sistema mostra cada coisa para quem precisa. O profissional vê só as próprias consultas; recepção e administrador veem os números da clínica inteira, inclusive o financeiro.
 
 **O cartão de dinheiro sumiu. É erro?**
-Não. Os cartões de dinheiro (**Faturamento hoje**, **Entrada semanal**, **A receber em atraso**), as **Faltas hoje** e a tabela de **Ocupação** só aparecem para administrador e recepção. Se você é médico, eles não são exibidos de propósito.
+Não. Os cartões de dinheiro (**Faturamento hoje**, **Entrada semanal**, **A receber em atraso**), as **Faltas hoje** e a tabela de **Ocupação** só aparecem para administrador e recepção. Se você é profissional, eles não são exibidos de propósito.
 
 **O cartão "A receber em atraso" está vermelho. O que faço?**
 Significa que há contas a receber que **já passaram do vencimento**. Clique no cartão para abrir **Contas a receber / pagar** e ver quais são — assim dá para cobrar ou dar baixa. Se não há nada vencido, o cartão nem aparece.
@@ -82,4 +82,4 @@ Significa que há contas a receber que **já passaram do vencimento**. Clique no
 Clique em **Painel** no menu lateral, a qualquer momento.
 
 **A busca não acha o paciente. O que houve?**
-Digite ao menos duas letras e confira a grafia do nome. Se você é médico, lembre que a busca só mostra os pacientes que você atende.
+Digite ao menos duas letras e confira a grafia do nome. Se você é profissional, lembre que a busca só mostra os pacientes que você atende.

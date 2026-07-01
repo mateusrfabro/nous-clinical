@@ -57,7 +57,7 @@ def main():
     capa = """
     <div class="capa">
       <div class="logo">Nous <span>Clinical</span></div>
-      <div class="tag">Menos gestão. Mais medicina.</div>
+      <div class="tag">Menos gestão. Mais cuidado.</div>
       <div class="sub"><b>Manual do Usuário</b><br>Guia prático, tela por tela</div>
       <div class="rod">Documento gerado a partir do sistema · uso da equipe da clínica</div>
     </div>

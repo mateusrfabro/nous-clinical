@@ -1,7 +1,7 @@
 # Base de ajuda ao usuário — Nous Clinical
 
 > Esta pasta é a **base de conhecimento do chatbot de ajuda** ("Nous Assistente").
-> É documentação de **uso do sistema** para a equipe da clínica (recepção, médico,
+> É documentação de **uso do sistema** para a equipe da clínica (recepção, profissional,
 > gestora) — diferente de `docs/` (que é técnica, para devs).
 
 ## Como escrever (tom e regras)

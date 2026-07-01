@@ -1,12 +1,13 @@
 # Profissionais
 
-Aqui você cadastra os médicos (e demais profissionais de saúde) da clínica. Cadastrar
+Aqui você cadastra os profissionais de saúde da clínica (médico, dentista, psicólogo,
+fisioterapeuta, nutricionista etc.). Cadastrar
 um profissional faz duas coisas de uma vez só: registra os dados dele **e cria o acesso
 ao sistema** (o login). Também é aqui que você define a **disponibilidade** de cada um —
 os dias e horários que ele atende —, e é isso que monta os horários livres na agenda.
 
 > 🔒 **Quem acessa:** só o **administrador** vê e usa esta tela. Recepção e
-> profissionais não cadastram nem editam médicos.
+> profissionais não cadastram nem editam outros profissionais.
 
 ## A lista de profissionais
 
@@ -99,14 +100,14 @@ Para reativar depois, é só editar de novo e marcar **Profissional ativo**. Na 
 
 ## Perguntas rápidas
 
-**Preciso cadastrar o login do médico em outro lugar?**
+**Preciso cadastrar o login do profissional em outro lugar?**
 Não. Ao cadastrar o profissional, o acesso (e-mail + senha) é criado junto, na mesma tela.
 
-**Por que os horários livres da agenda mudam de um médico para outro?**
+**Por que os horários livres da agenda mudam de um profissional para outro?**
 Porque cada um tem a própria disponibilidade (dias, horário e pausa) e a própria
 duração de consulta. A agenda monta os horários a partir disso.
 
-**O médico saiu da clínica. Apago o cadastro?**
+**O profissional saiu da clínica. Apago o cadastro?**
 Não apague. **Desative** (desmarque **Profissional ativo** ao editar). Ele perde o
 acesso, mas o histórico de consultas fica preservado.
 

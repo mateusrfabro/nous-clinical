@@ -6,7 +6,8 @@ ela para encontrar alguém rápido, cadastrar um paciente novo e abrir a ficha
 completa de cada pessoa.
 
 > 🔒 **Quem acessa:** a **Recepção** e o **Administrador** cadastram e editam
-> pacientes. O **Profissional** (médico) **não cadastra** — ele só enxerga os
+> pacientes. O **Profissional** (quem atende — médico, dentista, psicólogo, fisio…)
+> **não cadastra** — ele só enxerga os
 > pacientes que ele mesmo atende (ou seja, com quem tem consulta marcada).
 
 ---
@@ -106,14 +107,14 @@ A ficha tem:
   **Pago** e o total **Em aberto**.
 - **Histórico de anexos** — exames e documentos anexados ao prontuário.
 
-> 🔒 **Só o médico vê o prontuário:** as colunas e o histórico ligados ao
+> 🔒 **Só o profissional vê o prontuário:** as colunas e o histórico ligados ao
 > **prontuário** (a coluna **Prontuário** no histórico de consultas e o
 > **Histórico de anexos**) aparecem **somente para o Profissional e para o
 > Administrador**. A **Recepção** vê o cadastro, as consultas e o financeiro,
 > mas **não** vê o prontuário nem os exames — são dados sensíveis de saúde,
 > protegidos pela LGPD.
 
-> ⚠️ **Atenção (médico):** você só consegue abrir a ficha de pacientes que você
+> ⚠️ **Atenção (profissional):** você só consegue abrir a ficha de pacientes que você
 > atende. Se tentar abrir alguém que não é seu paciente, o sistema avisa e te leva
 > de volta para a lista.
 
@@ -137,7 +138,7 @@ A LGPD dá ao paciente o direito de pedir que seus dados sejam **apagados**. Par
 
 ## Perguntas rápidas
 
-**Sou médico e não vejo o botão "+ Novo paciente". Por quê?**
+**Sou profissional e não vejo o botão "+ Novo paciente". Por quê?**
 Porque o cadastro de pacientes é feito pela **Recepção** ou pelo
 **Administrador**. Peça para a recepção cadastrar — depois o paciente aparece para
 você quando tiver consulta marcada na sua agenda.

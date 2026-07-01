@@ -6,7 +6,7 @@ quando dentro do sistema. As duas telas servem para o gestor **acompanhar e
 decidir** — não para o dia a dia da recepção.
 
 > 🔒 **Quem acessa:** só o **administrador** vê **Relatórios** e **Auditoria**. A
-> **recepção** e o **profissional** (médico) não enxergam essas telas no menu —
+> **recepção** e o **profissional** não enxergam essas telas no menu —
 > são informações de gestão e dados sensíveis da operação.
 
 ---
@@ -25,7 +25,7 @@ Para gerar, siga os passos:
    abaixo, no item 2).
 2. Em **De** e **Até**, escolha o **período** (data inicial e final). O sistema
    já vem com o período do **mês atual** preenchido.
-3. (Opcional) Em **Profissional**, escolha um médico para ver só os números dele,
+3. (Opcional) Em **Profissional**, escolha um profissional para ver só os números dele,
    ou deixe em **Todos**.
 4. (Opcional) Em **Convênio**, escolha um convênio específico, ou deixe em
    **Todos**.
@@ -42,7 +42,7 @@ O resultado aparece logo abaixo da barra.
 
 > ⚠️ **Atenção:** o filtro de **Profissional** vale para os relatórios de
 > dinheiro e agenda. Como despesas (aluguel, salário etc.) não pertencem a um
-> médico específico, ao filtrar por um profissional as **despesas aparecem como
+> profissional específico, ao filtrar por um profissional as **despesas aparecem como
 > R$ 0,00** — é o esperado, não é erro.
 
 > 💡 **Dica:** os formatos **PDF** e **Excel** aparecem na lista como *"em
@@ -63,8 +63,8 @@ clínica. Em linguagem simples:
 
 ![Visão geral: os números principais do período em destaque](assets/relatorios-visaogeral.png)
 
-- **Faturamento e receita por médico** — quanto entrou no período e **quanto cada
-  médico gerou** (consultas pagas). Mostra também o **repasse / comissão** de cada
+- **Faturamento e receita por profissional** — quanto entrou no período e **quanto cada
+  profissional gerou** (consultas pagas). Mostra também o **repasse / comissão** de cada
   profissional, calculado a partir da comissão definida no cadastro dele.
 - **Clientes e ticket médio** — quanto **cada paciente** gastou no período, quantas
   consultas pagou e o ticket médio por consulta. Útil para conhecer quem mais usa
@@ -83,7 +83,7 @@ clínica. Em linguagem simples:
   Receita Bruta − Impostos − Custos (insumos) − Despesas (aluguel, salário e
   demais) = **Resultado Operacional**. Considera apenas o que foi **efetivamente
   pago** no período.
-- **Produtividade por profissional** — por médico, quantas consultas foram
+- **Produtividade por profissional** — por profissional, quantas consultas foram
   **agendadas, atendidas, faltaram e foram canceladas**, com a taxa de
   atendimento. Inclui também o **volume de procedimentos/exames** registrados.
 - **Pacientes em risco de evasão** — pacientes ativos **sem atendimento há mais de
@@ -179,7 +179,7 @@ período que você selecionou).
 
 ## Perguntas rápidas
 
-**A recepção ou o médico conseguem ver os Relatórios?**
+**A recepção ou o profissional conseguem ver os Relatórios?**
 Não. **Relatórios** e **Auditoria** são exclusivos do **administrador**. Os outros
 papéis nem veem essas opções no menu.
 

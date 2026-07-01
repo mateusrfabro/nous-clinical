@@ -1,7 +1,7 @@
 # 1. Arquitetura & visão geral
 
 ## O que é
-**Nous Clinical** — *"Menos gestão. Mais medicina."* SaaS **multi-tenant** de
+**Nous Clinical** — *"Menos gestão. Mais cuidado."* SaaS **multi-tenant** de
 gestão de clínica: recepção marca consultas, profissionais registram o
 atendimento (prontuário), gestor acompanha operação e financeiro, e a plataforma
 (superadmin) gerencia várias clínicas. Cada clínica é um **tenant** isolado.
@@ -36,7 +36,7 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 | `main` | `/` · `/produto` | landing comercial (`/` e alias `/produto`), dashboard, busca, tarefa de lembretes | misto |
 | `pacientes` | `/pacientes` | CRUD de pacientes, busca CEP | equipe |
 | `agenda` | `/agenda` | agenda (dia/semana), atendimento (prontuário), agendamento online | misto |
-| `profissionais` | `/profissionais` | cadastro de médicos (cria o login junto) | admin |
+| `profissionais` | `/profissionais` | cadastro de profissionais (cria o login junto) | admin |
 | `financeiro` | `/financeiro` | fluxo de caixa, contas, recebimento | recepção/admin |
 | `crm` | `/crm` | painel de retornos/aniversariantes (recall) + Concierge (`/crm/mensagem-ia`) | recepção/admin |
 | `procedimentos` | `/procedimentos` | "Cadastro de Itens" (itens faturáveis + convênios) | recepção/admin |

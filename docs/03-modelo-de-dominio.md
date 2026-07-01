@@ -59,7 +59,7 @@ zera PII + apaga prontuário/exames, **preserva o financeiro** (obrigação fisc
 
 ### `Atendimento` — prontuário (DADO SENSÍVEL LGPD)
 `queixa`/`evolucao`/`prescricao`, `retorno_em` (CRM recall), **`atestado_dias`/
-`atestado_cid`** (atestado médico), 1:1 com Agendamento. Acesso só por
+`atestado_cid`** (atestado), 1:1 com Agendamento. Acesso só por
 **profissional (o dono) ou admin**. Tem `itens` (ItemAtendimento) e `exames`.
 `total_itens` soma os itens em Decimal. Edição registra `ACAO_ATENDIMENTO_EDITADO`
 na auditoria. Exporta **receita** e **atestado** em PDF (`app/routes/documentos.py`

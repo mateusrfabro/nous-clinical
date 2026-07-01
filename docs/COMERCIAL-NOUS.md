@@ -1,6 +1,6 @@
 # Nous Clinical — Material Comercial
 
-> **Menos gestão. Mais medicina.**
+> **Menos gestão. Mais cuidado.**
 >
 > Documento de apoio à venda. Uso do sócio comercial e, em seguida, de donos e
 > gestores de clínica. Tom honesto: o que está pronto é apresentado como pronto; o
@@ -16,12 +16,12 @@ pacientes, prontuário, financeiro e relatórios — em um só lugar, com inteli
 clínica e o nível de proteção de dados que a saúde exige (LGPD). A recepção agenda e
 recebe, o profissional registra o atendimento e emite receita/atestado, o gestor
 acompanha faturamento e ocupação em tempo real. A ideia cabe no slogan: a clínica
-gasta **menos tempo com gestão** e sobra **mais tempo para medicina**.
+gasta **menos tempo com gestão** e sobra **mais tempo para o cuidado**.
 
 - **Tudo num lugar só, com cada um vendo o que é seu.** Recepção, profissional e
   gestor têm telas próprias. Menos clique, menos erro, e o prontuário fica restrito a
   quem pode ver (exigência de LGPD, não um detalhe).
-- **Decisão com número, não com achismo.** Faturamento por médico, taxa de faltas,
+- **Decisão com número, não com achismo.** Faturamento por profissional, taxa de faltas,
   ocupação, ticket médio, dependência de convênio, risco de evasão de paciente — tudo
   em relatórios prontos e exportáveis.
 - **Cresce com a clínica.** Multi-clínica com marca própria (white-label), WhatsApp,
@@ -32,14 +32,14 @@ gasta **menos tempo com gestão** e sobra **mais tempo para medicina**.
 
 ## 2. Para quem é
 
-Clínicas e consultórios médicos (e demais profissionais de saúde) que querem sair da
+Clínicas e consultórios de saúde — de qualquer especialidade — que querem sair da
 planilha/agenda de papel e profissionalizar a operação sem virar reféns de TI. O
 sistema é desenhado em torno de **três perfis de uso**, cada um com sua tela:
 
 | Perfil | Quem é | O que ganha |
 |---|---|---|
 | **Recepção** | Recepcionista / secretária | Agenda, cadastra paciente, faz check-in e recebe pagamento — fluxo rápido do balcão, sem acesso a dado sensível que não precisa ver. |
-| **Profissional** | Médico(a) e demais profissionais de saúde | Vê **só a própria agenda**, registra o prontuário e emite receita/atestado em PDF. Menos distração, foco no atendimento. |
+| **Profissional** | Quem atende — médico, dentista, psicólogo, fisioterapeuta, nutricionista etc. | Vê **só a própria agenda**, registra o prontuário e emite receita/atestado em PDF. Menos distração, foco no atendimento. |
 | **Gestor / Dono (Administrador)** | Quem toca o negócio | Visão completa: financeiro, relatórios, auditoria, cadastros e personalização da marca. Enxerga a clínica inteira em uma tela. |
 
 > Há ainda o perfil **superadmin** (da plataforma/operadora) para administrar várias
@@ -88,17 +88,17 @@ Para cada módulo: **o que faz** + **o benefício de negócio**.
 - **Benefício:** o dinheiro da clínica fica conferido e fechado todo dia, com o
   extrato do banco batendo com o sistema. Menos vazamento, menos surpresa no fim do mês.
 
-> **Repasse médico (comissão):** o sistema calcula o **repasse por profissional** sobre
+> **Repasse por profissional (comissão):** o sistema calcula o **repasse por profissional** sobre
 > a receita recebida, usando o percentual de comissão de cada um. Hoje esse cálculo
 > aparece **nos Relatórios** (ver abaixo), pronto para fechar o repasse do período.
 
 ### Relatórios / BI
 - **O que faz:** indicadores do período prontos e exportáveis em CSV — **faturamento e
-  receita por médico**, **repasse/comissão por profissional**, **dependência de
+  receita por profissional**, **repasse/comissão por profissional**, **dependência de
   convênio**, **produtividade e ocupação por profissional**, **ticket médio por
   paciente**, **faixa etária**, **origem dos leads**, **DRE** (receitas x despesas) e
   **pacientes em risco de evasão** (que não voltam há tempo).
-- **Benefício:** o gestor decide com dado: de qual convênio dependo demais? qual médico
+- **Benefício:** o gestor decide com dado: de qual convênio dependo demais? qual profissional
   produz mais? quem está prestes a sumir? Tudo já calculado.
 
 ### CRM
@@ -220,8 +220,8 @@ clínica quiser · **Parcial / Roadmap** = depende de uma etapa ou ainda em cons
 | Financeiro: fluxo de caixa, contas a pagar/receber | ✅ Pronto | — |
 | Conciliação bancária (OFX/CSV) | ✅ Pronto | — |
 | Fechamento de caixa diário | ✅ Pronto | — |
-| Repasse médico (comissão) | ✅ Pronto | Calculado nos Relatórios, por profissional. |
-| Relatórios / BI (faturamento por médico, convênio, produtividade, ticket, faixa etária, leads, DRE, evasão) | ✅ Pronto | Exportação em CSV. |
+| Repasse por profissional (comissão) | ✅ Pronto | Calculado nos Relatórios, por profissional. |
+| Relatórios / BI (faturamento por profissional, convênio, produtividade, ticket, faixa etária, leads, DRE, evasão) | ✅ Pronto | Exportação em CSV. |
 | CRM (retornos, aniversariantes) | ✅ Pronto | — |
 | Concierge (rascunho de mensagem de retorno/reativação) | ✅ Pronto | **Custo zero** (mensagens prontas). Modo IA opcional desligado (centavos/msg). Não lê prontuário; a recepção revisa e envia. |
 | Lembrete de consulta automático (WhatsApp/e-mail) | ⚙️ Opcional | WhatsApp exige número conectado + **template aprovado pela Meta**; e-mail exige envio configurado. |

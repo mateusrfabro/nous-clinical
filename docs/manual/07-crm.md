@@ -5,7 +5,7 @@ Ele mostra duas listas prontas: pacientes que precisam **voltar para um retorno*
 pacientes que estão **fazendo aniversário hoje**. A ideia é simples: lembrar de quem
 você lembraria de chamar de volta — só que sem depender da sua memória.
 
-> 🔒 **Quem acessa:** **Recepção** e **Administrador**. O profissional (médico) não
+> 🔒 **Quem acessa:** **Recepção** e **Administrador**. O profissional não
 > abre esta tela — ele só **recomenda o retorno** no atendimento, e a recepção/gestão
 > faz o contato.
 
@@ -16,22 +16,22 @@ Você encontra tudo no menu lateral, em **CRM**. No topo da tela há duas abas:
 
 ## Retornos pendentes
 
-Esta lista mostra os pacientes que o médico marcou para voltar e que **ainda não
+Esta lista mostra os pacientes que o profissional marcou para voltar e que **ainda não
 remarcaram** uma consulta. É a sua lista de "ligar para reagendar".
 
 ![Tela de Retornos do CRM, com a lista de pacientes e o filtro de dias](assets/crm-retornos.png)
 
 ### De onde vem o "retorno"
 
-O retorno **não** é digitado aqui. Ele vem do **prontuário**: quando o médico termina
+O retorno **não** é digitado aqui. Ele vem do **prontuário**: quando o profissional termina
 o atendimento, ele pode recomendar uma data de retorno (veja o capítulo **Atendimento**).
 Essa data é que faz o paciente aparecer nesta lista.
 
 > 💡 **Dica:** o paciente sai da lista sozinho assim que **remarca** uma consulta.
 > Você não precisa "dar baixa" manualmente — basta agendar.
 
-> ⚠️ **Atenção:** se o paciente se consultou de novo e o médico **não** recomendou um
-> novo retorno, ele deixa de aparecer aqui. Para voltar à lista, o médico precisa marcar
+> ⚠️ **Atenção:** se o paciente se consultou de novo e o profissional **não** recomendou um
+> novo retorno, ele deixa de aparecer aqui. Para voltar à lista, o profissional precisa marcar
 > um novo retorno no próximo atendimento.
 
 ### A janela de dias
@@ -111,10 +111,10 @@ Na coluna **Ações** de cada paciente:
 
 **Por que um paciente sumiu da lista de retornos?**
 Provavelmente porque ele **remarcou** uma consulta (futura), ou porque se consultou de
-novo e o médico não recomendou um novo retorno. Em ambos os casos, ele sai da lista.
+novo e o profissional não recomendou um novo retorno. Em ambos os casos, ele sai da lista.
 
 **Eu consigo mudar a data de retorno por aqui?**
-Não. A data de retorno é definida pelo médico no **atendimento**. O CRM apenas mostra
+Não. A data de retorno é definida pelo profissional no **atendimento**. O CRM apenas mostra
 quem está pendente.
 
 **A mensagem do WhatsApp já vai sozinha para o paciente?**

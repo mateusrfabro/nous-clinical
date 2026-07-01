@@ -90,7 +90,7 @@ O Nous roda em **Docker**, usa **PostgreSQL** (padrão) e **storage S3-compatív
 | **Melhor para lançar agora** | **Cenário 2** (Render pago + R2) |
 
 ## O que NÃO recomendamos
-- **Hospedagem compartilhada (cPanel)** para a app — é ambiente PHP/MySQL, hostil a Python; e storage/banco compartilhado é ruim para dado médico (LGPD).
+- **Hospedagem compartilhada (cPanel)** para a app — é ambiente PHP/MySQL, hostil a Python; e storage/banco compartilhado é ruim para dado de saúde (LGPD).
 - **Migrar para MySQL** só para usar o banco incluso da HostGator — trabalho e risco sem ganho real.
 
 ## Recomendação final (nossa)

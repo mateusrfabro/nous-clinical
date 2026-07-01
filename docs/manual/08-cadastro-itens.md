@@ -10,7 +10,7 @@ que o resto do sistema usa o tempo todo:
 Pense nela como o "de-para" oficial da clínica: o que você cadastra aqui é o que
 todo mundo vê depois nos menus de seleção, sem ninguém precisar digitar à mão.
 
-> 🔒 **Quem acessa:** **Recepção** e **Administrador**. O profissional (médico) não
+> 🔒 **Quem acessa:** **Recepção** e **Administrador**. O profissional não
 > abre esta tela.
 
 Para abrir, clique em **Cadastro de Itens** no menu lateral.
@@ -37,7 +37,7 @@ tipos**. Você escolhe o que quer criar no primeiro campo:
 ## Itens faturáveis (procedimentos)
 
 São tudo que pode ser cobrado num atendimento: consulta, retorno, um exame, um
-procedimento. O médico marca esses itens no prontuário e o financeiro **soma o
+procedimento. O profissional marca esses itens no prontuário e o financeiro **soma o
 total** automaticamente — por isso é importante manter os valores certos.
 
 ### Como adicionar um item
@@ -176,5 +176,5 @@ O sistema usa o preço do **convênio do paciente**. Confira se o paciente está
 convênio certo no cadastro, e se existe um preço cadastrado para aquele convênio
 naquele item. Sem preço específico, ele usa o **Valor** padrão.
 
-**O médico pode mexer neste cadastro?**
+**O profissional pode mexer neste cadastro?**
 Não. Apenas **Recepção** e **Administrador** acessam o Cadastro de Itens.

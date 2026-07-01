@@ -6,7 +6,7 @@
 > entra como motivo de compra.
 
 ## 0. Parâmetros da campanha
-- **Público (ICP):** clínicas/consultórios de **1–3 médicos**, dono põe a mão na gestão.
+- **Público (ICP):** clínicas/consultórios de **1–3 profissionais** (saúde em geral — medicina, odontologia, psicologia, fisio, nutrição etc.), dono põe a mão na gestão.
 - **Oferta do clique:** **demonstração gratuita** (reposicionada como "diagnóstico de 20 min").
 - **Canal:** cold e-mail → landing (`/` ou `/produto`) → **WhatsApp** (agendar a demo).
 - **Domínio de envio:** **subdomínio dedicado** (`enviar.nousclinical.com`) — o `nousclinical.com`
@@ -33,7 +33,7 @@ Não vender "demonstração" (= "mais um vendedor querendo 40 min"). Vender:
 
 Na call, mostrar **3 telas de impacto financeiro** (não tour de features):
 1. **Painel do gestor** — "abre o sistema e em 5s sabe quanto entrou hoje, faltas, ocupação".
-2. **Repasse médico + DRE** — "fecha o repasse do mês sem planilha".
+2. **Repasse por profissional + DRE** — "fecha o repasse do mês sem planilha".
 3. **CRM de retorno/evasão** — "lista de quem sumiu + botão pra chamar de volta".
 
 Regras: prometer **20 min** (não 40); humano conduz (não SDR robô); **honestidade como
@@ -45,16 +45,16 @@ fechamento** ("NF-e ainda não emite, é roadmap" gera confiança que o concorre
 e slot ≤3 dias; (4) demo vira "tour" sem pedir a venda; (5) "vou pensar".
 
 ### Qualificação
-**Vale a demo:** 1–3 médicos, hoje em planilha/sistema abandonado, com recepção e/ou convênio e
+**Vale a demo:** 1–3 profissionais, hoje em planilha/sistema abandonado, com recepção e/ou convênio e
 repasse, especialidade com retorno recorrente. **Descartar:** rede/hospital, quem exige NF-e como
 condição HOJE, solo sem recepção/convênio, quem quer on-premise.
 
 ### Preço (sugestão a validar — material comercial diz "sob consulta")
 | Plano | Perfil | Faixa/mês sugerida |
 |---|---|---|
-| Essencial | 1 médico | R$ 150–250 |
-| Clínica | 2–3 médicos | R$ 350–600 |
-| Plus | 3 médicos + opcionais | R$ 600–900 |
+| Essencial | 1 profissional | R$ 150–250 |
+| Clínica | 2–3 profissionais | R$ 350–600 |
+| Plus | 3 profissionais + opcionais | R$ 600–900 |
 
 Ancorar contra o **custo do problema** (falta não cobrada, repasse errado, paciente que some),
 não contra concorrente. Fechamento com degrau de baixo risco (onboarding incluso / sem fidelidade).
@@ -118,7 +118,7 @@ Tokens: `{{primeiro_nome}}`, `{{clinica}}`, `{{cidade}}`, `{{remetente}}`. **Opt
 
 ### E3 — Credibilidade honesta (sem métrica inventada)
 **Assunto:** Por que construímos o Nous do jeito da saúde
-> {{primeiro_nome}}, último ângulo. O Nous foi desenhado pro nicho médico: **prontuário é dado
+> {{primeiro_nome}}, último ângulo. O Nous foi desenhado pro nicho de saúde: **prontuário é dado
 > sensível** — restrito a profissional/gestor e **toda edição auditada**. Dados de cada clínica
 > isolados; senha com padrão forte. E ajuda embutida no sistema, **sem custo extra**.
 > Não prometo número que não posso garantir — posso te mostrar funcionando. Topa 20 min?
@@ -137,7 +137,7 @@ Tokens: `{{primeiro_nome}}`, `{{clinica}}`, `{{cidade}}`, `{{remetente}}`. **Opt
 3. Agenda, prontuário e financeiro num lugar só
 4. O caixa da {{clinica}} fecha batendo todo dia?
 5. 15 minutos sobre a operação da {{clinica}}?
-6. Menos gestão, mais medicina na {{clinica}}
+6. Menos gestão, mais cuidado na {{clinica}}
 7. Sistema pensado pro consultório pequeno
 8. {{primeiro_nome}}, vale uma conversa rápida sobre a {{clinica}}?
 
@@ -153,7 +153,7 @@ A LP (`/` e `/produto`) foi ajustada pra converter tráfego frio em demo:
 - **Navbar contextual:** na landing Nous, primário = "Agendar demonstração", secundário discreto
   "Já sou cliente" (login); o "Agendar consulta" (paciente) só aparece no portal `/c/<slug>`.
 - **Message match:** H1 nomeia a dor/segmento ("Agenda, prontuário e financeiro numa tela só" /
-  "clínicas de 1 a 5 médicos") + microcommitment ("~20 min, sem compromisso").
+  "clínicas de 1 a 5 profissionais") + microcommitment ("~20 min, sem compromisso").
 - **CTA repetido:** no meio (após as dores) + **barra sticky no mobile** + CTA final.
 - **Mobile:** o mock decorativo sai da primeira dobra (H1+CTA primeiro).
 - Faixa de transparência (NF-e roadmap etc.) **mantida** — converte no nicho saúde (honestidade).

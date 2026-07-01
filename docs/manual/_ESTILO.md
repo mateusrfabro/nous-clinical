@@ -2,7 +2,7 @@
 
 # Guia de estilo — Manual do Usuário Nous Clinical
 
-Público: **pessoas leigas** da clínica (recepcionista, médico, gestor). Não são
+Público: **pessoas leigas** da clínica (recepcionista, profissional de saúde, gestor). Não são
 técnicas. Escreva como se explicasse para alguém no primeiro dia de trabalho.
 
 ## Voz e tom
@@ -38,10 +38,10 @@ técnicas. Escreva como se explicasse para alguém no primeiro dia de trabalho.
 ## Papéis (use estes nomes)
 - **Administrador** (dono/gestor da clínica) — vê tudo da clínica.
 - **Recepção** — agenda, pacientes, financeiro, cadastros. Não vê prontuário nem relatórios.
-- **Profissional** (médico) — própria agenda, atendimento/prontuário, seus pacientes.
+- **Profissional** (quem atende — médico, dentista, psicólogo, fisio, nutricionista…) — própria agenda, atendimento/prontuário, seus pacientes.
 - (**Superadmin** é uso interno da PGS — não citar no manual do cliente.)
 
 ## Marca
-- O produto é **Nous Clinical** — "Menos gestão. Mais medicina."
+- O produto é **Nous Clinical** — "Menos gestão. Mais cuidado."
 - Cores podem mudar por clínica (white-label), então **não** diga "o botão verde";
   diga "o botão **Salvar**".

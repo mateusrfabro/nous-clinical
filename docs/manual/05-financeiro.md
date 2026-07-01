@@ -6,7 +6,7 @@ saldo. Aqui você lança receitas e despesas, acompanha o caixa por período e
 controla o que está **a receber** e **a pagar**.
 
 > 🔒 **Quem acessa:** **Recepção** e **Administrador**. O **profissional**
-> (médico) **não** vê o Financeiro. E há uma diferença importante entre recepção
+> **não** vê o Financeiro. E há uma diferença importante entre recepção
 > e administrador — explicada mais abaixo.
 
 ---
@@ -103,7 +103,7 @@ ao agendamento (sem risco de digitar errado).
    **atendida**).
 2. Clique no botão de **pagamento/receber** da consulta.
 3. O formulário de **Novo lançamento** abre **já preenchido**: o paciente, a
-   descrição e o valor vêm da consulta (e, se o médico marcou itens/procedimentos
+   descrição e o valor vêm da consulta (e, se o profissional marcou itens/procedimentos
    no atendimento, o total já vem somado).
 4. Confira tudo, escolha a **Forma de pagamento** e clique em **Salvar
    lançamento**.

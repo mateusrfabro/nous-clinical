@@ -46,7 +46,7 @@ python -m flask db heads                      # mostra o head atual
 
 ## Seed (dados de demonstração)
 ```bash
-python scripts/seed.py                  # 1 clínica, admin/recepção/2 médicos, dados demo
+python scripts/seed.py                  # 1 clínica, admin/recepção/2 profissionais, dados demo
 python scripts/seed_demo_clinicas.py    # 3 clínicas isoladas p/ validar multi-tenant (senha 123demo)
 ```
 Logins do seed padrão (senha `demo123`): `admin@nous.com`, `recepcao@nous.com`,

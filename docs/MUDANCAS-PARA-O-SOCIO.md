@@ -21,7 +21,7 @@ Preparei um **playbook completo** (em `docs/CAMPANHA-COLD-EMAIL.md`) com:
 - **A estratégia:** vender a demo como um **"diagnóstico de 20 minutos"** (onde a clínica perde
   dinheiro na operação), não como "mais um vendedor". Roteiro do que mostrar, objeções e respostas.
 - **Sequência de e-mails pronta** (4 e-mails honestos + variações de assunto pra testar).
-- **Preço sugerido a validar:** R$ 150–250 (1 médico) · R$ 350–600 (2–3) · R$ 600–900 (com opcionais).
+- **Preço sugerido a validar:** R$ 150–250 (1 profissional) · R$ 350–600 (2–3) · R$ 600–900 (com opcionais).
 - **Expectativa realista:** cold é jogo de volume — ~1 cliente a cada ~1.000 e-mails na 1ª rodada;
   melhora qualificando melhor a lista.
 - ⚠️ **Alerta importante:** disparar e-mail frio **pelo Brevo é arriscado** (os termos deles proíbem
@@ -38,7 +38,7 @@ Preparei um **playbook completo** (em `docs/CAMPANHA-COLD-EMAIL.md`) com:
   (isolamento entre clínicas reforçado, contas de dinheiro à prova de erro de digitação, proteção
   contra abuso). Isso é **argumento de venda** com clínica (LGPD, confiança).
 - **2 novos trunfos de venda (feitos em 01/07):**
-  - **Verificação em duas etapas (2FA)** — o médico/gestor pode exigir um código do celular além
+  - **Verificação em duas etapas (2FA)** — o profissional/gestor pode exigir um código do celular além
     da senha (mesmo padrão de banco). Passa **seriedade** pra quem cuida de dado de paciente.
   - **"Direito ao esquecimento" (LGPD) pronto** — se um paciente pedir pra apagar os dados, o
     sistema faz **do jeito certo** (apaga o pessoal e o clínico, guarda só o financeiro que a lei
@@ -51,7 +51,7 @@ Preparei um **playbook completo** (em `docs/CAMPANHA-COLD-EMAIL.md`) com:
 1. **Confirmar o número do WhatsApp** no botão da demo (item 1).
 2. **Alinhar a estratégia de disparo** antes de mandar e-mail em volume (item 2 — a questão do Brevo).
 3. Quando quiser, montamos juntos a **primeira lista de clínicas** (perfil ideal: consultórios de
-   1–3 médicos) e a primeira leva de e-mails.
+   1–3 profissionais) e a primeira leva de e-mails.
 
 ## 5. Pendências que são nossas (operacional, não comercial)
 - **Plano pago do banco (Render)** antes de ~90 dias (senão perde os dados) — mais urgente.

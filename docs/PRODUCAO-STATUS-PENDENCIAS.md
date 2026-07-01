@@ -25,7 +25,7 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 - ✅ **Financeiro avançado** — **conciliação bancária** (importa extrato OFX/CSV, casa com
   os lançamentos: sugestão automática + manual + painel de divergências) e **fechamento de
   caixa diário** (esperado por forma de pagamento × contado, com divergência). O relatório
-  de **repasse médico** calcula a comissão por profissional e oferece um atalho **"Lançar
+  de **repasse por profissional** calcula a comissão por profissional e oferece um atalho **"Lançar
   repasse"** que abre a despesa **pré-preenchida** (o admin confere e salva).
 - ✅ **Lembrete de consulta automático** — por **WhatsApp** (template aprovado) ou e-mail;
   reduz faltas. (WhatsApp exige o template HSM aprovado pela clínica; sem ele, cai no e-mail.)
@@ -123,7 +123,8 @@ migrações de banco rodam sozinhas). Recursos novos sobem **inertes/seguros** �
 >
 > **Quando lançar (depois da Fase 2):** ligar com `NF_ATIVO=true` + credenciais da Nuvem
 > Fiscal no Render. Cada clínica precisará de: **certificado A1, inscrição municipal,
-> regime tributário, alíquota de ISS e código de serviço** (medicina 4.01 / clínica 4.03).
+> regime tributário, alíquota de ISS e código de serviço** — que **varia por profissão**
+> (ex.: medicina 4.01 / clínica 4.03 / odontologia 4.02).
 
 ## 5. Resumo de custos
 

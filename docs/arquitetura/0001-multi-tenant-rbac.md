@@ -174,7 +174,7 @@ a decisão** — simplifica o escopo global (§4) e índices, ao custo de uma co
 
 | Tabela (real) | `clinica_id` | `unidade_id` (Fase 2) | Observação |
 |---|---|---|---|
-| `usuarios` | **Sim** | não | Um usuário pertence a 1 clínica. (Se no futuro um médico atender 2 clínicas, vira N:N `usuario_clinicas` — fora de escopo.) |
+| `usuarios` | **Sim** | não | Um usuário pertence a 1 clínica. (Se no futuro um profissional atender 2 clínicas, vira N:N `usuario_clinicas` — fora de escopo.) |
 | `profissionais` | **Sim** | sim (lotação) | |
 | `pacientes` | **Sim** | sim (unidade de cadastro) | unique de `cpf` precisa virar composto (§3.3) |
 | `agendamentos` | **Sim** | **sim** | unidade é onde a consulta ocorre |
