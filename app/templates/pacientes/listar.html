@@ -27,14 +27,14 @@
 {% if pacientes %}
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Nome</th><th>Telefone</th><th>Convênio</th><th>Idade</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Nome</th><th>Telefone</th><th>Convênio</th><th class="num">Idade</th><th>Ações</th></tr></thead>
   <tbody>
     {% for p in pacientes %}
     <tr>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome_completo }}</a></td>
       <td>{{ p.telefone or '—' }}</td>
       <td>{{ p.convenio or '—' }}</td>
-      <td>{{ p.data_nascimento|idade }}</td>
+      <td class="num">{{ p.data_nascimento|idade }}</td>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}" class="btn-link">Abrir</a></td>
     </tr>
     {% endfor %}

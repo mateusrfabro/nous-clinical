@@ -47,4 +47,5 @@
   <option value="{{ atual }}" selected>{{ atual }} (não cadastrada)</option>
   {% endif %}
 </select>
+{% if not lista %}<small class="muted text-sm">Nenhuma sala cadastrada ainda — cadastre em <strong>Cadastro de Itens</strong> para poder escolher aqui.</small>{% endif %}
 {% endmacro %}

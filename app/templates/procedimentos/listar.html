@@ -2,7 +2,7 @@
 {% block title %}Cadastro de Itens — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header"><h2>Cadastro de Itens</h2></div>
-<p class="muted mb-4">Itens faturáveis que o médico marca no atendimento (o pagamento puxa o total) e o cadastro centralizado de convênios.</p>
+<p class="muted mb-4">Itens faturáveis que o profissional marca no atendimento (o pagamento puxa o total) e o cadastro centralizado de convênios.</p>
 
 <form method="POST" action="{{ url_for('procedimentos.adicionar') }}" class="card toolbar mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

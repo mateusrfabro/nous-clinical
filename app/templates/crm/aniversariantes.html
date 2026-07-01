@@ -14,13 +14,13 @@
 <div class="table-wrapper">
 <table class="table">
   <thead>
-    <tr><th>Paciente</th><th>Idade</th><th>Telefone</th><th>Ações</th></tr>
+    <tr><th>Paciente</th><th class="num">Idade</th><th>Telefone</th><th>Ações</th></tr>
   </thead>
   <tbody>
     {% for l in linhas %}
     <tr>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=l.paciente.id) }}">{{ l.paciente.nome_completo }}</a></td>
-      <td>{{ (l.idade ~ ' anos') if l.idade is not none else '—' }}</td>
+      <td class="num">{{ (l.idade ~ ' anos') if l.idade is not none else '—' }}</td>
       <td>{{ l.paciente.telefone or '—' }}</td>
       <td>
         <div class="flex-row-gap">

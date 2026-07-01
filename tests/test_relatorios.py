@@ -68,7 +68,7 @@ def test_receita_por_medico(client_admin):
         agendamento_id=ag.id, paciente_id=ag.paciente_id))
     db.session.commit()
     h = client_admin.get("/relatorios/?gerar=1&tipo=faturamento").data
-    assert "Receita por médico".encode() in h
+    assert "Receita por profissional".encode() in h
     assert nome_med.encode() in h
     assert b"R$ 400,00" in h
 

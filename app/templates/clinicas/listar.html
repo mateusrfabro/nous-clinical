@@ -29,14 +29,14 @@
 {% if clinicas %}
 <div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Clínica</th><th>Slug</th><th>Usuários</th><th>Pacientes</th><th>Status</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Clínica</th><th>Slug</th><th class="num">Usuários</th><th class="num">Pacientes</th><th>Status</th><th>Ações</th></tr></thead>
   <tbody>
     {% for c in clinicas %}
     <tr>
       <td>{{ c.nome }}</td>
       <td>{{ c.slug or '—' }}</td>
-      <td>{{ n_users.get(c.id, 0) }}</td>
-      <td>{{ n_pacientes.get(c.id, 0) }}</td>
+      <td class="num">{{ n_users.get(c.id, 0) }}</td>
+      <td class="num">{{ n_pacientes.get(c.id, 0) }}</td>
       <td><span class="tag {{ 'tag-success' if c.ativo else 'tag-danger' }}">{{ 'Ativa' if c.ativo else 'Inativa' }}</span></td>
       <td>
         <form method="POST" action="{{ url_for('clinicas.toggle', clinica_id=c.id) }}" class="inline-form no-loading">

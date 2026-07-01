@@ -1,9 +1,13 @@
 # Nous Clinical — guia do Claude Code
 
 ## O que é o projeto
-**Nous Clinical** — *"Menos gestão. Mais medicina."* SaaS de **gestão de clínica** com
+**Nous Clinical** — *"Menos gestão. Mais cuidado."* SaaS de **gestão de clínica** com
 inteligência clínica: recepção marca consultas, profissionais de saúde registram o
-atendimento (prontuário), gestor acompanha a operação e o financeiro. Nicho médico.
+atendimento (prontuário), gestor acompanha a operação e o financeiro. **Nicho: área
+da saúde em geral** — clínicas e consultórios de qualquer especialidade (medicina,
+odontologia, psicologia, fisioterapia, nutrição, biomedicina, etc.), 1 a 5
+profissionais. O produto é agnóstico de vertical: papel é `profissional` (não
+"médico"), `registro_conselho` é texto livre (CRM/CRP/CRO/CREFITO/CRN…).
 *Nous* (grego: inteligência/razão) — "a inteligência que auxilia a prática clínica".
 
 > **Marca definida: Nous Clinical** (identidade dark indigo/teal). O scaffold nasceu

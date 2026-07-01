@@ -6,7 +6,7 @@ def test_landing_anonima_tem_secoes(client):
     assert r.status_code == 200
     body = r.get_data(as_text=True)
     for marca in ("modulos", "Diferenciais", "lp-trust", "lp-cta",
-                  "Menos gestão", "Mais medicina"):
+                  "Menos gestão", "Mais cuidado"):
         assert marca in body
 
 

@@ -110,7 +110,7 @@
 
 {% elif tipo == 'faturamento' %}
 <div class="page-header section-title-mt">
-  <h3>Faturamento e receita por médico</h3>
+  <h3>Faturamento e receita por profissional</h3>
   <a href="{{ url_for('relatorios.export_csv', ini=ini, fim=fim, profissional_id=prof_id or None) }}" class="btn btn-outline btn-sm">Exportar CSV</a>
 </div>
 <section class="kpi-grid mb-4">
@@ -120,7 +120,7 @@
   <div class="kpi-card"><span class="kpi-label">Ticket médio (por recebimento)</span><span class="kpi-value">{{ ticket|brl }}</span></div>
 </section>
 <details class="card mb-2" open>
-  <summary><strong>Receita por médico</strong></summary>
+  <summary><strong>Receita por profissional</strong></summary>
   <div class="mt-2">
   {% if por_medico %}
   <div class="table-wrapper"><table class="table">
@@ -131,7 +131,7 @@
   </div>
 </details>
 <details class="card mb-2">
-  <summary><strong>Repasse / comissão médica</strong></summary>
+  <summary><strong>Repasse / comissão por profissional</strong></summary>
   <div class="mt-2">
   {% if repasse %}
   <div class="table-wrapper"><table class="table">
@@ -218,14 +218,14 @@
 <p class="muted text-sm mb-2">Base ativa de pacientes{% if convenio_sel %} do convênio <strong>{{ convenio_sel }}</strong>{% endif %} (foto atual da carteira, não depende do período).</p>
 {% if pac_conv %}
 <div class="table-wrapper"><table class="table">
-  <thead><tr><th>Paciente</th><th>CPF</th><th>Convênio</th><th>Idade</th></tr></thead>
+  <thead><tr><th>Paciente</th><th>CPF</th><th>Convênio</th><th class="num">Idade</th></tr></thead>
   <tbody>
     {% for p in pac_conv %}
     <tr>
       <td><a href="{{ url_for('pacientes.detalhe', paciente_id=p.id) }}">{{ p.nome }}</a></td>
       <td>{{ p.cpf or '—' }}</td>
       <td>{{ p.convenio }}</td>
-      <td>{{ p.idade if p.idade is not none else '—' }}</td>
+      <td class="num">{{ p.idade if p.idade is not none else '—' }}</td>
     </tr>
     {% endfor %}
   </tbody>

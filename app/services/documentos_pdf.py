@@ -62,8 +62,9 @@ def _registro_label(prof):
     reg = (prof.registro_conselho or "").strip() if prof else ""
     if not reg:
         return ""
-    # Se já vem com letras (CRM/CRO/...), mantém; senão prefixa CRM.
-    texto = reg if any(c.isalpha() for c in reg) else f"CRM {reg}"
+    # Mantém como digitado (CRM/CRP/CRO/CREFITO/CRN...). Sem letras não assume
+    # conselho — a clínica pode não ser de medicina.
+    texto = reg
     return _escape(texto)   # vai direto pro Paragraph (mini-HTML)
 
 
@@ -145,7 +146,7 @@ def _clinica_e_data(atendimento):
 
 
 def receita_pdf(atendimento):
-    """Bytes do PDF de prescrição/receita médica de um atendimento."""
+    """Bytes do PDF de prescrição/receituário de um atendimento."""
     estilos = _estilos()
     clinica, data = _clinica_e_data(atendimento)
     prof = atendimento.profissional
@@ -154,7 +155,7 @@ def receita_pdf(atendimento):
     buf = io.BytesIO()
     doc = _doc(buf)
     story = []
-    _cabecalho(story, estilos, clinica, prof, "Prescrição Médica")
+    _cabecalho(story, estilos, clinica, prof, "Prescrição")
 
     story.append(Paragraph(
         f"<b>Nome do Paciente:</b> {_escape(pac.nome_completo) if pac else ''}",
@@ -172,7 +173,7 @@ def receita_pdf(atendimento):
 
 
 def atestado_pdf(atendimento):
-    """Bytes do PDF de atestado médico de um atendimento."""
+    """Bytes do PDF de atestado de um atendimento."""
     estilos = _estilos()
     clinica, data = _clinica_e_data(atendimento)
     prof = atendimento.profissional
@@ -186,11 +187,11 @@ def atestado_pdf(atendimento):
     buf = io.BytesIO()
     doc = _doc(buf)
     story = []
-    _cabecalho(story, estilos, clinica, prof, "Atestado Médico")
+    _cabecalho(story, estilos, clinica, prof, "Atestado")
 
     corpo = (
         f"ATESTO, para os devidos fins, que o(a) paciente <b>{_escape(nome)}</b>, "
-        f"portador(a) do CPF nº {_escape(cpf)}, esteve sob meus cuidados médicos "
+        f"portador(a) do CPF nº {_escape(cpf)}, esteve sob meus cuidados profissionais "
         f"nesta data, sendo constatada condição clínica que justifica seu "
         f"afastamento de suas atividades habituais por <b>{dias} dia(s)</b>, "
         f"a contar de {_data_extenso(data)}."
@@ -201,7 +202,7 @@ def atestado_pdf(atendimento):
             f"Classificação Internacional de Doenças (CID): <b>{_escape(cid)}</b>.",
             estilos["corpo"]))
     story.append(Paragraph(
-        "Recomenda-se repouso e acompanhamento médico conforme orientação "
+        "Recomenda-se repouso e acompanhamento conforme orientação "
         "profissional.", estilos["corpo"]))
     story.append(Paragraph(
         "Por ser expressão da verdade, firmo o presente atestado para os fins "

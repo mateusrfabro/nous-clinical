@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Nous Clinical — menos gestão, mais medicina{% endblock %}
-{% block meta_description %}Nous Clinical: agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma de gestão para clínicas e consultórios médicos, com inteligência clínica e LGPD by design.{% endblock %}
+{% block title %}Nous Clinical — menos gestão, mais cuidado{% endblock %}
+{% block meta_description %}Nous Clinical: agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma de gestão para clínicas e consultórios da área da saúde, com inteligência clínica e LGPD by design.{% endblock %}
 {# Canonical na raiz: `/` e `/produto` renderizam a mesma página -> evita conteúdo duplicado no índice. #}
 {% block head_extra %}<link rel="canonical" href="{{ url_for('main.index', _external=True) }}">{% endblock %}
 {% block h1_oculto_pub %}{% endblock %}
@@ -12,9 +12,9 @@
 <!-- ===== Hero ===== -->
 <section class="hero">
   <div class="hero-text">
-    <span class="hero-eyebrow">Para clínicas e consultórios de 1 a 5 médicos</span>
+    <span class="hero-eyebrow">Para clínicas e consultórios de 1 a 5 profissionais</span>
     <h1>Agenda, prontuário e financeiro <span class="accent">numa tela só</span>.</h1>
-    <p class="hero-sub">Sem planilha, sem agenda de papel. A recepção marca e recebe, o profissional atende, você acompanha o dinheiro — com a segurança de dados que a saúde exige. <strong>Menos gestão, mais medicina.</strong></p>
+    <p class="hero-sub">Sem planilha, sem agenda de papel. A recepção marca e recebe, o profissional atende, você acompanha o dinheiro — com a segurança de dados que a saúde exige. <strong>Menos gestão, mais cuidado.</strong></p>
     <div class="hero-actions">
       <a href="{{ cta_primario }}" class="btn btn-primary btn-lg"{% if cta_externo %} target="_blank" rel="noopener"{% endif %}>{{ cta_label }}</a>
       <a href="#modulos" class="btn btn-outline btn-lg">Ver os módulos</a>
@@ -152,7 +152,7 @@
         <h3>Relatórios / BI</h3>
         <p class="lp-benef">O gestor decide com número: de qual convênio dependo? quem produz mais? quem vai sumir?</p>
         <details class="lp-card-more"><summary>Ver detalhes</summary>
-          <p class="muted">Indicadores do período prontos e em CSV — faturamento por médico, repasse, dependência de convênio, produtividade, ticket, DRE e risco de evasão.</p>
+          <p class="muted">Indicadores do período prontos e em CSV — faturamento por profissional, repasse, dependência de convênio, produtividade, ticket, DRE e risco de evasão.</p>
         </details>
       </div>
       <div class="card">
@@ -265,7 +265,7 @@
   </div>
 </section>
 
-<!-- ===== FAQ: mata as objeções do comprador médico ===== -->
+<!-- ===== FAQ: mata as objeções do dono de clínica ===== -->
 <section class="lp-section" id="faq">
   <span class="lp-eyebrow">Perguntas frequentes</span>
   <h2 class="lp-section-title">O que todo dono de clínica pergunta antes.</h2>
@@ -313,7 +313,7 @@
   <div class="hero-actions">
     <a href="{{ cta_primario }}" class="btn btn-primary btn-lg"{% if cta_externo %} target="_blank" rel="noopener"{% endif %}>{{ cta_label }}</a>
   </div>
-  <p class="lp-cta-slogan">Menos gestão. Mais medicina. É pra isso que o Nous existe.</p>
+  <p class="lp-cta-slogan">Menos gestão. Mais cuidado. É pra isso que o Nous existe.</p>
 </section>
 
 {% if contato_comercial %}
