@@ -75,6 +75,7 @@
     --brand-sage:         #6FB59C;  /* verde sage — simbolo, gradiente, secundaria */
     --brand-verde:        #1E293B;  /* navy ink — blocos escuros (auth, footer dark) */
     --brand-verde-claro:  #43B8A5;  /* teal — PRIMARIA, CTAs, focos, glow */
+    --brand-primary:      var(--brand-verde-claro); /* alias: chips, accent-color, markers de <details> */
     --brand-ouro:         #B7A7F5;  /* lilas — ACCENT em fills/sobre navy */
     --brand-grafite:      #FFFFFF;  /* surface/card/navbar (branco) */
     --brand-cinza-claro:  #EEF2F1;  /* texto CLARO p/ uso sobre navy/cor */
@@ -153,32 +154,32 @@
 .tema-teal {            /* padrão Nous — teal + lilás */
     --brand-verde-claro: #43B8A5; --primary-dark: #2F9E8C; --primary-text: #0F766E;
     --text-on-ouro: #1E293B; --brand-ouro: #B7A7F5; --accent: #6D4FC4;
-    --brand-primary-rgb: 67, 184, 165; --brand-accent-rgb: 183, 167, 245;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 67, 184, 165; --brand-accent-rgb: 183, 167, 245;
 }
 .tema-indigo {          /* Confiança — índigo + céu */
     --brand-verde-claro: #4F5BD5; --primary-dark: #3F49B0; --primary-text: #3730A3;
     --text-on-ouro: #F8FAF8; --brand-ouro: #38BDF8; --accent: #0369A1;
-    --brand-primary-rgb: 79, 91, 213; --brand-accent-rgb: 56, 189, 248;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 79, 91, 213; --brand-accent-rgb: 56, 189, 248;
 }
 .tema-violeta {         /* Sofisticação — violeta + rosé */
     --brand-verde-claro: #6D4DCB; --primary-dark: #5B3FB0; --primary-text: #5B21B6;
     --text-on-ouro: #F8FAF8; --brand-ouro: #F0A6C8; --accent: #BE185D;
-    --brand-primary-rgb: 109, 77, 203; --brand-accent-rgb: 240, 166, 200;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 109, 77, 203; --brand-accent-rgb: 240, 166, 200;
 }
 .tema-verde {           /* Saúde — esmeralda + azul-clínico */
     --brand-verde-claro: #2E9E6B; --primary-dark: #25895C; --primary-text: #15803D;
     --text-on-ouro: #1E293B; --brand-ouro: #5EB0C9; --accent: #0E7490;
-    --brand-primary-rgb: 46, 158, 107; --brand-accent-rgb: 94, 176, 201;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 46, 158, 107; --brand-accent-rgb: 94, 176, 201;
 }
 .tema-ambar {           /* Acolhimento — âmbar + azul sereno */
     --brand-verde-claro: #E08A3C; --primary-dark: #C5772E; --primary-text: #B45309;
     --text-on-ouro: #1E293B; --brand-ouro: #5B8DC9; --accent: #1D4ED8;
-    --brand-primary-rgb: 224, 138, 60; --brand-accent-rgb: 91, 141, 201;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 224, 138, 60; --brand-accent-rgb: 91, 141, 201;
 }
 .tema-petroleo {        /* Serenidade — azul-petróleo + ouro suave */
     --brand-verde-claro: #246A7B; --primary-dark: #1D5666; --primary-text: #155E75;
     --text-on-ouro: #F8FAF8; --brand-ouro: #E2B25E; --accent: #92681A;
-    --brand-primary-rgb: 36, 106, 123; --brand-accent-rgb: 226, 178, 94;
+    --brand-primary: var(--brand-verde-claro); --brand-primary-rgb: 36, 106, 123; --brand-accent-rgb: 226, 178, 94;
 }
 
 /* Tema claro — hint pro browser pintar scrollbar/form controls em modo claro. */
@@ -696,6 +697,11 @@ button[aria-disabled="true"] {
 }
 .check-inline:has(input:focus-visible) {
     box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.35);
+}
+/* Fallback sem :has() (Safari<15.4 / Chrome<105 / Firefox<121): revela a
+   checkbox nativa dentro do chip, garantindo feedback do dia marcado. */
+@supports not (selector(:has(*))) {
+    .check-inline input[type="checkbox"] { position: static; opacity: 1; pointer-events: auto; }
 }
 
 /* Ações por linha/card: máx. 2-3 visíveis + menu "⋯ Mais" pro resto.
@@ -2368,6 +2374,10 @@ textarea:focus-visible {
 .ajuda-wrap.is-open .ajuda-panel {
     opacity: 1; transform: translateY(0) scale(1);
 }
+/* CRÍTICO: a classe define display:flex, que ANULA o atributo `hidden` (regra
+   de autor vence a do UA). Sem isto o painel fica invisível (opacity:0) porém
+   CLICÁVEL por cima de toda a página, roubando o toque dos botões. */
+.ajuda-panel[hidden] { display: none; }
 
 /* ---- Header navy ---- */
 .ajuda-head {
@@ -2661,6 +2671,9 @@ textarea:focus-visible {
 }
 
 /* Concierge IA — painel de rascunho da mensagem de retorno/reativacao. */
+/* .btn tem display:inline-block, que anula o atributo `hidden` -> guarda explicita
+   (senao o link "Abrir WhatsApp" aparece com href="#" e rola a pagina ao clicar). */
+.concierge-wa[hidden] { display: none; }
 .concierge-box {
     margin-top: 0.6rem;
     padding: 0.7rem;

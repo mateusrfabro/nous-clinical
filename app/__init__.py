@@ -296,6 +296,19 @@ def create_app(config_name="default"):
     from app.commands import register_commands
     register_commands(app)
 
+    # ---- Cache-busting de assets estaticos ----
+    # Anexa ?v=<sha do commit> a TODA url_for('static', ...) (css/js/imagens/
+    # favicon) automaticamente. Garante que browsers/celulares peguem o CSS/JS
+    # novo a cada deploy — sem isso, device com asset antigo em cache fica com
+    # layout/comportamento desatualizado ("funciona num, quebra noutro").
+    from app.services.app_info import app_version as _app_version
+    _asset_ver = _app_version()
+
+    @app.url_defaults
+    def _static_cache_bust(endpoint, values):
+        if endpoint == "static" and "v" not in values:
+            values["v"] = _asset_ver
+
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----
 
     @app.context_processor
