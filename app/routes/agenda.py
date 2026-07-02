@@ -11,6 +11,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app import db, limiter
@@ -626,7 +627,17 @@ def novo():
             criado_por_id=current_user.id,
         )
         db.session.add(ag)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU: o slot foi ocupado entre a checagem e o commit
+            # (trava única no banco). Mostra a mesma msg de conflito.
+            db.session.rollback()
+            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id)
         flash("Consulta agendada.", "success")
@@ -659,12 +670,19 @@ def mudar_status(agendamento_id):
         flash("Consulta já atendida não pode mudar de status.", "error")
         dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
         return redirect(url_for("agenda.listar", dia=dia))
+    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     ag.status = novo_status
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Reativar (cancelado -> agendado/confirmado) um horário que já foi
+        # reocupado esbarra na trava única. Mantém cancelado e avisa.
+        db.session.rollback()
+        flash("Não dá para reativar: esse horário já foi reocupado.", "error")
+        return redirect(url_for("agenda.listar", dia=dia))
     audit(AuditLog.ACAO_AGENDAMENTO_STATUS, recurso_tipo="agendamento",
           recurso_id=ag.id, detalhes=f"status={novo_status}")
     flash("Status atualizado.", "success")
-    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     return redirect(url_for("agenda.listar", dia=dia))
 
 
@@ -809,9 +827,12 @@ def _normalizar_tel(t):
 
 
 def _clinicas_ativas():
-    """Todas as clínicas ativas (sem escopo — contexto público)."""
+    """Clínicas com agendamento online HABILITADO (contexto público). O gate por
+    `agendamento_online_ativo` impede que um anônimo liste/enumere clínicas que
+    não optaram pelo portal público."""
     return db.session.execute(
-        select(Clinica).where(Clinica.ativo.is_(True))
+        select(Clinica).where(Clinica.ativo.is_(True),
+                              Clinica.agendamento_online_ativo.is_(True))
         .execution_options(ignore_tenant=True).order_by(Clinica.nome)
     ).scalars().all()
 
@@ -819,20 +840,23 @@ def _clinicas_ativas():
 def _clinica_publica():
     """Clínica do agendamento público. Prioridade: slug do portal
     (g.portal_clinica) > clinica_id escolhida no form/query > clínica única.
-    None quando há várias clínicas e nenhuma foi escolhida (mostra o seletor)."""
+    Só resolve clínicas com `agendamento_online_ativo` — as demais não são
+    bookable nem enumeráveis por ?clinica_id. None quando nenhuma se aplica."""
     cl = getattr(g, "portal_clinica", None)
     if cl is not None:
-        return cl
+        return cl if cl.agendamento_online_ativo else None
     cid = request.values.get("clinica_id", type=int)
     if cid:
         c = db.session.execute(
-            select(Clinica).where(Clinica.id == cid, Clinica.ativo.is_(True))
+            select(Clinica).where(Clinica.id == cid, Clinica.ativo.is_(True),
+                                  Clinica.agendamento_online_ativo.is_(True))
             .execution_options(ignore_tenant=True)
         ).scalars().first()
         if c:
             return c
     ativas = db.session.execute(
-        select(Clinica).where(Clinica.ativo.is_(True))
+        select(Clinica).where(Clinica.ativo.is_(True),
+                              Clinica.agendamento_online_ativo.is_(True))
         .execution_options(ignore_tenant=True).limit(2)
     ).scalars().all()
     return ativas[0] if len(ativas) == 1 else None
@@ -1051,7 +1075,12 @@ def agendar_online():
             observacoes=request.form.get("observacoes", "").strip()[:500] or None,
             clinica_id=clinica.id)
         db.session.add(ag)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU (trava única no banco): slot tomado no meio do POST.
+            db.session.rollback()
+            return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id, detalhes="online")
         # nome_informado: ecoa o nome DIGITADO, nunca o cadastrado. Se o CPF já
@@ -1168,7 +1197,14 @@ def editar(agendamento_id):
         ag.observacoes = request.form.get("observacoes", "").strip() or None
         # Reagendou p/ outra data -> precisa reenviar lembrete da NOVA data.
         ag.lembrete_enviado_em = None
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU: outro agendamento tomou (profissional, início).
+            db.session.rollback()
+            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
         audit(AuditLog.ACAO_AGENDAMENTO_EDITADO, recurso_tipo="agendamento",
               recurso_id=ag.id)
         flash("Consulta reagendada.", "success")
@@ -1209,7 +1245,7 @@ def aplicar_campos_prontuario(registro, ag):
     conv = ag.convenio
     for sid in request.form.getlist("procedimentos"):
         try:
-            proc = db.session.get(Procedimento, int(sid))
+            proc = get_da_clinica(Procedimento, int(sid))
         except (TypeError, ValueError):
             proc = None
         if proc:

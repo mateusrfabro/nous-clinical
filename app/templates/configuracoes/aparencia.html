@@ -80,6 +80,21 @@
   <div class="page-header section-title-mt"><h3>Link público &amp; QR Code de agendamento</h3></div>
   <p class="muted text-sm mb-2">O endereço que a clínica compartilha com os pacientes (recepção, Instagram, WhatsApp). Abre o agendamento com a sua marca.</p>
   <div class="card">
+    <form method="POST" action="{{ url_for('configuracoes.agendamento_toggle') }}" class="toolbar mb-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="ativar" value="{{ '0' if clinica.agendamento_online_ativo else '1' }}">
+      <div class="form-group-flex-main">
+        <strong>Agendamento online:</strong>
+        {% if clinica.agendamento_online_ativo %}
+        <strong class="text-success">ligado</strong> — pacientes podem marcar sozinhos pelo link/QR abaixo.
+        {% else %}
+        <strong class="muted">desligado</strong> — o link/QR não aceita marcações até você ligar.
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-sm {{ 'btn-outline' if clinica.agendamento_online_ativo else 'btn-primary' }}">
+        {{ 'Desligar' if clinica.agendamento_online_ativo else 'Ligar agendamento online' }}
+      </button>
+    </form>
     <form method="POST" action="{{ url_for('configuracoes.slug_salvar') }}" class="toolbar mb-2">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-group form-group-flex-main">

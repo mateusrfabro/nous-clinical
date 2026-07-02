@@ -80,3 +80,27 @@ def test_login_2fa_aceita_codigo_de_recuperacao(app, client):
     client.post("/login", data={"email": "admin@test.com", "senha": "testpass"})
     client.post("/login/2fa", data={"codigo": codigos[0]}, follow_redirects=True)
     assert client.get("/perfil/").status_code == 200
+
+
+def test_verificar_contador_casa_periodo_atual():
+    s = totp.gerar_secret()
+    t = int(time.time() // 30)
+    assert totp.verificar_contador(s, totp._codigo(s, t)) == t
+    assert totp.verificar_contador(s, "000000") in (None, t)  # só casa se bater
+    assert totp.verificar_contador(s, "abc") is None
+
+
+def test_login_2fa_bloqueia_replay(app, client):
+    # Um código de TOTP interceptado NÃO pode ser reapresentado dentro da janela.
+    secret = totp.gerar_secret()
+    _ativa_2fa_no_admin(secret)
+    codigo = _codigo_atual(secret)
+    client.post("/login", data={"email": "admin@test.com", "senha": "testpass"})
+    client.post("/login/2fa", data={"codigo": codigo}, follow_redirects=True)
+    assert client.get("/perfil/").status_code == 200
+    # logout e nova tentativa REUSANDO o mesmo código -> replay recusado
+    client.post("/logout")
+    client.post("/login", data={"email": "admin@test.com", "senha": "testpass"})
+    r = client.post("/login/2fa", data={"codigo": codigo}, follow_redirects=True)
+    assert "inválido" in r.get_data(as_text=True).lower()
+    assert client.get("/perfil/").status_code in (302, 401)   # não logou

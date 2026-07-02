@@ -39,10 +39,13 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 
 ## Modelos (`app/models.py`)
 - **Clinica** — tenant. Escopo automático via `app/services/tenant.py`.
+  `agendamento_online_ativo` (**default False**): liga/desliga o agendamento público
+  (portal `/c/<slug>/agendar` e `/agendar`); admin liga em Configurações › Aparência.
 - **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id, clinica_id).
   **2FA/TOTP opcional** (`totp_secret` cifrado via `services/cripto.py`, `totp_ativado`,
-  `totp_recovery`=hashes uso-único). **Lockout por-conta** (`tentativas_falhas`/`bloqueado_ate`,
-  5 falhas→15min) + `ultimo_login_ip` (alerta e-mail de acesso novo). Ver `services/totp.py`.
+  `totp_recovery`=hashes uso-único, `totp_ultimo_contador`=**anti-replay** do código).
+  **Lockout por-conta** (`tentativas_falhas`/`bloqueado_ate`, 5 falhas→15min, incremento
+  **atômico**) + `ultimo_login_ip` (alerta e-mail de acesso novo). Ver `services/totp.py`.
 - **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor,
   `duracao_padrao_min`, `comissao_percent`, **`sala`**.
 - **Paciente** — cadastro (nome/CPF/nascimento/**telefone** **obrigatórios no form**, contato,
@@ -51,6 +54,9 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
   PII + prontuário + exames, **preserva o financeiro** (fiscal). Rota `POST /pacientes/<id>/anonimizar`.
 - **Agendamento** — paciente + profissional + início/fim + status + valor/convênio + **sala**
   (puxada do profissional) + checkin_em. Duração selecionável (30/60/90/120).
+  **Trava anti-double-book no banco**: índice único parcial `uq_ag_prof_inicio_ativo`
+  em `(profissional_id, inicio)` where `status != 'cancelado'` (fecha corrida TOCTOU;
+  rotas de agendar/reagendar tratam `IntegrityError` como "horário acabou de ser ocupado").
 - **Atendimento** — prontuário (queixa/evolução/prescrição, retorno CRM, **atestado:
   `atestado_dias`/`atestado_cid`**). **Dado sensível LGPD.** Edição é auditada
   (`ACAO_ATENDIMENTO_EDITADO`). Gera PDF de **receita** e **atestado** (`/documentos`,

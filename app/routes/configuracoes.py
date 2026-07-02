@@ -304,6 +304,28 @@ def slug_salvar():
     return redirect(url_for("configuracoes.aparencia"))
 
 
+@configuracoes_bp.route("/agendamento-online", methods=["POST"])
+@login_required
+@admin_required
+def agendamento_toggle():
+    """Liga/desliga o agendamento online público da clínica. Desligado por
+    padrão: só quando o admin liga é que a clínica fica bookable/enumerável na
+    rota pública (/agendar e portal /c/<slug>/agendar)."""
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+    ativar = request.form.get("ativar") == "1"
+    clinica.agendamento_online_ativo = ativar
+    db.session.commit()
+    audit(AuditLog.ACAO_CLINICA_STATUS, recurso_tipo="clinica",
+          recurso_id=clinica.id,
+          detalhes=f"agendamento_online={'on' if ativar else 'off'}")
+    flash("Agendamento online " + ("ligado." if ativar
+          else "desligado."), "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
 @configuracoes_bp.route("/qr-agendamento.svg")
 @login_required
 @admin_required

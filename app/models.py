@@ -45,6 +45,10 @@ class Clinica(db.Model):
     logo_key = db.Column(db.String(255))
     logo_mime = db.Column(db.String(60))
     ativo = db.Column(db.Boolean, nullable=False, default=True)
+    # Agendamento online público (portal do paciente): OFF por padrão. Só quando
+    # o admin liga é que a clínica fica bookable/enumerável na rota pública — sem
+    # isso, um anônimo listaria profissionais/horários de QUALQUER clínica ativa.
+    agendamento_online_ativo = db.Column(db.Boolean, nullable=False, default=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     def __repr__(self):
@@ -137,6 +141,10 @@ class Usuario(UserMixin, db.Model):
     # Códigos de recuperação do 2FA (uso único) guardados como HASH — JSON de
     # lista de sha256. Permite entrar se o usuário perder o autenticador.
     totp_recovery = db.Column(db.Text)
+    # Anti-replay do TOTP: maior contador (unix//período) já aceito. Recusa reuso
+    # do MESMO código dentro da janela de tolerância (quem interceptar 1 código
+    # não consegue reapresentá-lo). NULL = nenhum login 2FA ainda.
+    totp_ultimo_contador = db.Column(db.BigInteger)
 
     profissional = db.relationship(
         "Profissional", back_populates="usuario", uselist=False
@@ -288,6 +296,16 @@ class Agendamento(db.Model):
     __table_args__ = (
         db.Index("ix_ag_clinica_inicio", "clinica_id", "inicio"),
         db.Index("ix_ag_prof_inicio", "profissional_id", "inicio"),
+        # Trava anti-double-book no BANCO (defesa contra a corrida TOCTOU entre a
+        # checagem de conflito e o commit): dois agendamentos NÃO-cancelados não
+        # podem compartilhar (profissional, início exato). Casa com a semântica
+        # de "ocupado" do app (tudo != cancelado bloqueia o slot). Só pega a
+        # colisão de início idêntico — o overlap parcial segue coberto pela
+        # checagem em app; aqui é o backstop do slot alinhado.
+        db.Index("uq_ag_prof_inicio_ativo", "profissional_id", "inicio",
+                 unique=True,
+                 sqlite_where=db.text("status != 'cancelado'"),
+                 postgresql_where=db.text("status != 'cancelado'")),
     )
 
     STATUS_AGENDADO = "agendado"

@@ -8,7 +8,7 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app import db, limiter
 from app.models import Usuario, AuditLog
@@ -164,7 +164,14 @@ def login():
 
         # Falha: incrementa o contador da conta existente e bloqueia no limite.
         if usuario:
-            usuario.tentativas_falhas = (usuario.tentativas_falhas or 0) + 1
+            # Incremento ATÔMICO no banco (UPDATE ... = coluna + 1) em vez de
+            # read-modify-write: sob falhas concorrentes de N workers, o padrão
+            # antigo perdia incrementos e o lockout nunca atingia o limite.
+            db.session.execute(
+                update(Usuario).where(Usuario.id == usuario.id)
+                .values(tentativas_falhas=Usuario.tentativas_falhas + 1)
+                .execution_options(synchronize_session=False, ignore_tenant=True))
+            db.session.refresh(usuario)   # lê o valor já consolidado
             if usuario.tentativas_falhas >= _MAX_TENTATIVAS:
                 usuario.bloqueado_ate = _agora_utc() + timedelta(minutes=_BLOQUEIO_MIN)
                 usuario.tentativas_falhas = 0
@@ -202,7 +209,18 @@ def login_2fa():
     if request.method == "POST":
         codigo = request.form.get("codigo", "")
         segredo = decifrar(usuario.totp_secret)
-        ok = bool(segredo) and totp_svc.verificar(segredo, codigo)
+        contador = totp_svc.verificar_contador(segredo, codigo) if segredo else None
+        ok = False
+        if contador is not None:
+            # Anti-replay: recusa reuso do mesmo código (ou de um período já
+            # consumido) dentro da janela de tolerância. Só avança o marcador.
+            ultimo = usuario.totp_ultimo_contador
+            if ultimo is None or contador > ultimo:
+                usuario.totp_ultimo_contador = contador
+                ok = True
+            else:
+                audit(AuditLog.ACAO_LOGIN_FAIL, usuario_id=usuario.id,
+                      detalhes="2fa_replay")
         if not ok:
             # fallback: código de recuperação (consome de uso único)
             novo_blob = totp_svc.consumir_recuperacao(codigo, usuario.totp_recovery)

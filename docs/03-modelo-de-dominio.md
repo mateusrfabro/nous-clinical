@@ -29,13 +29,18 @@ Clinica (TENANT) 1───* Usuario
 Uma clínica/consultório. **Tudo do domínio carrega `clinica_id` apontando pra cá.**
 Campos de white-label: `slug` (identificador público único), `tema`, `cor_primaria`,
 `logo_key`/`logo_mime`, `ativo`. Escopo automático em `services/tenant.py`.
+`agendamento_online_ativo` (**default False**): liga/desliga o agendamento público
+da clínica (portal `/c/<slug>/agendar` e rota `/agendar`). Desligado, a clínica não
+é bookável nem enumerável por anônimo — o admin liga em Configurações › Aparência.
 
 ### `Usuario` — autenticação
 `email` (único), `senha_hash` (Argon2id), `tipo` (papel), `ativo`, `clinica_id`
 (**nullable**: o superadmin não pertence a clínica), `telegram_chat_id`.
 **2FA/TOTP** (opcional): `totp_secret` (cifrado, `services/cripto.py`), `totp_ativado`,
-`totp_recovery` (JSON de hashes, uso único). **Lockout**: `tentativas_falhas`,
-`bloqueado_ate` (5 falhas → 15min); `ultimo_login_ip` (alerta de acesso novo).
+`totp_recovery` (JSON de hashes, uso único), `totp_ultimo_contador` (**anti-replay**:
+maior período TOTP já aceito — recusa reuso do mesmo código na janela). **Lockout**:
+`tentativas_falhas`, `bloqueado_ate` (5 falhas → 15min, incremento **atômico** no
+banco); `ultimo_login_ip` (alerta de acesso novo).
 Propriedades: `is_superadmin/is_admin/is_profissional/is_recepcao`.
 `tipo ∈ {superadmin, admin, profissional, recepcao}` — ver [doc 4](04-multitenant-e-rbac.md).
 
@@ -56,6 +61,10 @@ zera PII + apaga prontuário/exames, **preserva o financeiro** (obrigação fisc
 + **`sala`** + `checkin_em` + `lembrete_enviado_em`. Duração selecionável
 (30/60/90/120). Status: `agendado → confirmado → atendido` (ou `cancelado`/`faltou`).
 **`atendido` só é setado pelo registro do prontuário**, nunca manualmente.
+**Trava anti-double-book no banco**: índice único parcial `uq_ag_prof_inicio_ativo`
+em `(profissional_id, inicio)` where `status != 'cancelado'` — fecha a corrida TOCTOU
+entre a checagem de conflito e o commit. As rotas de agendar/reagendar tratam o
+`IntegrityError` como "horário acabou de ser ocupado".
 
 ### `Atendimento` — prontuário (DADO SENSÍVEL LGPD)
 `queixa`/`evolucao`/`prescricao`, `retorno_em` (CRM recall), **`atestado_dias`/

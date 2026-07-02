@@ -68,7 +68,10 @@ def _novo_usuario(email, tipo, nome="Teste"):
 
 
 def _seed_minimo():
-    clinica = Clinica(nome="Clínica Teste", slug="teste")
+    # Agendamento online LIGADO no seed de teste: a maioria dos testes de portal/
+    # booking assume a clínica bookável (o default do produto é desligado).
+    clinica = Clinica(nome="Clínica Teste", slug="teste",
+                      agendamento_online_ativo=True)
     db.session.add(clinica)
     db.session.flush()
 

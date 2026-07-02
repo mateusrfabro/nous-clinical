@@ -34,16 +34,24 @@ def _codigo(secret_b32: str, contador: int) -> str:
     return str(trunc % (10 ** _DIGITOS)).zfill(_DIGITOS)
 
 
-def verificar(secret_b32: str, codigo: str, agora: float | None = None) -> bool:
-    """True se `codigo` bate no período atual (±janela)."""
+def verificar_contador(secret_b32: str, codigo: str,
+                       agora: float | None = None) -> int | None:
+    """Se `codigo` bate no período atual (±janela), retorna o CONTADOR (int) que
+    casou; senão None. O contador serve pro caller barrar replay (reuso do mesmo
+    código dentro da janela): basta guardar o maior já aceito e recusar <=."""
     codigo = (codigo or "").strip().replace(" ", "")
     if not (secret_b32 and codigo.isdigit() and len(codigo) == _DIGITOS):
-        return False
+        return None
     t = int((agora if agora is not None else time.time()) // _PERIODO)
     for delta in range(-_JANELA, _JANELA + 1):
         if hmac.compare_digest(_codigo(secret_b32, t + delta), codigo):
-            return True
-    return False
+            return t + delta
+    return None
+
+
+def verificar(secret_b32: str, codigo: str, agora: float | None = None) -> bool:
+    """True se `codigo` bate no período atual (±janela)."""
+    return verificar_contador(secret_b32, codigo, agora) is not None
 
 
 def uri_otpauth(secret_b32: str, email: str, emissor: str = "Nous Clinical") -> str:

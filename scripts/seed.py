@@ -55,7 +55,8 @@ def seed():
         # (before_flush usa a única clínica como fallback).
         clinica = Clinica.query.first()
         if not clinica:
-            clinica = Clinica(nome="Clínica Nous", slug="nous")
+            clinica = Clinica(nome="Clínica Nous", slug="nous",
+                               agendamento_online_ativo=True)
             db.session.add(clinica)
             db.session.flush()
 
@@ -169,7 +170,8 @@ def seed():
         # Multi-tenant Fase 0: garante a clínica default e vincula tudo a ela.
         clinica = Clinica.query.first()
         if not clinica:
-            clinica = Clinica(nome="Clínica Nous", slug="nous")
+            clinica = Clinica(nome="Clínica Nous", slug="nous",
+                               agendamento_online_ativo=True)
             db.session.add(clinica)
             db.session.flush()
         for M in (Usuario, Profissional, Paciente, Agendamento, Atendimento,

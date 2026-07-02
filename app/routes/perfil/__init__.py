@@ -89,11 +89,14 @@ def dois_fatores():
 def dois_fatores_ativar():
     secret = session.get(_2FA_PENDING)
     codigo = request.form.get("codigo", "")
-    if not secret or not totp_svc.verificar(secret, codigo):
+    contador = totp_svc.verificar_contador(secret, codigo) if secret else None
+    if contador is None:
         flash("Código inválido. Confira o app autenticador e tente de novo.", "error")
         return redirect(url_for("perfil.dois_fatores"))
     current_user.totp_secret = cifrar(secret)
     current_user.totp_ativado = True
+    # Anti-replay: o código usado no enrollment não vale como 1º login.
+    current_user.totp_ultimo_contador = contador
     codigos = totp_svc.gerar_recuperacao()
     current_user.totp_recovery = totp_svc.serializar_recuperacao(codigos)
     db.session.commit()

@@ -32,6 +32,7 @@ from app.services.conciliacao import (
     importar_extrato, sugestao_para, candidatos_para,
     lancamentos_nao_conciliados,
 )
+from app.services.tenant import get_da_clinica
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
@@ -225,13 +226,13 @@ def novo():
             criado_por_id=current_user.id,
         )
         paciente_id = request.form.get("paciente_id", type=int)
-        if paciente_id and db.session.get(Paciente, paciente_id):
+        if paciente_id and get_da_clinica(Paciente, paciente_id):
             lanc.paciente_id = paciente_id
 
         # Vindo da agenda (botao Pagamento): liga a consulta e herda o paciente.
         ag_id = request.form.get("agendamento_id", type=int)
         if ag_id:
-            ag = db.session.get(Agendamento, ag_id)
+            ag = get_da_clinica(Agendamento, ag_id)
             if ag:
                 if ag.status not in (Agendamento.STATUS_CONFIRMADO,
                                      Agendamento.STATUS_ATENDIDO):
@@ -276,7 +277,7 @@ def novo():
         form_inicial["paciente_id"] = pid
     ag_id = request.args.get("agendamento_id", type=int)
     if ag_id:
-        ag = db.session.get(Agendamento, ag_id)
+        ag = get_da_clinica(Agendamento, ag_id)
         if ag:
             form_inicial["agendamento_id"] = ag.id
             form_inicial.setdefault("paciente_id", ag.paciente_id)
