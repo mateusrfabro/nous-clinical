@@ -85,6 +85,8 @@ def _num_br(valor):
         v = Decimal(s)
     except InvalidOperation:
         return None
+    if not v.is_finite():          # NaN/Infinity: ilegível (evita 500 no quantize)
+        return None
     return -abs(v) if neg else v
 
 

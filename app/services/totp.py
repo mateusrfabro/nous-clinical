@@ -56,8 +56,11 @@ def uri_otpauth(secret_b32: str, email: str, emissor: str = "Nous Clinical") -> 
 # ---- Códigos de recuperação (uso único, guardados como hash) ----
 
 def gerar_recuperacao(n: int = 8) -> list[str]:
-    """Lista de códigos legíveis (ex.: 'a1b2-c3d4') para o usuário guardar."""
-    return ["-".join(secrets.token_hex(2) for _ in range(2)) for _ in range(n)]
+    """Lista de códigos legíveis (ex.: 'a1b2c3d4e5-f6a7b8c9d0') para o usuário
+    guardar. 2 grupos de 5 bytes = 80 bits de entropia por código: inviabiliza
+    brute-force offline dos hashes caso o banco vaze (o elo fraco antes eram os
+    32 bits do formato antigo)."""
+    return ["-".join(secrets.token_hex(5) for _ in range(2)) for _ in range(n)]
 
 
 def _hash(codigo: str) -> str:

@@ -5,7 +5,7 @@
 {% if sucesso %}
   <span class="confirma-selo">Consulta solicitada</span>
   <ul class="confirma-info">
-    <li><span>Paciente</span><strong>{{ sucesso.paciente.nome_completo }}</strong></li>
+    <li><span>Paciente</span><strong>{{ nome_informado or sucesso.paciente.nome_completo }}</strong></li>
     <li><span>Data e hora</span><strong>{{ sucesso.inicio|datetime_br }}</strong></li>
     <li><span>Profissional</span><strong>{{ sucesso.profissional.nome }}</strong></li>
   </ul>

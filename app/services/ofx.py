@@ -66,9 +66,12 @@ def _valor_ofx(bruto: str) -> Decimal | None:
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
     try:
-        return Decimal(s)
+        v = Decimal(s)
     except (InvalidOperation, ValueError):
         return None
+    # NaN/Infinity constroem um Decimal válido mas estouram no >=/quantize
+    # depois (500). Descarta não-finitos como ilegíveis.
+    return v if v.is_finite() else None
 
 
 def _para_data(dtposted: str) -> date | None:

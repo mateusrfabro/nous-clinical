@@ -1054,7 +1054,11 @@ def agendar_online():
         db.session.commit()
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id, detalhes="online")
-        return render_template("agenda/agendar.html", sucesso=ag, **_ctx())
+        # nome_informado: ecoa o nome DIGITADO, nunca o cadastrado. Se o CPF já
+        # existir na clínica, mostrar o nome guardado vazaria PII (oráculo: um
+        # anônimo com um CPF-alvo descobriria o nome real do paciente). LGPD.
+        return render_template("agenda/agendar.html", sucesso=ag,
+                               nome_informado=nome, **_ctx())
 
     # GET — passo 1 (escolher prof/dia) e, se válidos, passo 2 (slots).
     prof_sel = db.session.get(
