@@ -297,17 +297,24 @@ def create_app(config_name="default"):
     register_commands(app)
 
     # ---- Cache-busting de assets estaticos ----
-    # Anexa ?v=<sha do commit> a TODA url_for('static', ...) (css/js/imagens/
-    # favicon) automaticamente. Garante que browsers/celulares peguem o CSS/JS
-    # novo a cada deploy — sem isso, device com asset antigo em cache fica com
-    # layout/comportamento desatualizado ("funciona num, quebra noutro").
-    from app.services.app_info import app_version as _app_version
-    _asset_ver = _app_version()
+    # Anexa ?v=<mtime do arquivo> a TODA url_for('static', ...) (css/js/imagens)
+    # automaticamente. Garante que browsers/celulares peguem o asset novo a cada
+    # deploy — sem isso, device com CSS/JS antigo em cache fica desatualizado
+    # ("funciona num, quebra noutro"). Usa mtime (nao a versao do app): no Render
+    # nao ha git, entao app_version()=="unknown" nunca mudaria e nao busta nada.
+    import os as _os
 
     @app.url_defaults
     def _static_cache_bust(endpoint, values):
-        if endpoint == "static" and "v" not in values:
-            values["v"] = _asset_ver
+        if endpoint != "static" or "v" in values:
+            return
+        filename = values.get("filename")
+        if not filename:
+            return
+        try:
+            values["v"] = int(_os.path.getmtime(_os.path.join(app.static_folder, filename)))
+        except OSError:
+            pass
 
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----
 
