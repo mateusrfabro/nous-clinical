@@ -624,8 +624,18 @@ button[aria-disabled="true"] {
 /* .btn-sm: padding maior em mobile (tap target >= 36px) sem inflar desktop.
    Antes era 0.3rem 0.8rem (~28px alt) que falha WCAG 2.5.5 em telas pequenas. */
 .btn-sm { padding: 0.45rem 0.85rem; font-size: 0.8rem; }
+/* Mobile: alvo de toque >= 44px (WCAG 2.5.5). inline-flex centraliza o texto
+   quando o min-height passa a valer; nao infla o desktop. O toggle "..." e os
+   botoes densos da agenda/financeiro deixam de ser mis-tap no celular. */
 @media (max-width: 768px) {
-    .btn-sm { padding: 0.55rem 0.95rem; }}
+    .btn-sm {
+        padding: 0.55rem 0.95rem;
+        min-height: 44px;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .actions-more-toggle { min-width: 44px; min-height: 44px; }
+    .row-actions { gap: 0.5rem; }
+}
 .btn-block { display: block; width: 100%; text-align: center; }
 
 /* ============================================================
@@ -1893,10 +1903,9 @@ body.app {
 .qr-box { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
 .qr-img { width: 180px; height: 180px; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 8px; }
 
-/* Tabelas largas no mobile: rolagem horizontal só na tabela (nao no body). */
-@media (max-width: 600px) {
-    .table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-}
+/* Rolagem horizontal de tabela larga fica a cargo do .table-wrapper (rola só a
+   tabela, nao o body — em qualquer largura). NAO tornar a .table um segundo
+   container de scroll: gerava scroll-dentro-de-scroll no mobile. */
 
 /* ===================== Toasts (flash -> toast) =====================
    O servidor renderiza .flash-container > .alert; o toast.js promove isso a
