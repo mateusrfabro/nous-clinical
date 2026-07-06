@@ -1,6 +1,6 @@
 """Conciliação bancária (OFX): parser, importação/dedup, sugestão e fluxo."""
 import io
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -14,15 +14,21 @@ from app.services.conciliacao import (
 
 _BR = ZoneInfo("America/Sao_Paulo")
 
-_OFX = """OFXHEADER:100
+# Datas DINÂMICAS (D-2 / D-1): o painel de divergências filtra "últimos 30 dias",
+# então data fixa no fixture fazia o teste "vencer" com o passar do calendário
+# (quebrou sozinho em 06/07/2026 com DTPOSTED fixo em 05/06/2026).
+_D1 = datetime.now(_BR).date() - timedelta(days=2)   # crédito PIX CONSULTA
+_D2 = datetime.now(_BR).date() - timedelta(days=1)   # débito TARIFA BANCO
+
+_OFX = f"""OFXHEADER:100
 DATA:OFXSGML
 VERSION:102
 <OFX>
 <BANKMSGSRSV1><STMTTRNRS><STMTRS>
 <BANKACCTFROM><BANKID>001<ACCTID>12345-6</BANKACCTFROM>
 <BANKTRANLIST>
-<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20260605120000[-3:GMT]<TRNAMT>150.00<FITID>TX001<MEMO>PIX CONSULTA</STMTTRN>
-<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260606<TRNAMT>-80.00<FITID>TX002<MEMO>TARIFA BANCO</STMTTRN>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>{_D1:%Y%m%d}120000[-3:GMT]<TRNAMT>150.00<FITID>TX001<MEMO>PIX CONSULTA</STMTTRN>
+<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>{_D2:%Y%m%d}<TRNAMT>-80.00<FITID>TX002<MEMO>TARIFA BANCO</STMTTRN>
 </BANKTRANLIST>
 </STMTRS></STMTTRNRS></BANKMSGSRSV1>
 </OFX>
@@ -31,8 +37,8 @@ VERSION:102
 
 _CSV = (
     "Data;Valor;Histórico\n"
-    "05/06/2026;150,00;PIX CONSULTA\n"
-    "06/06/2026;-80,00;TARIFA BANCO\n"
+    f"{_D1:%d/%m/%Y};150,00;PIX CONSULTA\n"
+    f"{_D2:%d/%m/%Y};-80,00;TARIFA BANCO\n"
 )
 
 
@@ -60,7 +66,7 @@ def test_ofx_parser_le_transacoes():
     assert cred.tipo == "credito"
     assert cred.valor == Decimal("150.00")
     assert cred.fitid == "TX001"
-    assert cred.data.isoformat() == "2026-06-05"
+    assert cred.data == _D1
     deb = ext.transacoes[1]
     assert deb.tipo == "debito"
     assert deb.valor == Decimal("80.00")   # sempre positivo
@@ -71,7 +77,7 @@ def test_csv_parser_le_transacoes():
     assert len(ext.transacoes) == 2
     cred = ext.transacoes[0]
     assert cred.tipo == "credito" and cred.valor == Decimal("150.00")
-    assert cred.data.isoformat() == "2026-06-05"
+    assert cred.data == _D1
     assert cred.fitid.startswith("csv")   # fitid sintetizado p/ dedup
     deb = ext.transacoes[1]
     assert deb.tipo == "debito" and deb.valor == Decimal("80.00")
@@ -202,8 +208,8 @@ def test_importar_dedup(client_admin, app):
 
 def test_sugestao_casa_lancamento(client_admin, app):
     with app.app_context():
-        pago = datetime.combine(__import__("datetime").date(2026, 6, 5),
-                                time(12, 0), tzinfo=_BR).astimezone(timezone.utc)
+        pago = datetime.combine(_D1, time(12, 0),
+                                tzinfo=_BR).astimezone(timezone.utc)
         db.session.add(LancamentoFinanceiro(
             tipo=LancamentoFinanceiro.TIPO_RECEITA,
             status=LancamentoFinanceiro.STATUS_PAGO,
