@@ -129,6 +129,40 @@ cidade — no futuro pode permitir integração direta sem gateway.
 - **Fase 4:** segundo gateway (Focus) + roteamento por cidade no adaptador.
 - **Fase 5:** automação opcional (emitir ao receber) + relatórios fiscais.
 
+## 6.1 Migração de gateway (Nuvem Fiscal → Focus NFe)
+
+**Por quê:** a **Nuvem Fiscal será desativada em 31/07/2026**. O adaptador agnóstico
+(`app/services/fiscal/`) já previa isso — a migração troca o provedor sem tocar no
+resto do módulo. O adaptador **`focusnfe.py`** implementa a mesma interface
+(`GatewayNFSe`): `ping`, `cadastrar_emitente`, `emitir`, `consultar`, `cancelar`.
+
+**API Focus (confirmada em doc.focusnfe.com.br):** HTTP Basic com o **token como
+usuário e senha vazia**; homologação `https://homologacao.focusnfe.com.br` e produção
+`https://api.focusnfe.com.br` (prefixo `/v2`). Emissão **assíncrona**
+(`POST /v2/nfse?ref=` → `GET /v2/nfse/REF`), cancelamento `DELETE /v2/nfse/REF`
+(justificativa 15–255 chars), empresas `POST /v2/empresas` (retorna `id` numérico →
+vira o `gateway_empresa_id`; na Nuvem Fiscal era o CNPJ).
+
+**Envs novas (padrão das existentes — só no servidor):**
+```
+FISCAL_GATEWAY=focusnfe          # seletor do gateway; default nuvemfiscal (não muda quem já roda)
+FOCUSNFE_TOKEN=<token da conta>  # HTTP Basic: token como usuário, senha vazia
+FOCUSNFE_AMBIENTE=homologacao    # homologacao | producao
+```
+
+**Passo operacional pendente (por clínica emitente):** os emitentes cadastrados na
+Nuvem Fiscal **não migram sozinhos** — é preciso **recadastrar cada empresa na Focus**
+(botão "Cadastrar emitente" em `/configuracoes/fiscal` com `FISCAL_GATEWAY=focusnfe`),
+o que grava o **novo `gateway_empresa_id`** (id Focus) na `ConfigFiscalClinica`, e
+**reenviar o certificado A1** ao novo gateway. Fazer antes de 31/07/2026.
+
+**Pendências/TODO (não confirmado na doc pública):** comportamento do
+`POST /v2/empresas` quando o CNPJ já existe (idempotência — na Nuvem era HTTP 409;
+atualização seria `PUT /v2/empresas/{id}`); e se o **token da conta** basta para
+emitir por todas as empresas ou se é preciso usar o token por empresa que a Focus
+devolve no cadastro (`token_producao`/`token_homologacao`). Confirmar com o suporte
+Focus antes do go-live.
+
 ## 6. Fontes (verificadas)
 gov.br/nfse (API nacional + manual técnico out/2025) · dev.nuvemfiscal.com.br/docs ·
 focusnfe.com.br/precos · enotass.com.br · plugnotas.com.br/nfse · WebmaniaBR (CNAE×LC116)
