@@ -96,6 +96,14 @@ class Config:
     NUVEMFISCAL_CLIENT_ID = os.getenv("NUVEMFISCAL_CLIENT_ID", "")
     NUVEMFISCAL_CLIENT_SECRET = os.getenv("NUVEMFISCAL_CLIENT_SECRET", "")
     NUVEMFISCAL_AMBIENTE = os.getenv("NUVEMFISCAL_AMBIENTE", "sandbox")  # sandbox|producao
+    # Seletor do gateway fiscal da plataforma: nuvemfiscal | focusnfe. Default
+    # nuvemfiscal (nao muda quem ja roda); a Nuvem Fiscal sera DESATIVADA em
+    # 31/07/2026 -> migrar para focusnfe (ver docs/11-emissao-nf.md, secao 6.1).
+    FISCAL_GATEWAY = os.getenv("FISCAL_GATEWAY", "nuvemfiscal")
+    # Focus NFe: HTTP Basic (token como usuario, senha vazia). Homologacao por
+    # padrao; o token fica SO no servidor (variavel de ambiente).
+    FOCUSNFE_TOKEN = os.getenv("FOCUSNFE_TOKEN", "")
+    FOCUSNFE_AMBIENTE = os.getenv("FOCUSNFE_AMBIENTE", "homologacao")  # homologacao|producao
 
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
