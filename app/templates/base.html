@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Nous Clinical{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}Nous Clinical — menos gestão, mais cuidado. Agenda, pacientes, prontuário e financeiro com inteligência clínica.{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ request.base_url }}{% endblock %}">
+    {# Open Graph / Twitter — compartilhamento social e reconhecimento de entidade (SEO/AEO). #}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Nous Clinical">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="{{ self.title()|striptags|trim }}">
+    <meta property="og:description" content="{{ self.meta_description()|striptags|trim }}">
+    <meta property="og:url" content="{{ self.canonical()|trim }}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/hero-agenda.png', _external=True) }}{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.title()|striptags|trim }}">
+    <meta name="twitter:description" content="{{ self.meta_description()|striptags|trim }}">
+    <meta name="twitter:image" content="{{ self.og_image()|trim }}">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="icon" type="image/svg+xml" href="{{ favicon_url }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +27,7 @@
     {% if tema_css_url %}{# White-label: cor de marca livre da clínica (CSP-safe, 'self'). #}
     <link rel="stylesheet" href="{{ tema_css_url }}">{% endif %}
     {% block head_extra %}{% endblock %}
+    {% block structured_data %}{% endblock %}
 </head>
 {% set ep = request.endpoint or '' %}
 {% macro flashes() %}

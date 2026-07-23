@@ -3,14 +3,16 @@ from datetime import datetime, timedelta, timezone
 
 from flask import (
     Blueprint, render_template, redirect, url_for, jsonify, request,
-    abort, current_app,
+    abort, current_app, Response,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app import db, csrf, limiter
-from app.models import Paciente, Profissional, Agendamento, LancamentoFinanceiro
+from app.models import (
+    Clinica, Paciente, Profissional, Agendamento, LancamentoFinanceiro,
+)
 from app.services.app_info import app_version, migration_head
 
 main_bp = Blueprint("main", __name__)
@@ -47,6 +49,53 @@ def index():
     return render_template(
         "main/index.html",
         contato=current_app.config.get("CONTATO_COMERCIAL") or "")
+
+
+def _site_base_url():
+    """Base absoluta do site p/ robots/sitemap. Usa PUBLIC_BASE_URL quando
+    configurada (proxy/cron); senão deriva do request (ProxyFix já corrige
+    host/scheme em produção)."""
+    base = (current_app.config.get("PUBLIC_BASE_URL") or "").rstrip("/")
+    return base or request.url_root.rstrip("/")
+
+
+@main_bp.route("/robots.txt")
+def robots_txt():
+    """robots.txt: libera o marketing público, bloqueia as áreas logadas e
+    aponta o sitemap. Defesa em profundidade — as rotas logadas já redirecionam
+    o anônimo pro login; aqui a gente só evita gastar crawl e indexar tela de app.
+    `/agenda/` (com barra) protege as rotas logadas sem pegar o `/agendar` público."""
+    privados = [
+        "/painel", "/buscar", "/agenda/", "/pacientes", "/financeiro", "/crm",
+        "/procedimentos", "/relatorios", "/exames", "/documentos", "/perfil",
+        "/clinicas", "/auditoria", "/configuracoes", "/whatsapp", "/ajuda",
+        "/login", "/esqueci-senha", "/redefinir-senha", "/confirmar",
+    ]
+    linhas = ["User-agent: *"]
+    linhas += [f"Disallow: {p}" for p in privados]
+    linhas += ["", f"Sitemap: {_site_base_url()}/sitemap.xml", ""]
+    return Response("\n".join(linhas), mimetype="text/plain")
+
+
+@main_bp.route("/sitemap.xml")
+def sitemap_xml():
+    """Sitemap: a landing + os portais públicos das clínicas com agendamento
+    online ativo (SEO local — cada tenant vira uma URL indexável). Só entra quem
+    o admin ligou (`agendamento_online_ativo`) e tem slug — nunca enumera clínica
+    que não optou por ser pública."""
+    base = _site_base_url()
+    urls = [(base + "/", "weekly", "1.0")]
+    slugs = db.session.execute(
+        select(Clinica.slug).where(
+            Clinica.ativo.is_(True),
+            Clinica.agendamento_online_ativo.is_(True),
+            Clinica.slug.is_not(None),
+        ).order_by(Clinica.slug)
+    ).scalars().all()
+    for slug in slugs:
+        urls.append((f"{base}/c/{slug}", "weekly", "0.7"))
+    xml = render_template("sitemap.xml", urls=urls)
+    return Response(xml, mimetype="application/xml")
 
 
 @main_bp.route("/buscar")

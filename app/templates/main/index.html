@@ -2,7 +2,48 @@
 {% block title %}Nous Clinical — menos gestão, mais cuidado{% endblock %}
 {% block meta_description %}Nous Clinical: agenda, pacientes, prontuário, financeiro e relatórios numa só plataforma de gestão para clínicas e consultórios da área da saúde, com inteligência clínica e LGPD by design.{% endblock %}
 {# Canonical na raiz: `/` e `/produto` renderizam a mesma página -> evita conteúdo duplicado no índice. #}
-{% block head_extra %}<link rel="canonical" href="{{ url_for('main.index', _external=True) }}">{% endblock %}
+{% block canonical %}{{ url_for('main.index', _external=True) }}{% endblock %}
+{# Dados estruturados (Schema.org) — entidade Nous + software + FAQ.
+   Ao editar a FAQ visível (seção #faq), espelhar aqui em mainEntity. #}
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "{{ url_for('main.index', _external=True) }}#organization",
+      "name": "Nous Clinical",
+      "url": "{{ url_for('main.index', _external=True) }}",
+      "logo": "{{ url_for('static', filename='favicon.svg', _external=True) }}",
+      "slogan": "Menos gestão. Mais cuidado.",
+      "description": "Sistema de gestão para clínicas e consultórios da área da saúde: agenda, prontuário, financeiro e relatórios, com inteligência clínica e LGPD by design."
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Nous Clinical",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "Software de gestão para clínicas e consultórios",
+      "operatingSystem": "Web",
+      "url": "{{ url_for('main.index', _external=True) }}",
+      "inLanguage": "pt-BR",
+      "description": "Plataforma de gestão para clínicas e consultórios de 1 a 5 profissionais (medicina, odontologia, psicologia, fisioterapia, nutrição e mais): agendamento online, prontuário eletrônico, financeiro e relatórios."
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {"@type":"Question","name":"Os dados dos meus pacientes são meus?","acceptedAnswer":{"@type":"Answer","text":"Sim, sempre. Os dados são da clínica. A gente só os processa para o sistema funcionar — não vende, não compartilha e não usa para treinar nada."}},
+        {"@type":"Question","name":"E se eu quiser sair? Perco tudo?","acceptedAnswer":{"@type":"Answer","text":"Não. Você exporta seus relatórios e dados em CSV (faturamento, DRE, convênios, pacientes) e os documentos clínicos — receita, atestado e prontuário — em PDF. Sem sequestro de dados."}},
+        {"@type":"Question","name":"Preciso instalar alguma coisa?","acceptedAnswer":{"@type":"Answer","text":"Não. É na nuvem: abre no navegador do computador. Nada para instalar, configurar servidor ou atualizar — você entra e usa."}},
+        {"@type":"Question","name":"Funciona no celular?","acceptedAnswer":{"@type":"Answer","text":"Funciona. A agenda e o dia a dia da recepção rodam no navegador do celular — a mesma tela da demonstração abre no seu telefone."}},
+        {"@type":"Question","name":"É seguro para dado de paciente e LGPD?","acceptedAnswer":{"@type":"Answer","text":"Prontuário é dado sensível: só o profissional e o administrador acessam, e toda edição fica registrada (quem, o quê, quando). Cada clínica é isolada das outras e as senhas usam Argon2id."}},
+        {"@type":"Question","name":"Quem me atende quando eu precisar?","acceptedAnswer":{"@type":"Answer","text":"Uma pessoa de verdade, direto no WhatsApp — sem call center e sem robô. Você fala com quem faz o produto."}}
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
 {% block h1_oculto_pub %}{% endblock %}
 {% set cta_primario = contato_comercial or url_for('auth.login') %}
 {% set cta_label = 'Agendar demonstração gratuita' if contato_comercial else 'Entrar na plataforma' %}
