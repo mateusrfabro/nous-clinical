@@ -50,14 +50,15 @@ services:
       - key: S3_SECRET_ACCESS_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: nous-clinical-db
-          property: connectionString
+        sync: false          # Banco EXTERNO agora (Neon free — Postgres real, nao
+                             # apaga por inatividade). Cole no dashboard do Render a
+                             # connection string do POOLER do Neon (host '...-pooler',
+                             # com '?sslmode=require'). ATENCAO: se ficar VAZIA, o app
+                             # cai pro SQLite efemero e PERDE dados a cada deploy —
+                             # defina ANTES do primeiro deploy. Passo a passo em
+                             # docs/12-migracao-banco-neon.md.
 
-databases:
-  - name: nous-clinical-db
-    databaseName: nous
-    user: nous
-    region: oregon
-    plan: free               # VALIDACAO: gratis, porem EXPIRA em ~90 dias e perde
-                             # os dados. Antes do uso real, troque para 'basic-256mb'.
+# Sem bloco `databases:` — saimos do Postgres gerenciado do Render (o free apaga em
+# 30d+14, sem backup) para o Neon (externo, custo zero, nao apaga por inatividade).
+# Depois de migrar e o app subir na URL do Neon, delete manualmente o banco antigo
+# 'nous-clinical-db' no dashboard do Render.

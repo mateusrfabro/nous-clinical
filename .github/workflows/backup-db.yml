@@ -1,0 +1,63 @@
+# Backup diario do banco (Neon) -> dump cifrado -> object storage (R2/B2).
+# "Backup so existe se voce ja restaurou dele": replica/volume do provedor NAO e
+# backup. Este workflow tira um pg_dump proprio, cifrado (tem PII/prontuario),
+# guardado FORA do provedor do banco.
+#
+# Fica INERTE ate os secrets serem configurados (ver docs/12-migracao-banco-neon.md
+# Parte F). Sem eles, o job apenas loga "pulado" e passa verde — nao falha o CI.
+name: backup-db
+
+on:
+  schedule:
+    - cron: "0 6 * * *"    # 06:00 UTC = 03:00 America/Sao_Paulo, todo dia
+  workflow_dispatch: {}     # botao manual (Actions -> backup-db -> Run workflow)
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checar secrets (no-op se ainda nao configurado)
+        id: check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_AGE_PUBKEY: ${{ secrets.BACKUP_AGE_PUBKEY }}
+          R2_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_AGE_PUBKEY" ] || [ -z "$R2_KEY" ]; then
+            echo "Secrets de backup ausentes — pulando. Configure conforme docs/12."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar client PostgreSQL 18 + age
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          # Client 18 = major do server (Neon PG18). pg_dump exige client >= server.
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-18 age
+
+      - name: Dump + cifra + upload (R2/B2)
+        if: steps.check.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_AGE_PUBKEY: ${{ secrets.BACKUP_AGE_PUBKEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          TS=$(date -u +%Y%m%d-%H%M%S)
+          FILE="nous-${TS}.dump.age"
+          # -Fc: formato custom (comprimido, restauravel com pg_restore).
+          pg_dump "$DATABASE_URL" -Fc | age -r "$BACKUP_AGE_PUBKEY" > "$FILE"
+          echo "Dump cifrado gerado: $FILE ($(du -h "$FILE" | cut -f1))"
+          aws s3 cp "$FILE" "s3://${R2_BUCKET}/${FILE}" --endpoint-url "$R2_ENDPOINT"
+          echo "Enviado para o bucket. Restore: age -d -i chave.txt $FILE | pg_restore -d URL"
+      # Retencao: configure uma lifecycle rule no proprio bucket R2/B2 (ex.: expirar
+      # objetos com +30 dias) — mais simples e barato que gerir no workflow.
