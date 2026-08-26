@@ -23,14 +23,15 @@ from app.services.passwords import hash_senha  # noqa: E402
 SENHA_DEMO = "demo123"
 
 
-def _get_or_create_usuario(email, nome, tipo, telefone="(43) 99999-0000"):
+def _get_or_create_usuario(email, nome, tipo, telefone="(43) 99999-0000",
+                           clinica_id=None):
     u = Usuario.query.filter_by(email=email).first()
     if u:
         return u, False
     u = Usuario(
         email=email, senha_hash=hash_senha(SENHA_DEMO),
         nome_responsavel=nome, telefone=telefone, tipo=tipo,
-        aceite_termos_em=datetime.now(timezone.utc),
+        aceite_termos_em=datetime.now(timezone.utc), clinica_id=clinica_id,
     )
     db.session.add(u)
     db.session.flush()
@@ -60,9 +61,13 @@ def seed():
             db.session.add(clinica)
             db.session.flush()
 
-        # Admin + recepcao
-        _get_or_create_usuario("admin@nous.com", "Administrador", "admin")
-        _get_or_create_usuario("recepcao@nous.com", "Recepção", "recepcao")
+        # Admin + recepcao — clinica_id EXPLÍCITO: o fallback do before_flush só
+        # age quando existe UMA clínica; num banco multi-clínica ele não preenche
+        # e o insert estoura NOT NULL (visto em prod, 26/08).
+        _get_or_create_usuario("admin@nous.com", "Administrador", "admin",
+                               clinica_id=clinica.id)
+        _get_or_create_usuario("recepcao@nous.com", "Recepção", "recepcao",
+                               clinica_id=clinica.id)
 
         # Convênios (master data) — alimentam os selects de convênio nos cadastros.
         for nome_conv in ("Unimed", "Bradesco Saúde", "SulAmérica", "Amil",
@@ -78,11 +83,13 @@ def seed():
             ("dra.ana@nous.com", "Dra. Ana Souza", "Clínica Geral", "#43B8A5"),
             ("dr.bruno@nous.com", "Dr. Bruno Lima", "Pediatria", "#6FB59C"),
         ]:
-            u, _ = _get_or_create_usuario(email, nome, "profissional")
+            u, _ = _get_or_create_usuario(email, nome, "profissional",
+                                          clinica_id=clinica.id)
             prof = Profissional.query.filter_by(usuario_id=u.id).first()
             if not prof:
                 prof = Profissional(usuario_id=u.id, nome=nome, especialidade=esp,
-                                    cor_agenda=cor, duracao_padrao_min=30)
+                                    cor_agenda=cor, duracao_padrao_min=30,
+                                    clinica_id=clinica.id)
                 db.session.add(prof)
                 db.session.flush()
             profs.append(prof)
@@ -91,12 +98,13 @@ def seed():
         pacientes = [
             _get_or_create_paciente("Maria Oliveira", cpf="111.111.111-11",
                                     telefone="(43) 98888-0001", convenio="Unimed",
-                                    origem="Google"),
+                                    origem="Google", clinica_id=clinica.id),
             _get_or_create_paciente("João Pereira", cpf="222.222.222-22",
-                                    telefone="(43) 98888-0002", origem="Indicação"),
+                                    telefone="(43) 98888-0002", origem="Indicação",
+                                    clinica_id=clinica.id),
             _get_or_create_paciente("Carla Mendes", cpf="333.333.333-33",
                                     telefone="(43) 98888-0003", convenio="Bradesco Saúde",
-                                    origem="Instagram"),
+                                    origem="Instagram", clinica_id=clinica.id),
         ]
 
         # Agendamentos de hoje (09:00, 09:30, 10:00)
@@ -151,7 +159,8 @@ def seed():
         if Atendimento.query.count() == 0:
             helena = _get_or_create_paciente(
                 "Helena Costa", cpf="444.444.444-44",
-                telefone="(43) 98888-0004", convenio="Unimed")
+                telefone="(43) 98888-0004", convenio="Unimed",
+                clinica_id=clinica.id)
             db.session.add(Atendimento(
                 paciente_id=helena.id, profissional_id=profs[0].id,
                 queixa="Acompanhamento — retorno anual recomendado.",
