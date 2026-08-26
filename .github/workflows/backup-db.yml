@@ -52,6 +52,11 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           set -euo pipefail
+          # O runner ja traz o client 16 e o wrapper /usr/bin/pg_dump pode
+          # escolher ele (falhou com "server version mismatch" 18x16, 26/08).
+          # Usa o binario versionado do pacote postgresql-client-18 direto.
+          export PATH="/usr/lib/postgresql/18/bin:$PATH"
+          pg_dump --version
           TS=$(date -u +%Y%m%d-%H%M%S)
           FILE="nous-${TS}.dump.age"
           # -Fc: formato custom (comprimido, restauravel com pg_restore).
