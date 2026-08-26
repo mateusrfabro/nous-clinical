@@ -22,6 +22,7 @@ depender de ninguém.
 10. [Integração WhatsApp](10-whatsapp-integracao.md) — Cloud API, webhook, envio e **lembrete por template (HSM)**.
 11. [Emissão de NFS-e](11-emissao-nf.md) — gateway, certificado, status do módulo fiscal.
 12. [Conciliação bancária & fechamento de caixa](12-conciliacao-e-caixa.md) — modelos, parsers OFX/CSV, match e rotas.
+13. [Chatbot de ajuda "Suporte Nous"](13-chatbot-suporte-nous.md) — como foi construído: busca local custo zero + IA opcional.
 
 > **Documentos não-técnicos:** [`PRODUCAO-STATUS-PENDENCIAS.md`](PRODUCAO-STATUS-PENDENCIAS.md)
 > (status/pendências interno), [`COMERCIAL-NOUS.md`](COMERCIAL-NOUS.md) (apresentação
