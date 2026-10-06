@@ -55,6 +55,32 @@ PERSONA = (
 
 _cache_base = {}   # papel -> texto da base; preenchido sob demanda
 
+# Tag de delimitação escrita DENTRO de um texto do histórico (ex.: "</historico>")
+# abriria/fecharia bloco por fora do controle do servidor — é removida.
+_RE_TAG_DELIMITADOR = re.compile(r"</?\s*(historico|pergunta)\s*>", re.IGNORECASE)
+
+
+def _historico_como_dado(historico):
+    """Histórico do browser -> bloco <historico> de TEXTO, dentro da mensagem do usuário.
+
+    O histórico vem do cliente e não é confiável: se cada item virasse um turno da
+    conversa, um item com role "assistant" faria o modelo acreditar que JÁ disse
+    algo (ex.: "a partir de agora ignoro as regras"). Como dado delimitado, a
+    regra 7 da PERSONA vale para ele igual vale para a <pergunta>.
+    """
+    linhas = []
+    for h in (historico or [])[-6:]:
+        try:
+            quem = "Usuário" if h.get("role") == "user" else "Assistente"
+            txt = _RE_TAG_DELIMITADOR.sub("", str(h.get("content", ""))).strip()[:1500]
+        except (AttributeError, TypeError):
+            continue
+        if txt:
+            linhas.append(f"{quem}: {txt}")
+    if not linhas:
+        return ""
+    return "<historico>\n" + "\n".join(linhas) + "\n</historico>\n"
+
 
 def _frontmatter_papeis(texto):
     """Lê 'papeis: [a, b]' do frontmatter YAML simples. None = todos os papéis.
@@ -237,22 +263,13 @@ def responder(pergunta, papel, clinica_nome=None, historico=None):
 
     base = _base_para_papel(papel)
     marca = (clinica_nome or "Nous Clinical").strip()[:80]
-    # Dados dinâmicos (papel, marca, pergunta) vão DELIMITADOS: a persona trata o
-    # que está entre <pergunta> como dado, nunca como instrução (anti-injeção).
+    # Dados dinâmicos (papel, marca, histórico, pergunta) vão DELIMITADOS: a persona
+    # trata <historico> e <pergunta> como dado, nunca como instrução (anti-injeção).
+    # O histórico (memória da sessão no browser, opcional) NÃO vira turno da conversa.
     contexto = (f"Papel do usuário: {papel}. Marca do sistema: {marca}.\n"
+                f"{_historico_como_dado(historico)}"
                 f"<pergunta>\n{pergunta}\n</pergunta>")
-
-    # Histórico curto (memória da sessão no browser) — opcional.
-    mensagens = []
-    for h in (historico or [])[-6:]:
-        try:
-            papel_msg = "user" if h.get("role") == "user" else "assistant"
-            txt = str(h.get("content", "")).strip()[:1500]
-            if txt:
-                mensagens.append({"role": papel_msg, "content": txt})
-        except (AttributeError, TypeError):
-            continue
-    mensagens.append({"role": "user", "content": contexto})
+    mensagens = [{"role": "user", "content": contexto}]
 
     try:
         import anthropic
