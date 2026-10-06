@@ -96,3 +96,23 @@ def test_excluir_item_de_outra_clinica_bloqueado(client_admin):
         .execution_options(ignore_tenant=True)
     ).scalars().first()
     assert sem_escopo is not None   # item da clínica B segue existindo
+
+
+def test_init_tenant_registra_listeners_uma_vez_so(app):
+    """init_tenant é chamado a cada create_app. A fixture `app` cria um app POR
+    TESTE: se cada chamada registrasse de novo os listeners na classe global
+    Session, toda SELECT ganharia 15 filtros de clínica × N testes já rodados —
+    com ~460 testes a expressão passava de 1000 níveis e o SQLite recusava
+    ("Expression tree is too large"), quebrando um teste aleatório do relatório."""
+    from sqlalchemy.orm import Session
+    from app.services.tenant import init_tenant
+
+    def contagem():
+        return (len(Session.dispatch.do_orm_execute._clslevel[Session]),
+                len(Session.dispatch.before_flush._clslevel[Session]))
+
+    antes = contagem()
+    init_tenant(db)
+    init_tenant(db)
+    assert contagem() == antes
+    assert antes == (1, 1)

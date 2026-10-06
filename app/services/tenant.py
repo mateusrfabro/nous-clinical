@@ -48,8 +48,20 @@ def _clinica_unica(session):
     return ids[0] if len(ids) == 1 else None
 
 
+_listeners_instalados = False
+
+
 def init_tenant(db):
-    """Registra os listeners de escopo. Chamado uma vez no app factory."""
+    """Registra os listeners de escopo. Chamado no app factory.
+
+    Idempotente: os listeners vão na classe GLOBAL `Session`, não no app. Sem a
+    trava, cada create_app (a fixture de teste cria um por teste) somava mais um
+    listener, e toda SELECT acumulava 15 filtros de clínica por app já criado —
+    a ~460 testes o SQLite recusava a expressão (profundidade > 1000)."""
+    global _listeners_instalados
+    if _listeners_instalados:
+        return
+    _listeners_instalados = True
     from app.models import (
         Paciente, Profissional, Agendamento, Atendimento,
         LancamentoFinanceiro, Procedimento, Exame, Convenio, Usuario, Bloqueio,
