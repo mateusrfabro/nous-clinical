@@ -110,6 +110,22 @@ def create_app(config_name="default"):
                 "[nous] BOOT version=%s migration_head=%s db=%s env=%s",
                 app_version(), head, dialect, config_name,
             )
+            # Aviso: rate-limit por-worker em prod (gunicorn multi-worker) é
+            # ineficaz — o limite vira N×. Setar RATELIMIT_STORAGE_URI/Redis.
+            if (config_name == "production"
+                    and str(app.config.get("RATELIMIT_STORAGE_URI", ""))
+                    .startswith("memory://")):
+                app.logger.warning(
+                    "[nous] RATE-LIMIT em memory:// com prod — ineficaz entre "
+                    "workers. Configure RATELIMIT_STORAGE_URI (Redis).")
+            # A landing depende de CONTATO_COMERCIAL pro CTA de demonstração.
+            # Vazio em prod => o único caminho de conversão some silenciosamente
+            # (o CTA degrada pra "Entrar"). Avisa alto pra não passar batido.
+            if config_name == "production" and not app.config.get("CONTATO_COMERCIAL"):
+                app.logger.warning(
+                    "[nous] CONTATO_COMERCIAL vazio em prod — landing sem CTA de "
+                    "demonstração (converte pra login). Configure a URL de "
+                    "contato comercial (WhatsApp/mailto).")
 
     # Em testing, o conftest mantem 1 app_context aberto — limpa o cache de
     # user do flask-login antes de cada request pra evitar leak entre clients.
@@ -151,7 +167,11 @@ def create_app(config_name="default"):
         from flask_login import current_user
         # Superadmin é cross-tenant (gerencia todas) -> sem escopo (None).
         if current_user.is_authenticated and not current_user.is_superadmin:
-            g.clinica_id = current_user.clinica_id
+            # FAIL-CLOSED: não-superadmin SEM clínica (não deveria ocorrer) recebe
+            # sentinela inexistente (-1) -> o escopo filtra TUDO, em vez de desligar
+            # e o usuário "ver todas as clínicas".
+            g.clinica_id = (current_user.clinica_id
+                            if current_user.clinica_id is not None else -1)
         else:
             g.clinica_id = None
 
@@ -172,6 +192,7 @@ def create_app(config_name="default"):
     from app.routes.configuracoes import configuracoes_bp
     from app.routes.portal import portal_bp
     from app.routes.ajuda import ajuda_bp
+    from app.routes.whatsapp import whatsapp_bp
 
     # Error handlers amigaveis + sanitizacao de tokens em logs
     import logging as _logging
@@ -183,6 +204,11 @@ def create_app(config_name="default"):
     _TOKEN_PATH_RE = _re.compile(
         r'(/(?:redefinir-senha|uploads|agenda/confirmar)/)([^/?\s"\']+)'
     )
+    # Token/segredo em query string (ex.: /tarefas/lembretes?key=...,
+    # webhook ?verify_token=...). Evita vazamento em access log de proxy.
+    _TOKEN_QS_RE = _re.compile(
+        r'([?&](?:key|token|verify_token|hub\.verify_token)=)[^&\s"\']+'
+    )
 
     class _SanitizeTokenFilter(_logging.Filter):
         def filter(self, record):
@@ -190,8 +216,12 @@ def create_app(config_name="default"):
                 msg = record.getMessage()
             except Exception:
                 return True
-            if isinstance(msg, str) and "/" in msg:
-                novo = _TOKEN_PATH_RE.sub(r"\1<redacted>", msg)
+            if isinstance(msg, str):
+                novo = msg
+                if "/" in novo:
+                    novo = _TOKEN_PATH_RE.sub(r"\1<redacted>", novo)
+                if "=" in novo:
+                    novo = _TOKEN_QS_RE.sub(r"\1<redacted>", novo)
                 if novo != msg:
                     record.msg = novo
                     record.args = ()
@@ -261,9 +291,30 @@ def create_app(config_name="default"):
     app.register_blueprint(configuracoes_bp)
     app.register_blueprint(portal_bp)
     app.register_blueprint(ajuda_bp)
+    app.register_blueprint(whatsapp_bp)
 
     from app.commands import register_commands
     register_commands(app)
+
+    # ---- Cache-busting de assets estaticos ----
+    # Anexa ?v=<mtime do arquivo> a TODA url_for('static', ...) (css/js/imagens)
+    # automaticamente. Garante que browsers/celulares peguem o asset novo a cada
+    # deploy — sem isso, device com CSS/JS antigo em cache fica desatualizado
+    # ("funciona num, quebra noutro"). Usa mtime (nao a versao do app): no Render
+    # nao ha git, entao app_version()=="unknown" nunca mudaria e nao busta nada.
+    import os as _os
+
+    @app.url_defaults
+    def _static_cache_bust(endpoint, values):
+        if endpoint != "static" or "v" in values:
+            return
+        filename = values.get("filename")
+        if not filename:
+            return
+        try:
+            values["v"] = int(_os.path.getmtime(_os.path.join(app.static_folder, filename)))
+        except OSError:
+            pass
 
     # ---- Context processor + filtros Jinja (genericos, sem dominio) ----
 
@@ -347,10 +398,28 @@ def create_app(config_name="default"):
         elif _clinica_wl:
             _favicon_url = _url_for("configuracoes.favicon", v=_fav_v)
         else:
-            _favicon_url = _url_for("static", filename="favicon.svg")
+            # v= força o navegador a rebuscar o favicon quando o desenho muda
+            # (SVG favicon fica preso em cache agressivo). Bump ao alterar o arte.
+            _favicon_url = _url_for("static", filename="favicon.svg", v="badge2")
+
+        # Suporte de ajuda (custo zero): mostra o widget p/ equipe logada e já
+        # leva as perguntas sugeridas (do FAQ). Superadmin/anônimo ficam de fora.
+        _suporte_ativo = (getattr(_cu, "is_authenticated", False)
+                          and getattr(_cu, "tipo", None)
+                          in {"recepcao", "admin", "profissional"})
+        _suporte_sugestoes = []
+        if _suporte_ativo:
+            try:
+                from app.services.ajuda import sugestoes as _sug
+                _suporte_sugestoes = _sug(_cu.tipo)
+            except Exception:
+                _suporte_sugestoes = []
 
         return {
             "whatsapp_url": url,
+            # Suporte de ajuda local (custo zero): flag de exibição + sugestões.
+            "suporte_ativo": _suporte_ativo,
+            "suporte_sugestoes": _suporte_sugestoes,
             # Global Jinja: pode("financeiro:ver") -> bool (RBAC, mostra/oculta UI).
             "pode": lambda permissao: tem_permissao(_cu, permissao),
             # Link público de confirmação (WhatsApp) — token assinado.
@@ -362,6 +431,12 @@ def create_app(config_name="default"):
             # Chatbot de ajuda ativo? (mostra/oculta o widget). Só se ligado + com chave.
             "ajuda_ia_ativa": bool(app.config.get("AJUDA_IA_ATIVA")
                                    and app.config.get("ANTHROPIC_API_KEY")),
+            # Módulo WhatsApp ligado? (mostra/oculta o item de menu). Default off.
+            "whatsapp_ativo": bool(app.config.get("WHATSAPP_ATIVO")),
+            # Módulo de Nota Fiscal ligado E com credenciais do gateway? (menu). Off.
+            "nf_ativo": bool(app.config.get("NF_ATIVO")
+                             and app.config.get("NUVEMFISCAL_CLIENT_ID")
+                             and app.config.get("NUVEMFISCAL_CLIENT_SECRET")),
             # Origens de lead ("Como conheceu a clínica?") — fonte única no model.
             "origens_paciente": _Paciente.ORIGENS,
             # White-label: tema (classe no <body>) + logo + CSS de cor livre.
@@ -371,6 +446,8 @@ def create_app(config_name="default"):
             "favicon_url": _favicon_url,
             # Clínica do portal público (None quando não é página de portal).
             "portal_clinica": _clinica_wl if _portal else None,
+            # CTA comercial (WhatsApp/mailto/form) — global p/ navbar + landing.
+            "contato_comercial": app.config.get("CONTATO_COMERCIAL") or "",
         }
 
     # Status de agendamento -> label PT-BR + classe de cor.
@@ -379,7 +456,7 @@ def create_app(config_name="default"):
         "confirmado": ("Confirmado", "tag-create"),
         "atendido":   ("Atendido", "tag-success"),
         "cancelado":  ("Cancelado", "tag-danger"),
-        "faltou":     ("Faltou", "tag-edit"),
+        "faltou":     ("Faltou", "tag-falta"),
     }
 
     @app.template_filter("status_label")

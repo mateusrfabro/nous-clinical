@@ -11,10 +11,11 @@
 <form method="GET" class="toolbar no-loading mb-4">
   <div class="view-switch" role="group" aria-label="Modo de visualização">
     <a href="{{ url_for('agenda.listar', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Dia</a>
-    <span class="btn btn-primary btn-sm is-active" aria-current="true">Grade</span>
+    <span class="btn btn-primary btn-sm is-active" aria-current="page">Grade</span>
     <a href="{{ url_for('agenda.semana', ref=dia.isoformat()) }}" class="btn btn-outline btn-sm">Semana</a>
+    <a href="{{ url_for('agenda.kanban', dia=dia.isoformat()) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
-  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   <div class="form-group">
     <label for="dia">Dia</label>
     <input type="date" id="dia" name="dia" value="{{ dia.isoformat() }}">
@@ -78,7 +79,7 @@
   <span class="leg-item"><span class="leg-dot tag-info"></span>Agendado</span>
   <span class="leg-item"><span class="leg-dot tag-create"></span>Confirmado</span>
   <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>
-  <span class="leg-item"><span class="leg-dot tag-edit"></span>Faltou</span>
+  <span class="leg-item"><span class="leg-dot tag-falta"></span>Faltou</span>
   <span class="leg-item"><span class="leg-dot tag-danger"></span>Cancelado</span>
   <span class="leg-item"><span class="leg-dot leg-dot-bloqueio"></span>Bloqueio</span>
 </div>

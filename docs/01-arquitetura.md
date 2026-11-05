@@ -1,7 +1,7 @@
 # 1. Arquitetura & visão geral
 
 ## O que é
-**Nous Clinical** — *"Menos gestão. Mais medicina."* SaaS **multi-tenant** de
+**Nous Clinical** — *"Menos gestão. Mais cuidado."* SaaS **multi-tenant** de
 gestão de clínica: recepção marca consultas, profissionais registram o
 atendimento (prontuário), gestor acompanha operação e financeiro, e a plataforma
 (superadmin) gerencia várias clínicas. Cada clínica é um **tenant** isolado.
@@ -33,12 +33,12 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 | Blueprint | Prefixo | Responsabilidade | Gate principal |
 |---|---|---|---|
 | `auth` | `/` | login/logout/recuperação de senha | público |
-| `main` | `/` | landing, dashboard, busca, tarefa de lembretes | misto |
+| `main` | `/` · `/produto` | landing comercial (`/` e alias `/produto`), dashboard, busca, tarefa de lembretes | misto |
 | `pacientes` | `/pacientes` | CRUD de pacientes, busca CEP | equipe |
 | `agenda` | `/agenda` | agenda (dia/semana), atendimento (prontuário), agendamento online | misto |
-| `profissionais` | `/profissionais` | cadastro de médicos (cria o login junto) | admin |
+| `profissionais` | `/profissionais` | cadastro de profissionais (cria o login junto) | admin |
 | `financeiro` | `/financeiro` | fluxo de caixa, contas, recebimento | recepção/admin |
-| `crm` | `/crm` | painel de retornos (recall) | recepção/admin |
+| `crm` | `/crm` | painel de retornos/aniversariantes (recall) + Concierge (`/crm/mensagem-ia`) | recepção/admin |
 | `procedimentos` | `/procedimentos` | "Cadastro de Itens" (itens faturáveis + convênios) | recepção/admin |
 | `relatorios` | `/relatorios` | BI sob demanda + export CSV | admin |
 | `exames` | `/exames` | anexos de exame (LGPD) | clínico |
@@ -57,7 +57,11 @@ Um arquivo por blueprint. Todos os `register_blueprint` estão em `app/__init__.
 - **`documentos_pdf.py`** — PDFs A4 de receita/atestado (reportlab); logo da clínica ou wordmark Nous.
 - **`passwords.py`** — Argon2id (hash, verify, rehash-on-login, dummy anti-timing).
 - **`tokens.py`** — tokens assinados (itsdangerous) p/ confirmação pública de consulta.
-- **`lembretes.py`** — job de lembretes (e-mail/Telegram), idempotente.
+- **`lembretes.py`** — job de lembretes (WhatsApp template → e-mail → sem-canal), idempotente.
+- **`concierge.py`** — gera a mensagem de retorno/reativação (template custo-zero por padrão; modo IA opcional via `CONCIERGE_ATIVO`). Não lê prontuário.
+- **`ofx.py`** — parser de extrato OFX 1.x (SGML) / 2.x (XML), sem dependência externa.
+- **`extrato.py`** — dispatcher OFX/CSV (CSV tolerante: delimitador, núm/data BR, `fitid` por hash).
+- **`conciliacao.py`** — importa o extrato como `MovimentoBancario` e sugere o lançamento a casar.
 - **`notificacoes.py`** / **`email.py`** — envio (SMTP + Telegram).
 - **`pii.py`** — mascaramento de PII pra logs.
 - **`app_info.py`** — versão + head de migration (exposto no boot e no `/health`).

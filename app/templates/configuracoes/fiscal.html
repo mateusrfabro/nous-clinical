@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Nota Fiscal — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>Nota Fiscal (NFS-e)</h2></div>
+  <p class="muted mb-4">Configure a emissão de nota fiscal de serviço da
+    <strong>{{ clinica.nome }}</strong>. Esses dados identificam a clínica como
+    emitente perante a prefeitura. Enquanto a emissão não estiver <strong>ativa</strong>,
+    nada é emitido.</p>
+
+  <div class="alert alert-info">
+    <strong>Pré-requisitos:</strong> para emitir, a clínica precisa de
+    <strong>certificado digital A1 (e-CNPJ)</strong>, <strong>inscrição municipal</strong>
+    e saber o <strong>regime tributário</strong>, a <strong>alíquota de ISS</strong> e o
+    <strong>código de serviço</strong> da sua atividade (ex.: saúde
+    <strong>4.01</strong>–<strong>4.03</strong>; varia por profissão e município). O envio do certificado e o cadastro do emitente no emissor
+    são o próximo passo, após salvar estes dados.
+  </div>
+
+  <form method="POST" action="{{ url_for('configuracoes.fiscal') }}" class="card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label class="toggle-field mb-4">
+      <input type="checkbox" name="ativo" {{ 'checked' if cfg and cfg.ativo }}>
+      <span class="toggle-field-text">Emissão de nota fiscal <strong>ativa</strong> para esta clínica</span>
+    </label>
+
+    <div class="form-group">
+      <label for="cnpj">CNPJ do prestador</label>
+      <input type="text" id="cnpj" name="cnpj" inputmode="numeric"
+             placeholder="00.000.000/0000-00"
+             value="{{ cfg.cnpj if cfg and cfg.cnpj else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="razao_social">Razão social</label>
+      <input type="text" id="razao_social" name="razao_social" maxlength="160"
+             value="{{ cfg.razao_social if cfg and cfg.razao_social else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="email">E-mail da clínica</label>
+      <input type="email" id="email" name="email" maxlength="160"
+             value="{{ cfg.email if cfg and cfg.email else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="inscricao_municipal">Inscrição municipal</label>
+      <input type="text" id="inscricao_municipal" name="inscricao_municipal" maxlength="30"
+             value="{{ cfg.inscricao_municipal if cfg and cfg.inscricao_municipal else '' }}">
+    </div>
+
+    <div class="page-header section-title-mt"><h3>Endereço do prestador</h3></div>
+    <div class="form-group">
+      <label for="logradouro">Logradouro</label>
+      <input type="text" id="logradouro" name="logradouro" maxlength="160"
+             value="{{ cfg.logradouro if cfg and cfg.logradouro else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="numero">Número</label>
+      <input type="text" id="numero" name="numero" maxlength="20"
+             value="{{ cfg.numero if cfg and cfg.numero else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="complemento">Complemento (opcional)</label>
+      <input type="text" id="complemento" name="complemento" maxlength="80"
+             value="{{ cfg.complemento if cfg and cfg.complemento else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="bairro">Bairro</label>
+      <input type="text" id="bairro" name="bairro" maxlength="80"
+             value="{{ cfg.bairro if cfg and cfg.bairro else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="cidade">Cidade</label>
+      <input type="text" id="cidade" name="cidade" maxlength="80"
+             value="{{ cfg.cidade if cfg and cfg.cidade else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="uf">UF</label>
+      <input type="text" id="uf" name="uf" maxlength="2" placeholder="ex.: PR"
+             value="{{ cfg.uf if cfg and cfg.uf else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="cep">CEP</label>
+      <input type="text" id="cep" name="cep" inputmode="numeric" maxlength="9"
+             placeholder="00000-000" value="{{ cfg.cep if cfg and cfg.cep else '' }}">
+    </div>
+    <div class="form-group">
+      <label for="codigo_municipio_ibge">Código IBGE do município</label>
+      <input type="text" id="codigo_municipio_ibge" name="codigo_municipio_ibge"
+             inputmode="numeric" maxlength="7" placeholder="ex.: 4106902 (Curitiba)"
+             value="{{ cfg.codigo_municipio_ibge if cfg and cfg.codigo_municipio_ibge else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="regime_tributario">Regime tributário</label>
+      <select id="regime_tributario" name="regime_tributario">
+        <option value="">— selecione —</option>
+        {% for r in regimes %}
+        <option value="{{ r }}" {{ 'selected' if cfg and cfg.regime_tributario == r }}>
+          {{ {'simples': 'Simples Nacional', 'presumido': 'Lucro Presumido', 'real': 'Lucro Real'}[r] }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="aliquota_iss">Alíquota de ISS (%)</label>
+      <input type="text" id="aliquota_iss" name="aliquota_iss" inputmode="decimal"
+             placeholder="ex.: 5,00"
+             value="{{ '%.2f'|format(cfg.aliquota_iss)|replace('.', ',') if cfg and cfg.aliquota_iss is not none else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="codigo_servico">Código de serviço (LC 116)</label>
+      <input type="text" id="codigo_servico" name="codigo_servico" maxlength="20"
+             placeholder="ex.: 4.01 (consulta) ou 4.03 (clínica)"
+             value="{{ cfg.codigo_servico if cfg and cfg.codigo_servico else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="cnae">CNAE (opcional)</label>
+      <input type="text" id="cnae" name="cnae" inputmode="numeric" maxlength="10"
+             value="{{ cfg.cnae if cfg and cfg.cnae else '' }}">
+    </div>
+
+    <label class="check mb-4">
+      <input type="checkbox" name="iss_retido_padrao" {{ 'checked' if cfg and cfg.iss_retido_padrao }}>
+      <span>ISS retido por padrão (geralmente não, para paciente pessoa física)</span>
+    </label>
+
+    <div class="toolbar">
+      <button type="submit" class="btn btn-primary">Salvar configuração</button>
+      {% if cfg %}
+      <button type="submit" name="acao" value="cadastrar_emitente" class="btn btn-outline">Cadastrar emitente</button>
+      {% endif %}
+      <button type="submit" name="acao" value="testar" class="btn btn-outline">Testar conexão</button>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline">Voltar</a>
+    </div>
+  </form>
+
+  <p class="muted text-sm mt-2">
+    {% if cfg and cfg.gateway_empresa_id %}
+    ✓ Emitente <strong>cadastrado</strong> no emissor (CNPJ {{ cfg.cnpj }}).
+    Próximo passo: certificado A1 e emissão da nota.
+    {% elif cfg and cfg.cnpj and cfg.inscricao_municipal and cfg.codigo_servico %}
+    Dados preenchidos. Clique em <strong>Cadastrar emitente</strong> para registrar a
+    clínica no emissor fiscal.
+    {% else %}
+    Faltam dados mínimos (CNPJ, inscrição municipal e código de serviço).
+    {% endif %}
+  </p>
+</div>
+{% endblock %}

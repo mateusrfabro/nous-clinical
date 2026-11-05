@@ -11,6 +11,8 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from app import db, limiter
 from app.auth_decorators import (
@@ -23,6 +25,7 @@ from app.models import (
 from app.routes.pacientes import _valida_cpf, _parse_data
 from app.services.audit import audit
 from app.services.tokens import ler_token_confirmacao
+from app.services.tenant import get_da_clinica
 
 agenda_bp = Blueprint("agenda", __name__, url_prefix="/agenda")
 
@@ -180,6 +183,9 @@ def listar():
 
     q = (
         select(Agendamento)
+        .options(selectinload(Agendamento.paciente),
+                 selectinload(Agendamento.profissional),
+                 selectinload(Agendamento.lancamento))
         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
         .order_by(Agendamento.inicio)
     )
@@ -201,6 +207,66 @@ def listar():
     return render_template(
         "agenda/listar.html",
         agendamentos=agendamentos, dia=dia,
+        profissionais=profissionais, filtro_prof=filtro_prof,
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+    )
+
+
+# Colunas do quadro Kanban (ordem = jornada do paciente). Cada agendamento do
+# dia cai na coluna do seu status. 'atendido' nunca é manual (vem do prontuário).
+_KANBAN_COLUNAS = (
+    (Agendamento.STATUS_AGENDADO, "Agendado"),
+    (Agendamento.STATUS_CONFIRMADO, "Confirmado"),
+    (Agendamento.STATUS_ATENDIDO, "Atendido"),
+    (Agendamento.STATUS_FALTOU, "Faltou"),
+    (Agendamento.STATUS_CANCELADO, "Cancelado"),
+)
+
+
+@agenda_bp.route("/quadro")
+@login_required
+def kanban():
+    """Quadro Kanban do dia: uma coluna por status (agendado/confirmado/
+    atendido/faltou/cancelado), cada consulta como card com ações rápidas.
+    Mesma janela/escopo da visão de lista (dia, filtro por profissional,
+    profissional vê só a própria agenda). Reusa agenda.mudar_status (auditado)."""
+    dia = _parse_dia(request.args.get("dia", ""))
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+
+    q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
+         .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
+         .order_by(Agendamento.inicio))
+    filtro_prof = request.args.get("profissional_id", type=int)
+    meu_prof = _meu_prof_id()
+    if meu_prof is not None:
+        q = q.where(Agendamento.profissional_id == meu_prof)
+    elif filtro_prof:
+        q = q.where(Agendamento.profissional_id == filtro_prof)
+    ags = db.session.execute(q).scalars().all()
+
+    # Agrupa por status preservando a ordem por horário da query.
+    por_status = {chave: [] for chave, _ in _KANBAN_COLUNAS}
+    for ag in ags:
+        if ag.status in por_status:
+            por_status[ag.status].append(ag)
+    colunas = [
+        {"chave": chave, "titulo": titulo, "ags": por_status[chave]}
+        for chave, titulo in _KANBAN_COLUNAS
+    ]
+
+    profissionais = db.session.execute(
+        select(Profissional).where(Profissional.ativo.is_(True))
+        .order_by(Profissional.nome)
+    ).scalars().all()
+
+    return render_template(
+        "agenda/kanban.html",
+        colunas=colunas, dia=dia, total=len(ags),
         profissionais=profissionais, filtro_prof=filtro_prof,
         dia_anterior=(dia - timedelta(days=1)).isoformat(),
         dia_seguinte=(dia + timedelta(days=1)).isoformat(),
@@ -234,6 +300,9 @@ def semana():
                            tzinfo=_BR_TZ).astimezone(timezone.utc)
 
     q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
@@ -393,6 +462,9 @@ def dia_grade():
     fim = ini + timedelta(days=1)
 
     q = (select(Agendamento)
+         .options(selectinload(Agendamento.paciente),
+                  selectinload(Agendamento.profissional),
+                  selectinload(Agendamento.lancamento))
          .where(Agendamento.inicio >= ini, Agendamento.inicio < fim)
          .order_by(Agendamento.inicio))
     filtro_prof = request.args.get("profissional_id", type=int)
@@ -494,12 +566,14 @@ def novo():
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
 
-        paciente = db.session.get(Paciente, paciente_id) if paciente_id else None
-        profissional = (db.session.get(Profissional, profissional_id)
+        paciente = get_da_clinica(Paciente, paciente_id) if paciente_id else None
+        profissional = (get_da_clinica(Profissional, profissional_id)
                         if profissional_id else None)
         inicio = _br_para_utc(dia, hora)
 
-        if not (paciente and profissional and inicio):
+        # Revalida `ativo` no servidor: o <select> só lista ativos, mas um POST
+        # forjado poderia enviar um profissional desativado.
+        if not (paciente and profissional and profissional.ativo and inicio):
             flash("Selecione paciente, profissional e horário válidos.", "error")
             return render_template("agenda/form.html",
                                    profissionais=profissionais,
@@ -553,7 +627,17 @@ def novo():
             criado_por_id=current_user.id,
         )
         db.session.add(ag)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU: o slot foi ocupado entre a checagem e o commit
+            # (trava única no banco). Mostra a mesma msg de conflito.
+            db.session.rollback()
+            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
+            return render_template("agenda/form.html",
+                                   profissionais=profissionais,
+                                   pacientes=pacientes, form=request.form,
+                                   dia=dia.isoformat())
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id)
         flash("Consulta agendada.", "success")
@@ -573,7 +657,7 @@ def novo():
 @login_required
 @recepcao_ou_admin
 def mudar_status(agendamento_id):
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -586,12 +670,19 @@ def mudar_status(agendamento_id):
         flash("Consulta já atendida não pode mudar de status.", "error")
         dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
         return redirect(url_for("agenda.listar", dia=dia))
+    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     ag.status = novo_status
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Reativar (cancelado -> agendado/confirmado) um horário que já foi
+        # reocupado esbarra na trava única. Mantém cancelado e avisa.
+        db.session.rollback()
+        flash("Não dá para reativar: esse horário já foi reocupado.", "error")
+        return redirect(url_for("agenda.listar", dia=dia))
     audit(AuditLog.ACAO_AGENDAMENTO_STATUS, recurso_tipo="agendamento",
           recurso_id=ag.id, detalhes=f"status={novo_status}")
     flash("Status atualizado.", "success")
-    dia = ag.inicio.astimezone(_BR_TZ).date().isoformat()
     return redirect(url_for("agenda.listar", dia=dia))
 
 
@@ -601,7 +692,7 @@ def mudar_status(agendamento_id):
 def checkin(agendamento_id):
     """Marca/desmarca a chegada do paciente (fila do dia). Chegar confirma a
     presença (agendado -> confirmado)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -736,9 +827,12 @@ def _normalizar_tel(t):
 
 
 def _clinicas_ativas():
-    """Todas as clínicas ativas (sem escopo — contexto público)."""
+    """Clínicas com agendamento online HABILITADO (contexto público). O gate por
+    `agendamento_online_ativo` impede que um anônimo liste/enumere clínicas que
+    não optaram pelo portal público."""
     return db.session.execute(
-        select(Clinica).where(Clinica.ativo.is_(True))
+        select(Clinica).where(Clinica.ativo.is_(True),
+                              Clinica.agendamento_online_ativo.is_(True))
         .execution_options(ignore_tenant=True).order_by(Clinica.nome)
     ).scalars().all()
 
@@ -746,20 +840,23 @@ def _clinicas_ativas():
 def _clinica_publica():
     """Clínica do agendamento público. Prioridade: slug do portal
     (g.portal_clinica) > clinica_id escolhida no form/query > clínica única.
-    None quando há várias clínicas e nenhuma foi escolhida (mostra o seletor)."""
+    Só resolve clínicas com `agendamento_online_ativo` — as demais não são
+    bookable nem enumeráveis por ?clinica_id. None quando nenhuma se aplica."""
     cl = getattr(g, "portal_clinica", None)
     if cl is not None:
-        return cl
+        return cl if cl.agendamento_online_ativo else None
     cid = request.values.get("clinica_id", type=int)
     if cid:
         c = db.session.execute(
-            select(Clinica).where(Clinica.id == cid, Clinica.ativo.is_(True))
+            select(Clinica).where(Clinica.id == cid, Clinica.ativo.is_(True),
+                                  Clinica.agendamento_online_ativo.is_(True))
             .execution_options(ignore_tenant=True)
         ).scalars().first()
         if c:
             return c
     ativas = db.session.execute(
-        select(Clinica).where(Clinica.ativo.is_(True))
+        select(Clinica).where(Clinica.ativo.is_(True),
+                              Clinica.agendamento_online_ativo.is_(True))
         .execution_options(ignore_tenant=True).limit(2)
     ).scalars().all()
     return ativas[0] if len(ativas) == 1 else None
@@ -875,6 +972,9 @@ def _cria_ou_reusa_paciente(clinica, nome, telefone, cpf_fmt, data_nasc, conveni
 
 @agenda_bp.route("/agendar", methods=["GET", "POST"])
 @limiter.limit("5 per hour;1 per minute", methods=["POST"])
+# GET lista profissionais/especialidades/slots de uma clínica — limita p/ conter
+# enumeração anônima de médicos/horários iterando clinica_id/profissional_id.
+@limiter.limit("30 per minute", methods=["GET"])
 def agendar_online():
     """Agendamento online PÚBLICO (portal do paciente). Sem login.
 
@@ -975,10 +1075,19 @@ def agendar_online():
             observacoes=request.form.get("observacoes", "").strip()[:500] or None,
             clinica_id=clinica.id)
         db.session.add(ag)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU (trava única no banco): slot tomado no meio do POST.
+            db.session.rollback()
+            return _reexibe("Esse horário acabou de ser ocupado. Escolha outro.")
         audit(AuditLog.ACAO_AGENDAMENTO_CRIADO, recurso_tipo="agendamento",
               recurso_id=ag.id, detalhes="online")
-        return render_template("agenda/agendar.html", sucesso=ag, **_ctx())
+        # nome_informado: ecoa o nome DIGITADO, nunca o cadastrado. Se o CPF já
+        # existir na clínica, mostrar o nome guardado vazaria PII (oráculo: um
+        # anônimo com um CPF-alvo descobriria o nome real do paciente). LGPD.
+        return render_template("agenda/agendar.html", sucesso=ag,
+                               nome_informado=nome, **_ctx())
 
     # GET — passo 1 (escolher prof/dia) e, se válidos, passo 2 (slots).
     prof_sel = db.session.get(
@@ -1028,7 +1137,7 @@ def confirmar_publico(token):
 def editar(agendamento_id):
     """Reagenda a consulta (profissional/dia/hora/convênio/obs) com checagem
     de conflito (ignorando o próprio agendamento)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -1046,11 +1155,11 @@ def editar(agendamento_id):
         profissional_id = request.form.get("profissional_id", type=int)
         dia = _parse_dia(request.form.get("dia", ""))
         hora = request.form.get("hora", "").strip()
-        profissional = (db.session.get(Profissional, profissional_id)
+        profissional = (get_da_clinica(Profissional, profissional_id)
                         if profissional_id else None)
         inicio = _br_para_utc(dia, hora)
 
-        if not (profissional and inicio):
+        if not (profissional and profissional.ativo and inicio):
             flash("Selecione profissional e horário válidos.", "error")
             return render_template("agenda/editar.html", ag=ag,
                                    profissionais=profissionais, form=request.form)
@@ -1088,7 +1197,14 @@ def editar(agendamento_id):
         ag.observacoes = request.form.get("observacoes", "").strip() or None
         # Reagendou p/ outra data -> precisa reenviar lembrete da NOVA data.
         ag.lembrete_enviado_em = None
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Corrida TOCTOU: outro agendamento tomou (profissional, início).
+            db.session.rollback()
+            flash("Esse horário acabou de ser ocupado. Escolha outro.", "error")
+            return render_template("agenda/editar.html", ag=ag,
+                                   profissionais=profissionais, form=request.form)
         audit(AuditLog.ACAO_AGENDAMENTO_EDITADO, recurso_tipo="agendamento",
               recurso_id=ag.id)
         flash("Consulta reagendada.", "success")
@@ -1129,7 +1245,7 @@ def aplicar_campos_prontuario(registro, ag):
     conv = ag.convenio
     for sid in request.form.getlist("procedimentos"):
         try:
-            proc = db.session.get(Procedimento, int(sid))
+            proc = get_da_clinica(Procedimento, int(sid))
         except (TypeError, ValueError):
             proc = None
         if proc:
@@ -1144,7 +1260,7 @@ def aplicar_campos_prontuario(registro, ag):
 @clinico_required
 def atendimento(agendamento_id):
     """Registra/edita o prontuario de uma consulta. Dado sensivel (LGPD)."""
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))

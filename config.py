@@ -44,12 +44,66 @@ class Config:
     # fora de um request (cron). Vazio = links sao omitidos.
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "")
 
+    # CTA comercial da landing publica (/). Pode ser um link de WhatsApp
+    # (https://wa.me/55...), um mailto: ou a URL de um formulario. Vazio = o CTA
+    # cai pro "Entrar na plataforma" (nao inventa canal de contato).
+    CONTATO_COMERCIAL = os.getenv(
+        "CONTATO_COMERCIAL",
+        "https://wa.me/5544999808355"
+        "?text=Ol%C3%A1!%20Quero%20agendar%20a%20demonstra%C3%A7%C3%A3o%20do%20Nous%20Clinical")
+
     # Chatbot de ajuda ("Nous Assistente") via Claude API. A chave fica SO no
     # servidor (nunca vai ao front). AJUDA_IA_ATIVA liga/desliga a feature sem
     # deploy; se a chave faltar, a feature fica inativa mesmo com a flag on.
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
     MODEL_AJUDA = os.getenv("MODEL_AJUDA", "claude-haiku-4-5")
     AJUDA_IA_ATIVA = os.getenv("AJUDA_IA_ATIVA", "false").lower() in ("1", "true", "sim")
+
+    # Concierge IA: redige a mensagem de retorno/reativacao do paciente (a partir
+    # dos paineis de Retornos e Risco de Evasao). Reusa a ANTHROPIC_API_KEY. Feature
+    # DESLIGADA por padrao (CONCIERGE_ATIVO); se a chave faltar, fica inativa mesmo
+    # com a flag on. NUNCA le prontuario — so nome/contexto de agenda (LGPD-safe).
+    CONCIERGE_ATIVO = os.getenv("CONCIERGE_ATIVO", "false").lower() in ("1", "true", "sim")
+    MODEL_CONCIERGE = os.getenv("MODEL_CONCIERGE", "claude-haiku-4-5")
+
+    # WhatsApp Business (Cloud API), multi-tenant. Feature INERTE por padrao:
+    # WHATSAPP_ATIVO (global) liga o modulo; cada clinica conecta seu numero/token
+    # (cifrado em repouso). So ha custo quando uma clinica conecta e envia — e o
+    # billing da Meta e da clinica, nao nosso. Ver docs/10-whatsapp-integracao.md.
+    WHATSAPP_ATIVO = os.getenv("WHATSAPP_ATIVO", "false").lower() in ("1", "true", "sim")
+    WHATSAPP_API_BASE = os.getenv("WHATSAPP_API_BASE", "https://graph.facebook.com/v21.0")
+    # Handshake do webhook (GET hub.verify_token) e assinatura (POST X-Hub-Signature-256).
+    WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
+    WHATSAPP_APP_SECRET = os.getenv("WHATSAPP_APP_SECRET", "")
+    # Chave Fernet pra cifrar o token de acesso em repouso. Vazio = deriva do
+    # SECRET_KEY (rotacionar o SECRET_KEY invalida os tokens — recolar na clinica).
+    WHATSAPP_ENC_KEY = os.getenv("WHATSAPP_ENC_KEY", "")
+    # Template (HSM) aprovado p/ o LEMBRETE de consulta. WhatsApp Cloud API só
+    # permite mensagem proativa (fora da janela de 24h) via template aprovado —
+    # texto livre falha. A clinica registra um template com 3 variaveis de corpo
+    # (nome, data/hora, profissional) e o nome dele vai aqui. Vazio = lembrete
+    # por WhatsApp desligado (cai pro e-mail).
+    WHATSAPP_TEMPLATE_LEMBRETE = os.getenv("WHATSAPP_TEMPLATE_LEMBRETE", "")
+    WHATSAPP_TEMPLATE_LEMBRETE_LANG = os.getenv(
+        "WHATSAPP_TEMPLATE_LEMBRETE_LANG", "pt_BR")
+
+    # Emissao de NFS-e (nota fiscal de servico), multi-tenant via GATEWAY. Feature
+    # INERTE por padrao: NF_ATIVO (global) liga o modulo; cada clinica configura seu
+    # emitente (certificado A1 vai pro gateway). Ver docs/11-emissao-nf.md.
+    NF_ATIVO = os.getenv("NF_ATIVO", "false").lower() in ("1", "true", "sim")
+    # Gateway padrao + credenciais (OAuth2 client_credentials). Sandbox por padrao;
+    # o segredo fica SO no servidor (variavel de ambiente), nunca no codigo/repo.
+    NUVEMFISCAL_CLIENT_ID = os.getenv("NUVEMFISCAL_CLIENT_ID", "")
+    NUVEMFISCAL_CLIENT_SECRET = os.getenv("NUVEMFISCAL_CLIENT_SECRET", "")
+    NUVEMFISCAL_AMBIENTE = os.getenv("NUVEMFISCAL_AMBIENTE", "sandbox")  # sandbox|producao
+    # Seletor do gateway fiscal da plataforma: nuvemfiscal | focusnfe. Default
+    # nuvemfiscal (nao muda quem ja roda); a Nuvem Fiscal sera DESATIVADA em
+    # 31/07/2026 -> migrar para focusnfe (ver docs/11-emissao-nf.md, secao 6.1).
+    FISCAL_GATEWAY = os.getenv("FISCAL_GATEWAY", "nuvemfiscal")
+    # Focus NFe: HTTP Basic (token como usuario, senha vazia). Homologacao por
+    # padrao; o token fica SO no servidor (variavel de ambiente).
+    FOCUSNFE_TOKEN = os.getenv("FOCUSNFE_TOKEN", "")
+    FOCUSNFE_AMBIENTE = os.getenv("FOCUSNFE_AMBIENTE", "homologacao")  # homologacao|producao
 
     # TTL absoluto da sessao logada. Dados de saude sao sensiveis (LGPD) —
     # 8h forca re-login no dia seguinte. Ajuste conforme risco.
@@ -79,10 +133,15 @@ class TestingConfig(Config):
     SECRET_KEY = "test-secret-never-use-in-prod"
     CACHE_TYPE = "NullCache"
     RATELIMIT_STORAGE_URI = "memory://"
-    # Suite hermetica: ignora um .env de dev que tenha o chatbot ligado. Cada
-    # teste que precisa da IA liga AJUDA_IA_ATIVA/ANTHROPIC_API_KEY explicitamente.
+    # Suite hermetica: ignora um .env de dev que tenha features ligadas. Cada
+    # teste que precisa liga a flag/segredo explicitamente.
     AJUDA_IA_ATIVA = False
     ANTHROPIC_API_KEY = ""
+    CONTATO_COMERCIAL = ""            # cada teste de landing seta explicitamente
+    WHATSAPP_ATIVO = False
+    WHATSAPP_VERIFY_TOKEN = "test-verify-token"
+    WHATSAPP_APP_SECRET = ""          # vazio => sem checagem de assinatura no teste
+    WHATSAPP_ENC_KEY = ""             # deriva do SECRET_KEY de teste
 
 
 class ProductionConfig(Config):
@@ -102,6 +161,13 @@ class ProductionConfig(Config):
     }
     CACHE_TYPE = "RedisCache" if os.getenv("CACHE_REDIS_URL") else "SimpleCache"
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "")
+    # Rate-limit em prod precisa de storage COMPARTILHADO entre workers do
+    # gunicorn — senão o limite (login 5/min, anti-enumeração) vira 5×N_workers e
+    # fica ineficaz. Usa o RATELIMIT_STORAGE_URI explícito, senão o Redis do
+    # cache; só cai pra memory:// (com aviso no boot) se nenhum existir.
+    RATELIMIT_STORAGE_URI = (os.getenv("RATELIMIT_STORAGE_URI")
+                             or os.getenv("CACHE_REDIS_URL")
+                             or "memory://")
 
 
 config = {

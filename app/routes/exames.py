@@ -5,6 +5,7 @@ profissional só mexe nos exames da própria agenda. Arquivos no storage (fora
 de static/); download por esta rota autenticada (nunca link direto).
 """
 import io
+import logging
 import os
 
 from flask import (
@@ -18,8 +19,10 @@ from app.models import Agendamento, Atendimento, Exame, AuditLog
 from app.routes.agenda import aplicar_campos_prontuario
 from app.services.audit import audit
 from app.services.storage import get_storage
+from app.services.tenant import get_da_clinica
 
 exames_bp = Blueprint("exames", __name__, url_prefix="/exames")
+logger = logging.getLogger(__name__)
 
 # Extensão -> content-type confiável (derivado da extensão validada, NUNCA do
 # mimetype enviado pelo cliente, que poderia contrabandear HTML same-origin).
@@ -47,7 +50,7 @@ def _pode(atendimento) -> bool:
 @login_required
 @clinico_required
 def upload(agendamento_id):
-    ag = db.session.get(Agendamento, agendamento_id)
+    ag = get_da_clinica(Agendamento, agendamento_id)
     if not ag:
         flash("Agendamento não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -84,7 +87,15 @@ def upload(agendamento_id):
     tamanho = file.stream.tell()
     file.stream.seek(0)
 
-    key = get_storage().save(file, subdir="exames", original_name=file.filename)
+    # Falha de storage (disco cheio, S3 fora) não pode virar 500 cru: o rascunho
+    # do prontuário já foi salvo acima; aqui só o anexo falha, com aviso amigável.
+    try:
+        key = get_storage().save(file, subdir="exames", original_name=file.filename)
+    except Exception:   # noqa: BLE001
+        logger.warning("EXAME_UPLOAD_STORAGE_FALHA ag=%s", ag.id, exc_info=True)
+        flash("Rascunho salvo, mas não foi possível anexar o arquivo agora. "
+              "Tente de novo em instantes.", "error")
+        return redirect(destino)
     ex = Exame(
         atendimento_id=registro.id, paciente_id=ag.paciente_id,
         nome_original=(file.filename or "exame")[:200],
@@ -102,7 +113,7 @@ def upload(agendamento_id):
 @login_required
 @clinico_required
 def download(exame_id):
-    ex = db.session.get(Exame, exame_id)
+    ex = get_da_clinica(Exame, exame_id)
     if not ex:
         abort(404)
     if not _pode(ex.atendimento):
@@ -125,7 +136,7 @@ def download(exame_id):
 @login_required
 @clinico_required
 def excluir(exame_id):
-    ex = db.session.get(Exame, exame_id)
+    ex = get_da_clinica(Exame, exame_id)
     if not ex:
         flash("Exame não encontrado.", "error")
         return redirect(url_for("agenda.listar"))
@@ -134,9 +145,19 @@ def excluir(exame_id):
     ag_id = ex.atendimento.agendamento_id if ex.atendimento else None
     pac_id = ex.paciente_id
     key = ex.arquivo_key
+    # Apaga o ARQUIVO primeiro (dado sensível LGPD). Se o storage falhar, aborta
+    # sem tocar no DB — evita registro deletado com arquivo órfão persistido.
+    try:
+        get_storage().delete(key)
+    except FileNotFoundError:
+        pass   # já não existe no storage — segue e limpa o registro órfão
+    except Exception:   # noqa: BLE001
+        logger.warning("EXAME_DELETE_STORAGE_FALHA exame=%s", exame_id, exc_info=True)
+        flash("Não foi possível remover o arquivo agora. Tente novamente.", "error")
+        return redirect(url_for("agenda.atendimento", agendamento_id=ag_id)
+                        if ag_id else url_for("pacientes.detalhe", paciente_id=pac_id))
     db.session.delete(ex)
     db.session.commit()
-    get_storage().delete(key)
     audit(AuditLog.ACAO_EXAME_REMOVIDO, recurso_tipo="exame", recurso_id=exame_id)
     flash("Exame removido.", "success")
     if ag_id:

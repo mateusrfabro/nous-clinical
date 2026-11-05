@@ -18,9 +18,9 @@ inicial e final** e a **pausa (almoço)**. A agenda e o auto-agendamento geram o
 horários livres com base nisso.
 
 ## Bloqueios de agenda
-Em **Agenda → 🔒 Bloqueios** você bloqueia períodos em que o profissional não atende
+Em **Agenda → Bloqueios** você bloqueia períodos em que o profissional não atende
 (férias, congresso, reunião, ausência):
-1. Escolha o **profissional** (o médico só bloqueia a própria agenda).
+1. Escolha o **profissional** (o profissional só bloqueia a própria agenda).
 2. Informe **data início** e **data fim** (deixe as horas vazias para o dia inteiro)
    **ou** uma **faixa de horário** (ex.: reunião 14:00–16:00).
 3. Escolha o **motivo** e salve.

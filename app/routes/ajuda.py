@@ -11,7 +11,7 @@ from flask_login import login_required, current_user
 from app import db, limiter
 from app.auth_decorators import equipe_required
 from app.models import AuditLog, Clinica
-from app.services.ajuda import responder, ia_disponivel
+from app.services.ajuda import responder, ia_disponivel, buscar_local
 from app.services.audit import audit
 
 ajuda_bp = Blueprint("ajuda", __name__, url_prefix="/ajuda")
@@ -22,6 +22,19 @@ def _chave_rate_limit():
     público; o vetor de custo de API é o usuário logado. Cai pro IP se anônimo."""
     return f"u:{current_user.id}" if getattr(current_user, "id", None) \
         else (request.remote_addr or "anon")
+
+
+@ajuda_bp.route("/buscar", methods=["POST"])
+@login_required
+@equipe_required
+@limiter.limit("120 per hour", key_func=_chave_rate_limit)
+def buscar():
+    """Suporte de CUSTO ZERO: responde buscando na base de ajuda local (docs/ajuda/),
+    sem nenhuma chamada de API. É o que o widget usa por padrão."""
+    dados = request.get_json(silent=True) or {}
+    pergunta = str(dados.get("pergunta", ""))[:500]
+    ok, resposta, fonte = buscar_local(pergunta, current_user.tipo)
+    return jsonify({"ok": ok, "resposta": resposta, "fonte": fonte})
 
 
 @ajuda_bp.route("/chat", methods=["POST"])

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Verificação em duas etapas — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>Verificação em duas etapas (2FA)</h2></div>
+
+  {% if ativado %}
+  <div class="card">
+    <div class="alert alert-info">A verificação em duas etapas está
+      <strong>ativada</strong> nesta conta. No próximo login, além da senha, será
+      pedido um código do seu app autenticador.</div>
+    <p class="muted mt-2">Para desativar, confirme sua senha.</p>
+    <form method="POST" action="{{ url_for('perfil.dois_fatores_desativar') }}"
+          class="mt-2" data-confirm="Desativar a verificação em duas etapas?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="senha">Sua senha</label>
+        <input type="password" id="senha" name="senha" required
+               autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-danger">Desativar 2FA</button>
+      <a href="{{ url_for('perfil.editar') }}" class="btn btn-outline">Voltar</a>
+    </form>
+  </div>
+  {% else %}
+  <div class="card">
+    <p class="muted">1. Instale um app autenticador (Google Authenticator, Authy,
+      Microsoft Authenticator...). 2. Escaneie o QR abaixo. 3. Digite o código de
+      6 dígitos que o app mostrar para confirmar.</p>
+
+    <div class="qr-box mt-2">{{ qr_svg|safe }}</div>
+
+    <p class="muted text-sm mt-2">Não consegue escanear? Cadastre manualmente
+      esta chave no app:<br><code class="totp-key">{{ secret }}</code></p>
+
+    <form method="POST" action="{{ url_for('perfil.dois_fatores_ativar') }}" class="mt-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="codigo">Código do app (6 dígitos)</label>
+        <input type="text" id="codigo" name="codigo" inputmode="numeric"
+               autocomplete="one-time-code" maxlength="6" required
+               placeholder="000000">
+      </div>
+      <button type="submit" class="btn btn-primary">Ativar 2FA</button>
+      <a href="{{ url_for('perfil.editar') }}" class="btn btn-outline">Cancelar</a>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

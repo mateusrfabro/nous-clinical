@@ -20,11 +20,22 @@ services:
       - key: WEB_WORKERS
         value: "2"                     # free=512MB: poucos workers (+ --preload). Pago: 4.
       - key: RUN_SEED
-        value: "true"                  # 1o deploy: cria logins demo. Depois troque p/ false.
+        value: "false"                 # PROD: NAO re-seeda demo. (true so no 1o deploy de validacao)
       - key: RUN_DEMO
-        value: "true"                  # cria 3 clinicas demo + super-admin. Depois troque p/ false.
+        value: "false"                 # PROD: NAO recria clinicas demo nem super-admin de senha fraca.
       - key: PUBLIC_BASE_URL
         value: https://nousclinical.com
+      # --- Funcionalidades novas: prontas em prod, a clinica/PGS so "conecta" ---
+      - key: WHATSAPP_ATIVO
+        value: "true"                  # libera a tela de conexao; cada clinica cola seu numero/token.
+                                       # Inerte ate conectar (sem trafego/custo). Quem paga a Meta e a clinica.
+      # WHATSAPP_ENC_KEY: nao definido de proposito -> a cifragem do token deriva do
+      # SECRET_KEY (estavel no Render). NAO rotacionar SECRET_KEY depois que clinicas
+      # conectarem o WhatsApp, senao os tokens precisam ser recolados.
+      - key: AJUDA_IA_ATIVA
+        value: "true"                  # chatbot "armado": so liga quando ANTHROPIC_API_KEY for preenchida.
+      - key: ANTHROPIC_API_KEY
+        sync: false                    # SEGREDO (PGS paga). Cole no dashboard p/ ativar o chatbot. Vazio = off.
       # Storage de arquivos (logo + exames). STORAGE_BACKEND=s3 + as 4 chaves
       # abaixo (preenchidas no dashboard, sync:false=secretas). Enquanto vazias,
       # cai pro disco local automaticamente (sem quebrar).
@@ -39,14 +50,15 @@ services:
       - key: S3_SECRET_ACCESS_KEY
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: nous-clinical-db
-          property: connectionString
+        sync: false          # Banco EXTERNO agora (Neon free — Postgres real, nao
+                             # apaga por inatividade). Cole no dashboard do Render a
+                             # connection string do POOLER do Neon (host '...-pooler',
+                             # com '?sslmode=require'). ATENCAO: se ficar VAZIA, o app
+                             # cai pro SQLite efemero e PERDE dados a cada deploy —
+                             # defina ANTES do primeiro deploy. Passo a passo em
+                             # docs/12-migracao-banco-neon.md.
 
-databases:
-  - name: nous-clinical-db
-    databaseName: nous
-    user: nous
-    region: oregon
-    plan: free               # VALIDACAO: gratis, porem EXPIRA em ~90 dias e perde
-                             # os dados. Antes do uso real, troque para 'basic-256mb'.
+# Sem bloco `databases:` — saimos do Postgres gerenciado do Render (o free apaga em
+# 30d+14, sem backup) para o Neon (externo, custo zero, nao apaga por inatividade).
+# Depois de migrar e o app subir na URL do Neon, delete manualmente o banco antigo
+# 'nous-clinical-db' no dashboard do Render.

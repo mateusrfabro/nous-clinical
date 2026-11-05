@@ -2,7 +2,7 @@
 {% block title %}Cadastro de Itens — Nous Clinical{% endblock %}
 {% block content %}
 <div class="page-header"><h2>Cadastro de Itens</h2></div>
-<p class="muted mb-4">Itens faturáveis que o médico marca no atendimento (o pagamento puxa o total) e o cadastro centralizado de convênios.</p>
+<p class="muted mb-4">Itens faturáveis que o profissional marca no atendimento (o pagamento puxa o total) e o cadastro centralizado de convênios.</p>
 
 <form method="POST" action="{{ url_for('procedimentos.adicionar') }}" class="card toolbar mb-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -41,7 +41,7 @@
   <div class="form-group">
     <label class="form-check cursor-pointer"><input type="checkbox" name="ativo" {{ 'checked' if p.ativo }}> Ativo</label>
   </div>
-  <button type="submit" class="btn btn-outline">Salvar</button>
+  <button type="submit" class="btn btn-outline">Salvar item</button>
   <a class="btn-link" href="{{ url_for('procedimentos.precos', procedimento_id=p.id) }}">Preços por convênio{% if p.precos %} ({{ p.precos|length }}){% endif %}</a>
   <button type="submit" class="btn-link btn-link-danger" formaction="{{ url_for('procedimentos.excluir', procedimento_id=p.id) }}" data-confirm="Excluir o item “{{ p.nome }}”? O histórico de atendimentos é preservado.">Excluir</button>
 </form>
@@ -64,7 +64,7 @@
       <td>
         <form method="POST" action="{{ url_for('procedimentos.convenio_toggle', convenio_id=c.id) }}" class="inline-form no-loading">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
+          <button type="submit" class="btn btn-sm btn-outline">{{ 'Desativar' if c.ativo else 'Ativar' }}</button>
         </form>
       </td>
     </tr>
@@ -90,7 +90,7 @@
       <td>
         <form method="POST" action="{{ url_for('procedimentos.sala_toggle', sala_id=s.id) }}" class="inline-form no-loading">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn-link">{{ 'Desativar' if s.ativo else 'Ativar' }}</button>
+          <button type="submit" class="btn btn-sm btn-outline">{{ 'Desativar' if s.ativo else 'Ativar' }}</button>
         </form>
       </td>
     </tr>

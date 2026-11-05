@@ -52,7 +52,7 @@ O Nous roda em **Docker**, usa **PostgreSQL** (padrão) e **storage S3-compatív
 | Disco no VPS | incluso | Só se a app estiver num VPS; você cuida do backup. |
 | Render Persistent Disk | US$0,25/GB | Simples se já no Render (exige plano pago). |
 
-> ⚠️ **Por que isso importa:** no plano grátis do Render o disco é efêmero — a logo e os **exames somem** quando a instância dorme/redeploya. Por isso o storage **tem** que ser externo (R2) em produção. Já deixamos o código pronto pra R2.
+> ⚠️ **Por que isso importa:** no plano grátis do Render o disco é efêmero — a logo e os **exames somem** quando a instância dorme/redeploya. Por isso o storage **tem** que ser externo (R2) em produção. ✅ **Já está ativo:** Cloudflare R2 (bucket `nous-clinical`) configurado e validado em produção em 30/06/2026.
 
 ---
 
@@ -90,7 +90,7 @@ O Nous roda em **Docker**, usa **PostgreSQL** (padrão) e **storage S3-compatív
 | **Melhor para lançar agora** | **Cenário 2** (Render pago + R2) |
 
 ## O que NÃO recomendamos
-- **Hospedagem compartilhada (cPanel)** para a app — é ambiente PHP/MySQL, hostil a Python; e storage/banco compartilhado é ruim para dado médico (LGPD).
+- **Hospedagem compartilhada (cPanel)** para a app — é ambiente PHP/MySQL, hostil a Python; e storage/banco compartilhado é ruim para dado de saúde (LGPD).
 - **Migrar para MySQL** só para usar o banco incluso da HostGator — trabalho e risco sem ganho real.
 
 ## Recomendação final (nossa)

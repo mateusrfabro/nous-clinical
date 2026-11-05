@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Conciliar movimento — Nous Clinical{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Conciliar movimento</h2>
+  <a href="{{ url_for('financeiro.conciliacao') }}" class="btn btn-outline">← Voltar</a>
+</div>
+
+<div class="card">
+  <h3>Movimento do extrato</h3>
+  <dl class="data-list">
+    <dt>Data</dt><dd>{{ mov.data|data_br }}</dd>
+    <dt>Descrição</dt><dd>{{ mov.descricao or '—' }}</dd>
+    <dt>Valor</dt><dd class="{{ 'economia-pos' if mov.tipo == 'credito' else 'economia-neg' }}">{{ '+' if mov.tipo == 'credito' else '-' }} {{ mov.valor|brl }}</dd>
+    {% if mov.banco %}<dt>Banco</dt><dd>{{ mov.banco }}</dd>{% endif %}
+  </dl>
+</div>
+
+<div class="page-header section-title-mt">
+  <h3>Escolha o lançamento ({{ 'receitas' if mov.tipo == 'credito' else 'despesas' }} em aberto)</h3>
+</div>
+<p class="muted text-sm mb-2">Lançamentos ainda não conciliados, do mais próximo da data do movimento. Use quando o valor não bate exato com a sugestão automática.</p>
+
+{% if candidatos %}
+<div class="table-wrapper">
+<table class="table">
+  <thead><tr><th>Data</th><th>Descrição</th><th>Paciente</th><th class="num">Valor</th><th>Ações</th></tr></thead>
+  <tbody>
+    {% for l in candidatos %}
+    <tr>
+      <td>{{ (l.pago_em or l.vencimento or l.criado_em)|data_br }}</td>
+      <td>{{ l.descricao or (l.categoria|categoria_label) }}</td>
+      <td>{% if l.paciente %}{{ l.paciente.nome_completo }}{% else %}—{% endif %}</td>
+      <td class="num">{{ l.valor|brl }}{% if l.valor != mov.valor %}<br><span class="muted text-sm">≠ extrato</span>{% endif %}</td>
+      <td>
+        <form method="POST" action="{{ url_for('financeiro.conciliacao_conciliar', movimento_id=mov.id) }}" class="inline-form no-loading">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="lancamento_id" value="{{ l.id }}">
+          <button type="submit" class="btn btn-primary btn-sm"{% if l.valor != mov.valor %} data-confirm="O valor do lançamento ({{ l.valor|brl }}) é diferente do extrato ({{ mov.valor|brl }}). Conciliar mesmo assim?"{% endif %}>Conciliar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>Nenhum lançamento em aberto compatível. Você pode criar um a partir do movimento ou ignorá-lo.</p>
+  <form method="POST" action="{{ url_for('financeiro.conciliacao_criar', movimento_id=mov.id) }}" class="inline-form no-loading">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline btn-sm">Criar lançamento</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

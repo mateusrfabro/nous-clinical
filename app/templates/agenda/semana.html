@@ -12,9 +12,10 @@
   <div class="view-switch" role="group" aria-label="Modo de visualização">
     <a href="{{ url_for('agenda.listar', dia=ref) }}" class="btn btn-outline btn-sm">Dia</a>
     <a href="{{ url_for('agenda.dia_grade', dia=ref) }}" class="btn btn-outline btn-sm">Grade</a>
-    <span class="btn btn-primary btn-sm is-active" aria-current="true">Semana</span>
+    <span class="btn btn-primary btn-sm is-active" aria-current="page">Semana</span>
+    <a href="{{ url_for('agenda.kanban', dia=ref) }}" class="btn btn-outline btn-sm">Quadro</a>
   </div>
-  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">🔒 Bloqueios</a>
+  <a href="{{ url_for('agenda.bloqueios') }}" class="btn btn-outline btn-sm">Bloqueios</a>
   {% if not current_user.is_profissional %}
   <div class="form-group form-group-grow">
     <label for="profissional_id">Profissional</label>
@@ -81,7 +82,7 @@
   <span class="leg-item"><span class="leg-dot tag-info"></span>Agendado</span>
   <span class="leg-item"><span class="leg-dot tag-create"></span>Confirmado</span>
   <span class="leg-item"><span class="leg-dot tag-success"></span>Atendido</span>
-  <span class="leg-item"><span class="leg-dot tag-edit"></span>Faltou</span>
+  <span class="leg-item"><span class="leg-dot tag-falta"></span>Faltou</span>
   <span class="leg-item"><span class="leg-dot tag-danger"></span>Cancelado</span>
   <span class="leg-item"><span class="leg-dot leg-dot-bloqueio"></span>Bloqueio</span>
 </div>

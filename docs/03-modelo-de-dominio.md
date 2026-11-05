@@ -17,6 +17,9 @@ Clinica (TENANT) 1───* Usuario
    ├── 1───* LancamentoFinanceiro ─┘ (recebimento)  └── financeiro/agendamentos
    ├── 1───* Procedimento ── * PrecoConvenio
    ├── 1───* Convenio        (master data)
+   ├── 1───1 WhatsAppConta   (Cloud API; token cifrado)
+   │         WhatsAppContato *── Paciente (match por telefone)
+   │            └── 1───* WhatsAppMensagem (in/out)
    └── (AuditLog ligado por Usuario)
 ```
 
@@ -26,10 +29,18 @@ Clinica (TENANT) 1───* Usuario
 Uma clínica/consultório. **Tudo do domínio carrega `clinica_id` apontando pra cá.**
 Campos de white-label: `slug` (identificador público único), `tema`, `cor_primaria`,
 `logo_key`/`logo_mime`, `ativo`. Escopo automático em `services/tenant.py`.
+`agendamento_online_ativo` (**default False**): liga/desliga o agendamento público
+da clínica (portal `/c/<slug>/agendar` e rota `/agendar`). Desligado, a clínica não
+é bookável nem enumerável por anônimo — o admin liga em Configurações › Aparência.
 
 ### `Usuario` — autenticação
 `email` (único), `senha_hash` (Argon2id), `tipo` (papel), `ativo`, `clinica_id`
 (**nullable**: o superadmin não pertence a clínica), `telegram_chat_id`.
+**2FA/TOTP** (opcional): `totp_secret` (cifrado, `services/cripto.py`), `totp_ativado`,
+`totp_recovery` (JSON de hashes, uso único), `totp_ultimo_contador` (**anti-replay**:
+maior período TOTP já aceito — recusa reuso do mesmo código na janela). **Lockout**:
+`tentativas_falhas`, `bloqueado_ate` (5 falhas → 15min, incremento **atômico** no
+banco); `ultimo_login_ip` (alerta de acesso novo).
 Propriedades: `is_superadmin/is_admin/is_profissional/is_recepcao`.
 `tipo ∈ {superadmin, admin, profissional, recepcao}` — ver [doc 4](04-multitenant-e-rbac.md).
 
@@ -42,16 +53,22 @@ login em `profissionais.novo`.
 `nome_completo`, `cpf` (único, **obrigatório no form**), `data_nascimento`
 (obrigatório no form), contato, endereço (preenchível via CEP), `convenio`,
 `observacoes`, `ativo`. CPF validado por dígitos verificadores.
+**LGPD art. 18** (`anonimizado_em`): admin anonimiza via `services/anonimizacao.py` —
+zera PII + apaga prontuário/exames, **preserva o financeiro** (obrigação fiscal).
 
 ### `Agendamento`
 `paciente` + `profissional` + `inicio`/`fim` (UTC) + `status` + `valor`/`convenio`
 + **`sala`** + `checkin_em` + `lembrete_enviado_em`. Duração selecionável
 (30/60/90/120). Status: `agendado → confirmado → atendido` (ou `cancelado`/`faltou`).
 **`atendido` só é setado pelo registro do prontuário**, nunca manualmente.
+**Trava anti-double-book no banco**: índice único parcial `uq_ag_prof_inicio_ativo`
+em `(profissional_id, inicio)` where `status != 'cancelado'` — fecha a corrida TOCTOU
+entre a checagem de conflito e o commit. As rotas de agendar/reagendar tratam o
+`IntegrityError` como "horário acabou de ser ocupado".
 
 ### `Atendimento` — prontuário (DADO SENSÍVEL LGPD)
 `queixa`/`evolucao`/`prescricao`, `retorno_em` (CRM recall), **`atestado_dias`/
-`atestado_cid`** (atestado médico), 1:1 com Agendamento. Acesso só por
+`atestado_cid`** (atestado), 1:1 com Agendamento. Acesso só por
 **profissional (o dono) ou admin**. Tem `itens` (ItemAtendimento) e `exames`.
 `total_itens` soma os itens em Decimal. Edição registra `ACAO_ATENDIMENTO_EDITADO`
 na auditoria. Exporta **receita** e **atestado** em PDF (`app/routes/documentos.py`
@@ -79,14 +96,70 @@ Datalist global `#convenios` em `base.html` via `convenios_ativos()`.
 opcional a `paciente` e a `agendamento` (1:1 **unique** → recebimento idempotente).
 `vencido` compara em **data BR**.
 
+### `MovimentoBancario` — transação de extrato (conciliação)
+Uma linha do extrato bancário (OFX/CSV) importada para conciliar. `data`
+(**`Date`** — sem hora/fuso), `valor` (**`Numeric`**, **sempre positivo**; o
+sentido vive em `tipo` = `credito`/`debito`), `descricao` (MEMO), `conta` (ACCTID),
+`banco`, `fitid` (id do banco), `status` (`pendente`/`conciliado`/`ignorado`).
+Liga **1:1** a `LancamentoFinanceiro` (`lancamento_id` **unique**;
+`back_populates="movimento"`). **Dedup de reimportação** por
+`UniqueConstraint(clinica_id, conta, fitid)`. Trilha:
+`importado_em`/`conciliado_em` + autores. Detalhe em [doc 12](12-conciliacao-e-caixa.md).
+
+### `FechamentoCaixa` — fechamento de caixa diário
+Confere o **esperado** (receitas pagas no dia, por forma de pagamento) contra o
+**contado** pela recepção. `dia` (**`Date`**, fuso BR), `esperado_total`/
+`contado_total`/`divergencia` (**`Numeric`**; divergência = `contado − esperado`),
+`detalhes` (**JSON em `Text`**: `{forma: {esperado, contado}}`), `observacoes`,
+`fechado_por_id`/`fechado_em`. **Um por (clínica, dia)**
+(`UniqueConstraint(clinica_id, dia)`); **reabrir = deletar** o registro. Detalhe em
+[doc 12](12-conciliacao-e-caixa.md).
+
 ### `Exame` — anexo (LGPD)
 Arquivo no `storage` (fora de `static/`), só `arquivo_key` opaca no DB.
 Download por rota autenticada com checagem de posse (`clinico_required`).
 
+### `WhatsAppConta` / `WhatsAppContato` / `WhatsAppMensagem` — WhatsApp Business (Cloud API)
+Integração multi-tenant com o WhatsApp Business da Meta. **Inerte por padrão**: só
+há tráfego/custo quando `WHATSAPP_ATIVO` (global) está on **E** a conta está
+`ativo=True` com token. Detalhe da integração (webhook, custos, onboarding) em
+[doc 10](10-whatsapp-integracao.md).
+
+- **`WhatsAppConta`** — 1:1 com Clínica (`UniqueConstraint` em `clinica_id`). Guarda
+  os IDs da Meta: `phone_number_id` (**único global** — roteia o webhook de volta pra
+  clínica dona), `waba_id`, `display_phone`, `nome_exibicao`. O access token é
+  **SEGREDO**: guardado **cifrado** (`token_cifrado`, Fernet — `services/cripto.py`)
+  e nunca exibido/logado. `configurada` = tem número + token.
+- **`WhatsAppContato`** — uma "thread" da inbox = a outra ponta da conversa. `wa_id`
+  (número internacional só dígitos), `nome` (push name da Meta), `nao_lidas`,
+  `ultima_em`. Ligado **opcionalmente** a um `Paciente` (casado por telefone) pra dar
+  contexto clínico. `UniqueConstraint(clinica_id, wa_id)`.
+- **`WhatsAppMensagem`** — uma mensagem da thread. `direcao` (`in`=recebida /
+  `out`=enviada pela equipe), `texto`, `wa_message_id` (id da Meta, dedupe de webhook
+  + correlação de status), `status` (out: `enviada|entregue|lida|falhou`),
+  `enviado_por_id`. Cascade delete a partir do contato.
+
+> Todos os três carregam `clinica_id` (multi-tenant). A listagem da inbox **filtra
+> explicitamente por `clinica_id`** (defesa em profundidade, além do escopo automático).
+
+### `ConfigFiscalClinica` — emissão de NFS-e por clínica
+1:1 com `Clinica` (`UniqueConstraint(clinica_id)`). Guarda os dados do **emitente** (a
+clínica): `cnpj`, `razao_social`, `email`, `inscricao_municipal`, endereço completo
+(`logradouro`/`numero`/`bairro`/`cidade`/`uf`/`cep`/`codigo_municipio_ibge`),
+`regime_tributario`, `aliquota_iss` (**`Numeric`**), `codigo_servico` (LC116), `cnae`,
+`iss_retido_padrao`, e o `gateway_empresa_id` (emitente cadastrado no gateway). Módulo
+**INERTE** por padrão (`NF_ATIVO` global + `ativo` por clínica). As **credenciais do
+gateway são da plataforma** (variáveis de ambiente, não por clínica); o **certificado A1
+vai pro gateway**, não é guardado aqui. Emissão via `app/services/fiscal/` (adaptador
+agnóstico de provedor; Nuvem Fiscal). Detalhe em [doc 11](11-emissao-nf.md).
+
 ### `AuditLog` — trilha de auditoria
-`usuario_id`, `acao` (constantes `ACAO_*`), `recurso_tipo`/`recurso_id`,
-`detalhes` (**nunca PII**), `ip`, `user_agent`, `criado_em`. **Não tem
-`clinica_id`** — o escopo na tela `/auditoria` é feito por join em `Usuario.clinica_id`.
+`usuario_id`, `acao` (constantes `ACAO_*` — inclui `ACAO_CONCIERGE_GERADO` p/ a
+geração de mensagem de retorno), `recurso_tipo`/`recurso_id`, `detalhes`
+(**nunca PII**), `ip`, `user_agent`, `criado_em`. **Não tem `clinica_id`** — o
+escopo na tela `/auditoria` é por `Usuario.clinica_id` e é **fail-closed** +
+**exclui o superadmin** (a plataforma nunca aparece pro tenant; ver
+`routes/auditoria.py:_base_filtrada`).
 
 ## Fluxo principal (operação da clínica)
 ```

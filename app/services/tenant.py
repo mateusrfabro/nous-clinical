@@ -26,6 +26,21 @@ def clinica_atual():
     return None
 
 
+def get_da_clinica(model, id_, **kw):
+    """`db.session.get` + guard EXPLÍCITO de clínica. Fecha o edge de identity-map
+    em que o `with_loader_criteria` não re-filtra um objeto já carregado na sessão.
+    Retorna None se inexistente OU de outra clínica. Superadmin (clinica_atual
+    None) não filtra. Use em rota tenant-scoped no lugar de `db.session.get`."""
+    from app import db
+    obj = db.session.get(model, id_, **kw)
+    if obj is None:
+        return None
+    cid = clinica_atual()
+    if cid is not None and getattr(obj, "clinica_id", None) != cid:
+        return None
+    return obj
+
+
 def _clinica_unica(session):
     """Fallback single-tenant: se existe exatamente 1 clínica, é ela."""
     from app.models import Clinica
@@ -33,17 +48,31 @@ def _clinica_unica(session):
     return ids[0] if len(ids) == 1 else None
 
 
+_listeners_instalados = False
+
+
 def init_tenant(db):
-    """Registra os listeners de escopo. Chamado uma vez no app factory."""
+    """Registra os listeners de escopo. Chamado no app factory.
+
+    Idempotente: os listeners vão na classe GLOBAL `Session`, não no app. Sem a
+    trava, cada create_app (a fixture de teste cria um por teste) somava mais um
+    listener, e toda SELECT acumulava 15 filtros de clínica por app já criado —
+    a ~460 testes o SQLite recusava a expressão (profundidade > 1000)."""
+    global _listeners_instalados
+    if _listeners_instalados:
+        return
+    _listeners_instalados = True
     from app.models import (
         Paciente, Profissional, Agendamento, Atendimento,
         LancamentoFinanceiro, Procedimento, Exame, Convenio, Usuario, Bloqueio,
-        Sala,
+        Sala, WhatsAppConta, WhatsAppContato, WhatsAppMensagem,
+        MovimentoBancario, FechamentoCaixa,
     )
     # Escopo de LEITURA (sem Usuario — auth precisa de lookup global).
     escopados = [Paciente, Profissional, Agendamento, Atendimento,
                  LancamentoFinanceiro, Procedimento, Exame, Convenio, Bloqueio,
-                 Sala]
+                 Sala, WhatsAppConta, WhatsAppContato, WhatsAppMensagem,
+                 MovimentoBancario, FechamentoCaixa]
     # Recebem clinica_id na CRIAÇÃO (inclui Usuario).
     donos = tuple(escopados + [Usuario])
 

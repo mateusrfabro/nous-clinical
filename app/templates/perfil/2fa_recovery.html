@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Códigos de recuperação — Nous Clinical{% endblock %}
+{% block content %}
+<div class="w-narrow">
+  <div class="page-header"><h2>2FA ativado ✓</h2></div>
+  <div class="card">
+    <div class="alert alert-warning"><strong>Guarde estes códigos de recuperação
+      agora.</strong> Eles são a única forma de entrar se você perder o app
+      autenticador. Cada um funciona <strong>uma vez</strong>. Não serão exibidos
+      de novo.</div>
+
+    <ul class="recovery-list mt-2">
+      {% for c in codigos %}<li><code>{{ c }}</code></li>{% endfor %}
+    </ul>
+
+    <p class="muted text-sm mt-2">Anote num lugar seguro (gerenciador de senhas,
+      papel guardado). Depois, confirme abaixo.</p>
+    <a href="{{ url_for('perfil.editar') }}" class="btn btn-primary mt-2">
+      Já guardei os códigos</a>
+  </div>
+</div>
+{% endblock %}

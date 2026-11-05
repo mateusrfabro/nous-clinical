@@ -22,13 +22,14 @@
 </form>
 
 {% if procedimento.precos %}
+<div class="table-wrapper">
 <table class="table">
-  <thead><tr><th>Convênio</th><th>Valor</th><th>Ações</th></tr></thead>
+  <thead><tr><th>Convênio</th><th class="num">Valor</th><th>Ações</th></tr></thead>
   <tbody>
     {% for pc in procedimento.precos %}
     <tr>
       <td>{{ pc.convenio }}</td>
-      <td>{{ pc.valor|brl }}</td>
+      <td class="num">{{ pc.valor|brl }}</td>
       <td>
         <form method="POST" action="{{ url_for('procedimentos.excluir_preco', preco_id=pc.id) }}" class="inline-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -39,6 +40,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% else %}
 <div class="empty-state"><p>Nenhum preço por convênio. Usa-se o valor padrão.</p></div>
 {% endif %}

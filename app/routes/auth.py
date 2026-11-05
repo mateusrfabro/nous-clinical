@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, urljoin
 
 from flask import (
@@ -8,7 +8,7 @@ from flask import (
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app import db, limiter
 from app.models import Usuario, AuditLog
@@ -16,12 +16,19 @@ from app.services.passwords import hash_senha, check_senha, check_dummy
 from app.services.audit import audit
 from app.services.pii import mask_email as _mask_email
 from app.services.notificacoes import enviar_link_recuperacao
+from app.services.email import enviar_email
+from app.services.cripto import decifrar
+from app.services import totp as totp_svc
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
 _RECUPERACAO_SALT = "recuperar-senha"
 _RECUPERACAO_TTL_SEG = 3600  # 1 hora
+
+# Lockout por-conta: N falhas seguidas bloqueiam a conta por M minutos.
+_MAX_TENTATIVAS = 5
+_BLOQUEIO_MIN = 15
 
 
 def _usuario_por_email(email: str) -> Usuario | None:
@@ -59,6 +66,48 @@ def _agora_utc():
     return datetime.now(timezone.utc)
 
 
+def _as_utc(dt):
+    """Normaliza um DateTime que pode vir naive (SQLite) pra aware em UTC."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _alertar_login_novo(usuario, ip):
+    """Best-effort: avisa por e-mail quando o login vem de um IP diferente do
+    último conhecido. Não bloqueia o login se o e-mail falhar (ou SMTP off)."""
+    anterior = usuario.ultimo_login_ip
+    if anterior and anterior != ip and usuario.email:
+        quando = _agora_utc().strftime("%d/%m/%Y %H:%M UTC")
+        corpo = (
+            f"Olá, {usuario.nome_responsavel}.\n\n"
+            f"Detectamos um acesso à sua conta Nous Clinical em {quando}, "
+            f"de um endereço diferente do habitual (IP {ip}).\n\n"
+            "Se foi você, pode ignorar este aviso. Se não reconhece, "
+            "troque sua senha imediatamente em 'Esqueci a senha'."
+        )
+        try:
+            enviar_email(usuario.email, "Novo acesso à sua conta Nous", corpo)
+        except Exception:   # noqa: BLE001
+            logger.warning("ALERTA_LOGIN_FALHA", exc_info=True)
+
+
+def _finalizar_login(usuario, ip, proximo):
+    """Completa o login (usado direto ou após a 2ª etapa de 2FA): alerta de IP
+    novo, zera lockout, regenera a sessão (anti-fixation) e autentica."""
+    _alertar_login_novo(usuario, ip)
+    usuario.ultimo_login_ip = ip
+    usuario.tentativas_falhas = 0
+    usuario.bloqueado_ate = None
+    db.session.commit()
+    session.clear()
+    session.permanent = True
+    login_user(usuario)
+    logger.info("LOGIN_OK usuario=%s tipo=%s ip=%s", usuario.id, usuario.tipo, ip)
+    audit(AuditLog.ACAO_LOGIN_OK, usuario_id=usuario.id, detalhes=f"tipo={usuario.tipo}")
+    return redirect(proximo or url_for("main.dashboard"))
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute", methods=["POST"],
                error_message="Muitas tentativas de login. Aguarde 1 minuto.")
@@ -70,7 +119,19 @@ def login():
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
 
+        ip = _client_ip()
         usuario = _usuario_por_email(email)
+
+        # Conta travada por brute-force (falhas consecutivas)? Recusa antes de
+        # checar a senha. Mensagem clara pro dono legítimo; só afeta conta real.
+        if usuario and _as_utc(usuario.bloqueado_ate) \
+                and _as_utc(usuario.bloqueado_ate) > _agora_utc():
+            logger.warning("LOGIN_BLOQUEADO_TENTATIVA email=%s ip=%s",
+                           _mask_email(email), ip)
+            flash("Muitas tentativas. Por segurança, esta conta ficou bloqueada "
+                  "por alguns minutos. Tente novamente em instantes.", "error")
+            return render_template("auth/login.html", email_anterior=email)
+
         novo_hash = None
         if usuario:
             senha_ok, novo_hash = check_senha(senha, usuario.senha_hash)
@@ -79,26 +140,49 @@ def login():
             senha_ok = False
 
         if usuario and senha_ok:
-            if novo_hash:
-                usuario.senha_hash = novo_hash
-                db.session.commit()
             if not getattr(usuario, "ativo", True):
                 logger.warning("LOGIN_BLOQUEADO email=%s motivo=inativo",
                                _mask_email(email))
                 flash("Conta desativada. Contate o administrador.", "error")
                 return render_template("auth/login.html", email_anterior=email)
-            session.clear()
-            session.permanent = True
-            login_user(usuario)
-            logger.info("LOGIN_OK usuario=%s tipo=%s ip=%s",
-                        usuario.id, usuario.tipo, _client_ip())
-            audit(AuditLog.ACAO_LOGIN_OK, usuario_id=usuario.id,
-                  detalhes=f"tipo={usuario.tipo}")
+            if novo_hash:
+                usuario.senha_hash = novo_hash
+                db.session.commit()
             proximo = _proximo_url_seguro(request.args.get("next"))
-            return redirect(proximo or url_for("main.dashboard"))
+            # 2FA ativo: a senha está certa, mas o login só completa após o
+            # código. Guarda a pendência na sessão (ainda NÃO autenticado).
+            if usuario.totp_ativado:
+                usuario.tentativas_falhas = 0
+                usuario.bloqueado_ate = None
+                db.session.commit()
+                session.clear()
+                session["2fa_user_id"] = usuario.id
+                session["2fa_next"] = proximo or ""
+                session["2fa_ip"] = ip
+                return redirect(url_for("auth.login_2fa"))
+            return _finalizar_login(usuario, ip, proximo)
+
+        # Falha: incrementa o contador da conta existente e bloqueia no limite.
+        if usuario:
+            # Incremento ATÔMICO no banco (UPDATE ... = coluna + 1) em vez de
+            # read-modify-write: sob falhas concorrentes de N workers, o padrão
+            # antigo perdia incrementos e o lockout nunca atingia o limite.
+            db.session.execute(
+                update(Usuario).where(Usuario.id == usuario.id)
+                .values(tentativas_falhas=Usuario.tentativas_falhas + 1)
+                .execution_options(synchronize_session=False, ignore_tenant=True))
+            db.session.refresh(usuario)   # lê o valor já consolidado
+            if usuario.tentativas_falhas >= _MAX_TENTATIVAS:
+                usuario.bloqueado_ate = _agora_utc() + timedelta(minutes=_BLOQUEIO_MIN)
+                usuario.tentativas_falhas = 0
+                audit(AuditLog.ACAO_LOGIN_BLOQUEADO, usuario_id=usuario.id,
+                      detalhes=f"bloqueio={_BLOQUEIO_MIN}min")
+                logger.warning("LOGIN_CONTA_BLOQUEADA email=%s ip=%s",
+                               _mask_email(email), ip)
+            db.session.commit()
 
         logger.warning("LOGIN_FAIL email=%s ip=%s existe=%s",
-                       _mask_email(email), _client_ip(), bool(usuario))
+                       _mask_email(email), ip, bool(usuario))
         audit(AuditLog.ACAO_LOGIN_FAIL,
               detalhes=f"email={_mask_email(email)} existe={bool(usuario)}")
         flash("E-mail ou senha incorretos.", "error")
@@ -106,6 +190,52 @@ def login():
                                erro_login=True, email_anterior=email)
 
     return render_template("auth/login.html")
+
+
+@auth_bp.route("/login/2fa", methods=["GET", "POST"])
+@limiter.limit("10 per minute;60 per hour", methods=["POST"],
+               error_message="Muitas tentativas. Aguarde um pouco.")
+def login_2fa():
+    """2ª etapa do login pra contas com 2FA. Aceita o código do app (TOTP) ou
+    um código de recuperação (uso único). A pendência vive na sessão até aqui."""
+    uid = session.get("2fa_user_id")
+    if not uid:
+        return redirect(url_for("auth.login"))
+    usuario = db.session.get(Usuario, uid)
+    if not usuario or not usuario.totp_ativado:
+        session.clear()
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        codigo = request.form.get("codigo", "")
+        segredo = decifrar(usuario.totp_secret)
+        contador = totp_svc.verificar_contador(segredo, codigo) if segredo else None
+        ok = False
+        if contador is not None:
+            # Anti-replay: recusa reuso do mesmo código (ou de um período já
+            # consumido) dentro da janela de tolerância. Só avança o marcador.
+            ultimo = usuario.totp_ultimo_contador
+            if ultimo is None or contador > ultimo:
+                usuario.totp_ultimo_contador = contador
+                ok = True
+            else:
+                audit(AuditLog.ACAO_LOGIN_FAIL, usuario_id=usuario.id,
+                      detalhes="2fa_replay")
+        if not ok:
+            # fallback: código de recuperação (consome de uso único)
+            novo_blob = totp_svc.consumir_recuperacao(codigo, usuario.totp_recovery)
+            if novo_blob is not None:
+                usuario.totp_recovery = novo_blob
+                db.session.commit()
+                ok = True
+        if ok:
+            ip = session.get("2fa_ip") or _client_ip()
+            proximo = _proximo_url_seguro(session.get("2fa_next")) or None
+            return _finalizar_login(usuario, ip, proximo)
+        audit(AuditLog.ACAO_LOGIN_FAIL, usuario_id=usuario.id, detalhes="2fa_incorreto")
+        flash("Código de verificação inválido.", "error")
+
+    return render_template("auth/login_2fa.html")
 
 
 @auth_bp.route("/logout", methods=["POST"])

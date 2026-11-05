@@ -17,7 +17,8 @@ def _amanha():
 
 
 def _clinica_b_com_prof(slug="b-portal"):
-    cb = Clinica(nome="Clínica B Portal", slug=slug)
+    cb = Clinica(nome="Clínica B Portal", slug=slug,
+                 agendamento_online_ativo=True)
     db.session.add(cb)
     db.session.flush()
     ub = Usuario(email=f"{slug}@p.com", senha_hash=hash_senha("x"),

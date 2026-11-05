@@ -19,7 +19,7 @@
         <input type="text" id="especialidade" name="especialidade" value="{{ prof.especialidade or '' }}">
       </div>
       <div class="form-group form-group-grow">
-        <label for="registro_conselho">Registro (CRM/CRO/…)</label>
+        <label for="registro_conselho">Registro no conselho (CRM, CRP, CRO, CREFITO…)</label>
         <input type="text" id="registro_conselho" name="registro_conselho" value="{{ prof.registro_conselho or '' }}">
       </div>
     </div>
@@ -42,7 +42,7 @@
       </div>
     </div>
     <hr class="mt-4 mb-4">
-    <h3 class="mb-2">Disponibilidade de atendimento</h3>
+    <div class="page-header section-title-mt"><h3>Disponibilidade de atendimento</h3></div>
     <div class="form-group">
       <label>Dias de atendimento</label>
       <div class="flex-row-gap">
@@ -75,7 +75,7 @@
     <div class="form-checkbox">
       <label><input type="checkbox" name="ativo" {{ 'checked' if prof.ativo }}> Profissional ativo</label>
     </div>
-    <button type="submit" class="btn btn-primary">Salvar</button>
+    <button type="submit" class="btn btn-primary">Salvar profissional</button>
     <a href="{{ url_for('profissionais.listar') }}" class="btn btn-outline">Cancelar</a>
   </form>
 </div>

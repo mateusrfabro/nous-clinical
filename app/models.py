@@ -45,6 +45,10 @@ class Clinica(db.Model):
     logo_key = db.Column(db.String(255))
     logo_mime = db.Column(db.String(60))
     ativo = db.Column(db.Boolean, nullable=False, default=True)
+    # Agendamento online público (portal do paciente): OFF por padrão. Só quando
+    # o admin liga é que a clínica fica bookable/enumerável na rota pública — sem
+    # isso, um anônimo listaria profissionais/horários de QUALQUER clínica ativa.
+    agendamento_online_ativo = db.Column(db.Boolean, nullable=False, default=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
     def __repr__(self):
@@ -121,6 +125,26 @@ class Usuario(UserMixin, db.Model):
     aceite_termos_em = db.Column(db.DateTime(timezone=True))
     senha_atualizada_em = db.Column(db.DateTime(timezone=True))
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    # Proteção anti-brute-force POR CONTA (o rate-limit por IP não cobre ataque
+    # distribuído a UMA conta). Persistido no DB porque prod é multi-worker.
+    tentativas_falhas = db.Column(db.Integer, nullable=False, default=0)
+    bloqueado_ate = db.Column(db.DateTime(timezone=True))
+    # Último IP de login OK — dispara alerta por e-mail quando muda (acesso novo).
+    ultimo_login_ip = db.Column(db.String(45))
+
+    # 2FA/TOTP (opcional, recomendado p/ admin/superadmin). O segredo fica
+    # CIFRADO em repouso (Fernet, services/cripto.py) — mesmo padrão do token
+    # WhatsApp. `totp_ativado` só vira True após o usuário confirmar 1 código.
+    totp_secret = db.Column(db.String(255))
+    totp_ativado = db.Column(db.Boolean, nullable=False, default=False)
+    # Códigos de recuperação do 2FA (uso único) guardados como HASH — JSON de
+    # lista de sha256. Permite entrar se o usuário perder o autenticador.
+    totp_recovery = db.Column(db.Text)
+    # Anti-replay do TOTP: maior contador (unix//período) já aceito. Recusa reuso
+    # do MESMO código dentro da janela de tolerância (quem interceptar 1 código
+    # não consegue reapresentá-lo). NULL = nenhum login 2FA ainda.
+    totp_ultimo_contador = db.Column(db.BigInteger)
 
     profissional = db.relationship(
         "Profissional", back_populates="usuario", uselist=False
@@ -212,6 +236,10 @@ class Profissional(db.Model):
 
 class Paciente(db.Model):
     __tablename__ = "pacientes"
+    # Índice pros relatórios que filtram "novos pacientes" por período.
+    __table_args__ = (
+        db.Index("ix_pac_clinica_criado", "clinica_id", "criado_em"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     nome_completo = db.Column(db.String(150), nullable=False, index=True)
@@ -233,6 +261,9 @@ class Paciente(db.Model):
     origem = db.Column(db.String(20))
 
     ativo = db.Column(db.Boolean, nullable=False, default=True)
+    # LGPD art. 18 (direito ao esquecimento): marca quando os dados pessoais
+    # foram anonimizados. NULL = paciente normal. Ver services/anonimizacao.py.
+    anonimizado_em = db.Column(db.DateTime(timezone=True))
     clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"), index=True, nullable=False)
     criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
 
@@ -260,6 +291,22 @@ class Paciente(db.Model):
 
 class Agendamento(db.Model):
     __tablename__ = "agendamentos"
+    # Índices compostos pros filtros quentes: janela de dia por clínica e por
+    # profissional (agenda, kanban, dashboard, checagem de conflito).
+    __table_args__ = (
+        db.Index("ix_ag_clinica_inicio", "clinica_id", "inicio"),
+        db.Index("ix_ag_prof_inicio", "profissional_id", "inicio"),
+        # Trava anti-double-book no BANCO (defesa contra a corrida TOCTOU entre a
+        # checagem de conflito e o commit): dois agendamentos NÃO-cancelados não
+        # podem compartilhar (profissional, início exato). Casa com a semântica
+        # de "ocupado" do app (tudo != cancelado bloqueia o slot). Só pega a
+        # colisão de início idêntico — o overlap parcial segue coberto pela
+        # checagem em app; aqui é o backstop do slot alinhado.
+        db.Index("uq_ag_prof_inicio_ativo", "profissional_id", "inicio",
+                 unique=True,
+                 sqlite_where=db.text("status != 'cancelado'"),
+                 postgresql_where=db.text("status != 'cancelado'")),
+    )
 
     STATUS_AGENDADO = "agendado"
     STATUS_CONFIRMADO = "confirmado"
@@ -343,6 +390,12 @@ class Atendimento(db.Model):
     atendimento e do dia (regra aplicada na rota, nao no modelo).
     """
     __tablename__ = "atendimentos"
+    # Índices compostos pros relatórios/CRM que filtram/ordenam por data e por
+    # retorno recomendado (painel de retornos + badge de contagem).
+    __table_args__ = (
+        db.Index("ix_atend_clinica_criado", "clinica_id", "criado_em"),
+        db.Index("ix_atend_clinica_retorno", "clinica_id", "retorno_em"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     agendamento_id = db.Column(
@@ -474,6 +527,14 @@ class LancamentoFinanceiro(db.Model):
     consulta, relacao 1:1 via unique). Dinheiro SEMPRE Numeric(12, 2).
     """
     __tablename__ = "lancamentos_financeiros"
+    # Índices compostos pros filtros quentes: fluxo/faturamento (status+tipo+
+    # pago_em) e contas a receber/atraso (status+tipo+vencimento), por clínica.
+    __table_args__ = (
+        db.Index("ix_lanc_clinica_status_tipo_pago",
+                 "clinica_id", "status", "tipo", "pago_em"),
+        db.Index("ix_lanc_clinica_status_tipo_venc",
+                 "clinica_id", "status", "tipo", "vencimento"),
+    )
 
     TIPO_RECEITA = "receita"
     TIPO_DESPESA = "despesa"
@@ -519,6 +580,15 @@ class LancamentoFinanceiro(db.Model):
 
     paciente = db.relationship("Paciente", back_populates="lancamentos")
     agendamento = db.relationship("Agendamento", back_populates="lancamento")
+    # Conciliação bancária: 0..1 movimento de extrato casado a este lançamento.
+    # `movimento is None` => lançamento ainda não conciliado.
+    movimento = db.relationship(
+        "MovimentoBancario", back_populates="lancamento", uselist=False)
+
+    @property
+    def conciliado(self):
+        """True se há um movimento bancário casado a este lançamento."""
+        return self.movimento is not None
 
     @property
     def vencido(self):
@@ -531,6 +601,85 @@ class LancamentoFinanceiro(db.Model):
 
     def __repr__(self):
         return f"<LancamentoFinanceiro {self.id} {self.tipo} {self.status} {self.valor}>"
+
+
+class MovimentoBancario(db.Model):
+    """Transação de um extrato bancário (OFX) importada para conciliação.
+
+    Cada linha do extrato vira um movimento. O usuário concilia cada movimento
+    com um LancamentoFinanceiro (relação 1:1) — casando um existente ou criando
+    um novo a partir do movimento — ou marca como ignorado (tarifa, transferência
+    interna, etc.). Dedup de reimportação por (clinica_id, conta, fitid). Valor
+    SEMPRE positivo; o sentido vive em `tipo` (credito=entrada / debito=saida).
+    Dinheiro Numeric(12,2). Datas do extrato são DATE (sem hora/fuso).
+    """
+    __tablename__ = "movimentos_bancarios"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "conta", "fitid", name="uq_mov_fitid"),
+        db.Index("ix_mov_clinica_status_data", "clinica_id", "status", "data"),
+    )
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_CONCILIADO = "conciliado"
+    STATUS_IGNORADO = "ignorado"
+
+    TIPO_CREDITO = "credito"   # entrada (TRNAMT > 0)
+    TIPO_DEBITO = "debito"     # saída   (TRNAMT < 0)
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    data = db.Column(db.Date, nullable=False, index=True)   # DTPOSTED do OFX
+    valor = db.Column(Numeric(12, 2), nullable=False)       # sempre positivo
+    tipo = db.Column(db.String(8), nullable=False)          # credito | debito
+    descricao = db.Column(db.String(200))                   # MEMO/NAME do OFX
+    fitid = db.Column(db.String(80))                        # id único da transação
+    conta = db.Column(db.String(40))                        # ACCTID do OFX
+    banco = db.Column(db.String(60))                        # ORG/BANKID (exibição)
+    status = db.Column(db.String(12), nullable=False,
+                       default=STATUS_PENDENTE, index=True)
+    lancamento_id = db.Column(
+        db.Integer, db.ForeignKey("lancamentos_financeiros.id"),
+        unique=True, index=True)
+    importado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    importado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    conciliado_em = db.Column(db.DateTime(timezone=True))
+    conciliado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+
+    lancamento = db.relationship(
+        "LancamentoFinanceiro", back_populates="movimento")
+
+    def __repr__(self):
+        return f"<MovimentoBancario {self.id} {self.tipo} {self.valor} {self.status}>"
+
+
+class FechamentoCaixa(db.Model):
+    """Fechamento de caixa diário: confere o ESPERADO (receitas pagas no dia,
+    por forma de pagamento) contra o CONTADO pela recepção, registrando a
+    divergência. Um por (clínica, dia) — reabrir apaga o registro. Os totais
+    são snapshot do momento do fechamento; `detalhes` guarda o por-forma (JSON).
+    Dinheiro Numeric(12,2). `dia` é DATE (fuso BR resolvido na rota).
+    """
+    __tablename__ = "fechamentos_caixa"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "dia", name="uq_fechamento_dia"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    dia = db.Column(db.Date, nullable=False, index=True)
+    esperado_total = db.Column(Numeric(12, 2), nullable=False, default=0)
+    contado_total = db.Column(Numeric(12, 2), nullable=False, default=0)
+    divergencia = db.Column(Numeric(12, 2), nullable=False, default=0)  # contado-esperado
+    detalhes = db.Column(db.Text)        # JSON: {forma: {esperado, contado}}
+    observacoes = db.Column(db.Text)
+    fechado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    fechado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    def __repr__(self):
+        return f"<FechamentoCaixa {self.id} dia={self.dia} div={self.divergencia}>"
 
 
 class Exame(db.Model):
@@ -574,6 +723,10 @@ class AuditLog(db.Model):
     ACAO_SENHA_REDEFINIDA = "senha_redefinida"
     ACAO_PACIENTE_CRIADO = "paciente_criado"
     ACAO_PACIENTE_EDITADO = "paciente_editado"
+    ACAO_PACIENTE_ANONIMIZADO = "paciente_anonimizado"  # LGPD art. 18
+    ACAO_LOGIN_BLOQUEADO = "login_bloqueado"            # conta travada por brute-force
+    ACAO_2FA_ATIVADO = "2fa_ativado"
+    ACAO_2FA_DESATIVADO = "2fa_desativado"
     ACAO_AGENDAMENTO_CRIADO = "agendamento_criado"
     ACAO_AGENDAMENTO_STATUS = "agendamento_status"
     ACAO_AGENDAMENTO_EDITADO = "agendamento_editado"
@@ -604,6 +757,16 @@ class AuditLog(db.Model):
     ACAO_BLOQUEIO_CRIADO = "bloqueio_criado"      # bloqueio de agenda (RF-05/07)
     ACAO_BLOQUEIO_REMOVIDO = "bloqueio_removido"  # desbloqueio de agenda
     ACAO_AJUDA_CONSULTA = "ajuda_consulta"        # pergunta ao chatbot de ajuda
+    ACAO_WHATSAPP_CONFIG = "whatsapp_config"      # conexão/edição da conta WhatsApp
+    ACAO_WHATSAPP_ENVIADA = "whatsapp_enviada"    # mensagem enviada pela equipe
+    ACAO_FISCAL_CONFIG = "fiscal_config"          # config de emissão de NFS-e da clínica
+    ACAO_CONCILIACAO_IMPORT = "conciliacao_import"      # importou extrato OFX
+    ACAO_CONCILIACAO_CONCILIADO = "conciliacao_conciliado"  # casou movimento×lançamento
+    ACAO_CONCILIACAO_IGNORADO = "conciliacao_ignorado"      # ignorou um movimento
+    ACAO_CONCILIACAO_DESFEITO = "conciliacao_desfeito"      # desfez a conciliação
+    ACAO_CAIXA_FECHADO = "caixa_fechado"          # fechamento de caixa do dia
+    ACAO_CAIXA_REABERTO = "caixa_reaberto"        # reabertura do caixa
+    ACAO_CONCIERGE_GERADO = "concierge_gerado"    # rascunho de mensagem IA (retorno/reativação)
 
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
@@ -617,3 +780,151 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f"<AuditLog {self.id} {self.acao}>"
+
+
+class WhatsAppConta(db.Model):
+    """Conta WhatsApp Business (Cloud API) de UMA clínica. Multi-tenant: 1 por
+    clínica (UniqueConstraint). O `phone_number_id` (id do número na Meta) roteia
+    o webhook único de volta pra clínica dona. O token de acesso é SEGREDO —
+    guardado CIFRADO (Fernet, ver services/cripto.py) em `token_cifrado` e nunca
+    exibido ou logado. Feature INERTE por padrão: só há tráfego/custo quando
+    `WHATSAPP_ATIVO` (global) está on E esta conta tem `ativo=True` + token.
+    """
+    __tablename__ = "whatsapp_contas"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", name="uq_whatsapp_conta_clinica"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    # IDs da Meta (Graph API). phone_number_id é único global (roteia o webhook).
+    phone_number_id = db.Column(db.String(40), unique=True, index=True)
+    waba_id = db.Column(db.String(40))            # WhatsApp Business Account id
+    display_phone = db.Column(db.String(20))      # número humano (exibição)
+    nome_exibicao = db.Column(db.String(120))
+    token_cifrado = db.Column(db.Text)            # access token cifrado em repouso
+    ativo = db.Column(db.Boolean, nullable=False, default=False)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    atualizado_em = db.Column(db.DateTime(timezone=True), default=_agora,
+                              onupdate=_agora)
+
+    @property
+    def configurada(self):
+        """Pronta pra operar: tem número e token (não revela o token)."""
+        return bool(self.phone_number_id and self.token_cifrado)
+
+    def __repr__(self):
+        return f"<WhatsAppConta {self.id} clinica={self.clinica_id}>"
+
+
+class WhatsAppContato(db.Model):
+    """A outra ponta de uma conversa de WhatsApp = uma 'thread' da inbox.
+    `wa_id` é o número internacional só dígitos (ex.: 5543999998888). Ligado
+    opcionalmente a um Paciente (casado pelo telefone) pra dar contexto clínico."""
+    __tablename__ = "whatsapp_contatos"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", "wa_id", name="uq_whatsapp_contato"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    wa_id = db.Column(db.String(20), nullable=False, index=True)
+    nome = db.Column(db.String(120))              # push name informado pela Meta
+    paciente_id = db.Column(db.Integer, db.ForeignKey("pacientes.id"), index=True)
+    nao_lidas = db.Column(db.Integer, nullable=False, default=0)
+    ultima_em = db.Column(db.DateTime(timezone=True), default=_agora, index=True)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+
+    paciente = db.relationship("Paciente", lazy="joined")
+    mensagens = db.relationship(
+        "WhatsAppMensagem", back_populates="contato",
+        order_by="WhatsAppMensagem.criado_em", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<WhatsAppContato {self.id} {self.wa_id}>"
+
+
+class WhatsAppMensagem(db.Model):
+    """Uma mensagem da thread. `direcao` in=recebida / out=enviada pela equipe.
+    `wa_message_id` é o id da Meta (dedupe de webhook e correlação de status)."""
+    __tablename__ = "whatsapp_mensagens"
+
+    DIRECAO_IN = "in"
+    DIRECAO_OUT = "out"
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    contato_id = db.Column(db.Integer, db.ForeignKey("whatsapp_contatos.id"),
+                           index=True, nullable=False)
+    direcao = db.Column(db.String(3), nullable=False)
+    wa_message_id = db.Column(db.String(80), index=True)
+    texto = db.Column(db.Text)
+    status = db.Column(db.String(12))             # out: enviada|entregue|lida|falhou
+    enviado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora, index=True)
+
+    contato = db.relationship("WhatsAppContato", back_populates="mensagens")
+
+    def __repr__(self):
+        return f"<WhatsAppMensagem {self.id} {self.direcao}>"
+
+
+class ConfigFiscalClinica(db.Model):
+    """Config de emissão de NFS-e de UMA clínica (multi-tenant: 1 por clínica).
+
+    Módulo INERTE por padrão: `NF_ATIVO` (global) + `ativo` (por clínica). As
+    credenciais do gateway são da PLATAFORMA (variáveis de ambiente, não por clínica);
+    aqui ficam os dados do EMITENTE (a clínica) e o vínculo com o emitente cadastrado
+    no gateway (`gateway_empresa_id`). O **certificado A1 vai pro gateway** — não é
+    guardado aqui. Ver docs/11-emissao-nf.md.
+    """
+    __tablename__ = "config_fiscal_clinica"
+    __table_args__ = (
+        db.UniqueConstraint("clinica_id", name="uq_config_fiscal_clinica"),
+    )
+
+    REGIMES = ("simples", "presumido", "real")
+
+    id = db.Column(db.Integer, primary_key=True)
+    clinica_id = db.Column(db.Integer, db.ForeignKey("clinicas.id"),
+                           index=True, nullable=False)
+    ativo = db.Column(db.Boolean, nullable=False, default=False)
+    gateway = db.Column(db.String(20), nullable=False, default="nuvemfiscal")
+    gateway_empresa_id = db.Column(db.String(40))     # emitente no gateway (CNPJ)
+    # Dados do prestador (a clínica) — usados pra cadastrar o emitente e na nota.
+    cnpj = db.Column(db.String(14))
+    razao_social = db.Column(db.String(160))
+    email = db.Column(db.String(160))
+    inscricao_municipal = db.Column(db.String(30))
+    # Endereço do prestador (exigido pelo gateway ao cadastrar o emitente).
+    logradouro = db.Column(db.String(160))
+    numero = db.Column(db.String(20))
+    complemento = db.Column(db.String(80))
+    bairro = db.Column(db.String(80))
+    cidade = db.Column(db.String(80))
+    uf = db.Column(db.String(2))
+    cep = db.Column(db.String(8))
+    codigo_municipio_ibge = db.Column(db.String(7))   # IBGE (7 dígitos)
+    regime_tributario = db.Column(db.String(12))      # simples|presumido|real
+    aliquota_iss = db.Column(Numeric(5, 2))           # % de ISS
+    codigo_servico = db.Column(db.String(20))         # LC116 (4.01/4.03) ou municipal
+    cnae = db.Column(db.String(10))
+    iss_retido_padrao = db.Column(db.Boolean, nullable=False, default=False)
+    certificado_validade = db.Column(db.Date)         # status do A1 (vive no gateway)
+    criado_em = db.Column(db.DateTime(timezone=True), default=_agora)
+    atualizado_em = db.Column(db.DateTime(timezone=True), default=_agora,
+                              onupdate=_agora)
+
+    clinica = db.relationship("Clinica")
+
+    @property
+    def configurada(self):
+        """Pronta pra emitir: emitente no gateway + dados fiscais mínimos."""
+        return bool(self.gateway_empresa_id and self.cnpj
+                    and self.inscricao_municipal and self.codigo_servico)
+
+    def __repr__(self):
+        return f"<ConfigFiscalClinica {self.id} clinica={self.clinica_id}>"

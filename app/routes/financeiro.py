@@ -5,6 +5,7 @@ Acesso: recepcao ou admin. Profissional NAO acessa o financeiro.
 Dinheiro sempre Numeric/Decimal (nunca Float). Datas em UTC no DB; o
 intervalo do periodo e calculado no fuso de Brasilia e convertido pra UTC.
 """
+import json
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
@@ -15,14 +16,23 @@ from flask import (
 from flask import abort
 from flask_login import login_required, current_user
 from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.auth_decorators import recepcao_ou_admin
 from app.models import (
-    LancamentoFinanceiro, Paciente, Agendamento, AuditLog,
+    LancamentoFinanceiro, Paciente, Agendamento, AuditLog, MovimentoBancario,
+    FechamentoCaixa,
 )
 from app.services.audit import audit
+from app.services.ofx import OFXError
+from app.services.extrato import parse_extrato
+from app.services.conciliacao import (
+    importar_extrato, sugestao_para, candidatos_para,
+    lancamentos_nao_conciliados,
+)
+from app.services.tenant import get_da_clinica
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
@@ -30,6 +40,20 @@ _BR_TZ = ZoneInfo("America/Sao_Paulo")
 _PERIODOS = ("dia", "semana", "mes")
 # Despesas sensíveis que a recepção NÃO vê nem lança (decisão de negócio).
 _CATEGORIAS_RESTRITAS = ("aluguel", "salario", "imposto")
+
+
+def _get_tenant(Model, id_):
+    """db.session.get + guard EXPLÍCITO de clínica (defesa em profundidade).
+    Além do escopo automático do tenant loader, recusa objeto de outra clínica —
+    blinda contra qualquer caminho que furasse o escopo. None se inexistente ou
+    de outro tenant."""
+    obj = db.session.get(Model, id_)
+    if obj is None:
+        return None
+    cid = getattr(obj, "clinica_id", None)
+    if cid is not None and cid != current_user.clinica_id:
+        return None
+    return obj
 
 
 def _filtro_categoria():
@@ -90,6 +114,10 @@ def _parse_valor(bruto: str):
     s = bruto.strip().replace("R$", "").replace(" ", "")
     if "," in s:                       # formato BR: '.' milhar, ',' decimal
         s = s.replace(".", "").replace(",", ".")
+    elif s.count(".") >= 1 and len(s.rsplit(".", 1)[1]) == 3:
+        # Ponto seguido de 3 dígitos no fim, SEM vírgula = milhar BR (1.234 =
+        # mil duzentos e trinta e quatro), não decimal. Evita virar R$ 1,23.
+        s = s.replace(".", "")
     try:
         v = Decimal(s)
     except (InvalidOperation, ValueError):
@@ -198,13 +226,13 @@ def novo():
             criado_por_id=current_user.id,
         )
         paciente_id = request.form.get("paciente_id", type=int)
-        if paciente_id and db.session.get(Paciente, paciente_id):
+        if paciente_id and get_da_clinica(Paciente, paciente_id):
             lanc.paciente_id = paciente_id
 
         # Vindo da agenda (botao Pagamento): liga a consulta e herda o paciente.
         ag_id = request.form.get("agendamento_id", type=int)
         if ag_id:
-            ag = db.session.get(Agendamento, ag_id)
+            ag = get_da_clinica(Agendamento, ag_id)
             if ag:
                 if ag.status not in (Agendamento.STATUS_CONFIRMADO,
                                      Agendamento.STATUS_ATENDIDO):
@@ -249,7 +277,7 @@ def novo():
         form_inicial["paciente_id"] = pid
     ag_id = request.args.get("agendamento_id", type=int)
     if ag_id:
-        ag = db.session.get(Agendamento, ag_id)
+        ag = get_da_clinica(Agendamento, ag_id)
         if ag:
             form_inicial["agendamento_id"] = ag.id
             form_inicial.setdefault("paciente_id", ag.paciente_id)
@@ -275,7 +303,7 @@ def novo():
 @login_required
 @recepcao_ou_admin
 def pagar(lancamento_id):
-    lanc = db.session.get(LancamentoFinanceiro, lancamento_id)
+    lanc = _get_tenant(LancamentoFinanceiro, lancamento_id)
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
@@ -301,7 +329,7 @@ def pagar(lancamento_id):
 @login_required
 @recepcao_ou_admin
 def cancelar(lancamento_id):
-    lanc = db.session.get(LancamentoFinanceiro, lancamento_id)
+    lanc = _get_tenant(LancamentoFinanceiro, lancamento_id)
     if not lanc:
         flash("Lançamento não encontrado.", "error")
         return redirect(url_for("financeiro.contas"))
@@ -341,3 +369,359 @@ def contas():
         a_receber=a_receber, a_pagar=a_pagar,
         total_receber=total_receber, total_pagar=total_pagar,
     )
+
+
+# ===================== Conciliação bancária (OFX) =====================
+
+@financeiro_bp.route("/conciliacao")
+@login_required
+@recepcao_ou_admin
+def conciliacao():
+    """Painel de conciliação: lista os movimentos do extrato (pendentes
+    primeiro) com a sugestão de lançamento p/ cada pendente."""
+    M = MovimentoBancario
+    movimentos = db.session.execute(
+        select(M).options(selectinload(M.lancamento))
+        # pendentes primeiro, depois mais recentes.
+        .order_by(M.status != M.STATUS_PENDENTE, M.data.desc(), M.id.desc())
+    ).scalars().all()
+    sugestoes = {m.id: sugestao_para(m)
+                 for m in movimentos if m.status == M.STATUS_PENDENTE}
+    n_pend = sum(1 for m in movimentos if m.status == M.STATUS_PENDENTE)
+    n_conc = sum(1 for m in movimentos if m.status == M.STATUS_CONCILIADO)
+    # Divergência do outro lado: receitas pagas (últimos 30d) sem extrato casado.
+    desde = datetime.now(timezone.utc) - timedelta(days=30)
+    sem_extrato = lancamentos_nao_conciliados(current_user.clinica_id, desde)
+    return render_template(
+        "financeiro/conciliacao.html",
+        movimentos=movimentos, sugestoes=sugestoes,
+        n_pend=n_pend, n_conc=n_conc, n_sem_extrato=len(sem_extrato),
+    )
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>")
+@login_required
+@recepcao_ou_admin
+def conciliacao_detalhe(movimento_id):
+    """Conciliação MANUAL: escolher um lançamento existente p/ o movimento
+    quando a sugestão automática não serve (valor não bate exatamente)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    candidatos = candidatos_para(mov)
+    return render_template(
+        "financeiro/conciliacao_detalhe.html",
+        mov=mov, candidatos=candidatos)
+
+
+@financeiro_bp.route("/conciliacao/divergencias")
+@login_required
+@recepcao_ou_admin
+def conciliacao_divergencias():
+    """Os dois lados da divergência num período: movimentos do extrato sem
+    lançamento (pendentes) × receitas pagas sem extrato casado."""
+    dias = request.args.get("dias", 30, type=int)
+    dias = max(1, min(dias, 365))
+    desde_dia = datetime.now(_BR_TZ).date() - timedelta(days=dias)
+    desde_utc = datetime.combine(desde_dia, time.min,
+                                 tzinfo=_BR_TZ).astimezone(timezone.utc)
+    M = MovimentoBancario
+    pendentes = db.session.execute(
+        select(M).where(M.status == M.STATUS_PENDENTE, M.data >= desde_dia)
+        .order_by(M.data.desc(), M.id.desc())
+    ).scalars().all()
+    sem_extrato = lancamentos_nao_conciliados(current_user.clinica_id, desde_utc)
+    total_pend = sum((m.valor for m in pendentes), Decimal("0"))
+    total_sem = sum((x.valor for x in sem_extrato), Decimal("0"))
+    return render_template(
+        "financeiro/divergencias.html",
+        pendentes=pendentes, sem_extrato=sem_extrato,
+        total_pend=total_pend, total_sem=total_sem, dias=dias)
+
+
+@financeiro_bp.route("/conciliacao/importar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_importar():
+    arquivo = request.files.get("extrato")
+    if not arquivo or not arquivo.filename:
+        flash("Selecione um arquivo .ofx ou .csv do seu banco.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    try:
+        extrato = parse_extrato(arquivo.filename, arquivo.read())
+    except OFXError as e:
+        flash(f"Não foi possível ler o extrato: {e}", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    novos, dup = importar_extrato(
+        extrato, current_user.clinica_id, current_user.id)
+    audit(AuditLog.ACAO_CONCILIACAO_IMPORT, recurso_tipo="extrato",
+          detalhes=f"novos={novos} dup={dup} conta={extrato.conta or '-'}")
+    flash(f"Extrato importado: {novos} novo(s), {dup} já existente(s).",
+          "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+def _mov_ou_redirect(movimento_id):
+    """Carrega o movimento (auto-escopado por clínica) ou redireciona."""
+    mov = _get_tenant(MovimentoBancario, movimento_id)
+    if not mov:
+        flash("Movimento não encontrado.", "error")
+    return mov
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/conciliar",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_conciliar(movimento_id):
+    """Casa o movimento a um lançamento existente (id vindo da sugestão)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    lanc_id = request.form.get("lancamento_id", type=int)
+    lanc = _get_tenant(LancamentoFinanceiro, lanc_id) if lanc_id else None
+    if not lanc:
+        flash("Lançamento para conciliar não encontrado.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    if lanc.movimento is not None and lanc.movimento.id != mov.id:
+        flash("Esse lançamento já está conciliado com outro movimento.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    # Tipo tem que bater: crédito do banco = receita; débito = despesa. Senão
+    # concilia coisas incompatíveis e mascara divergência de caixa.
+    tipo_ok = (LancamentoFinanceiro.TIPO_RECEITA
+               if mov.tipo == MovimentoBancario.TIPO_CREDITO
+               else LancamentoFinanceiro.TIPO_DESPESA)
+    if lanc.tipo != tipo_ok:
+        flash("Tipo incompatível: crédito casa com receita; débito, com despesa.",
+              "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    mov.lancamento_id = lanc.id
+    mov.status = MovimentoBancario.STATUS_CONCILIADO
+    mov.conciliado_em = datetime.now(timezone.utc)
+    mov.conciliado_por_id = current_user.id
+    db.session.commit()
+    audit(AuditLog.ACAO_CONCILIACAO_CONCILIADO, recurso_tipo="movimento",
+          recurso_id=mov.id, detalhes=f"lancamento={lanc.id}")
+    flash("Movimento conciliado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/criar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_criar(movimento_id):
+    """Cria um lançamento (pago) a partir do movimento e já concilia."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    if mov.status == MovimentoBancario.STATUS_CONCILIADO:
+        flash("Movimento já conciliado.", "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    # Se já existe um lançamento que casa com este movimento, NÃO criar outro
+    # (duplicaria a receita no faturamento/DRE) — empurra pro "Conciliar".
+    from app.services.conciliacao import sugestao_para
+    if sugestao_para(mov) is not None:
+        flash('Já existe um lançamento parecido com este — use "Conciliar" em '
+              'vez de "Criar" para não duplicar a receita.', "error")
+        return redirect(url_for("financeiro.conciliacao"))
+    L = LancamentoFinanceiro
+    tipo = (L.TIPO_RECEITA if mov.tipo == MovimentoBancario.TIPO_CREDITO
+            else L.TIPO_DESPESA)
+    # Data do extrato ao meio-dia BR -> UTC (evita virar o dia perto da 00h).
+    pago_em = datetime.combine(mov.data, time(12, 0),
+                               tzinfo=_BR_TZ).astimezone(timezone.utc)
+    lanc = L(tipo=tipo, categoria="outro",
+             descricao=(mov.descricao or "Movimento bancário")[:200],
+             valor=mov.valor, status=L.STATUS_PAGO, pago_em=pago_em,
+             criado_por_id=current_user.id)
+    db.session.add(lanc)
+    db.session.flush()
+    mov.lancamento_id = lanc.id
+    mov.status = MovimentoBancario.STATUS_CONCILIADO
+    mov.conciliado_em = datetime.now(timezone.utc)
+    mov.conciliado_por_id = current_user.id
+    db.session.commit()
+    audit(AuditLog.ACAO_LANCAMENTO_CRIADO, recurso_tipo="lancamento",
+          recurso_id=lanc.id, detalhes=f"tipo={tipo} via=conciliacao")
+    audit(AuditLog.ACAO_CONCILIACAO_CONCILIADO, recurso_tipo="movimento",
+          recurso_id=mov.id, detalhes=f"lancamento={lanc.id} novo")
+    flash("Lançamento criado e movimento conciliado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/ignorar",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_ignorar(movimento_id):
+    """Marca o movimento como ignorado (tarifa, transferência interna...)."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    if mov.status != MovimentoBancario.STATUS_CONCILIADO:
+        mov.status = MovimentoBancario.STATUS_IGNORADO
+        db.session.commit()
+        audit(AuditLog.ACAO_CONCILIACAO_IGNORADO, recurso_tipo="movimento",
+              recurso_id=mov.id)
+        flash("Movimento ignorado.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+@financeiro_bp.route("/conciliacao/<int:movimento_id>/desfazer",
+                     methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def conciliacao_desfazer(movimento_id):
+    """Volta o movimento p/ pendente (desfaz conciliação/ignore). NÃO apaga o
+    lançamento vinculado — só desfaz o vínculo."""
+    mov = _mov_ou_redirect(movimento_id)
+    if not mov:
+        return redirect(url_for("financeiro.conciliacao"))
+    mov.lancamento_id = None
+    mov.status = MovimentoBancario.STATUS_PENDENTE
+    mov.conciliado_em = None
+    mov.conciliado_por_id = None
+    db.session.commit()
+    audit(AuditLog.ACAO_CONCILIACAO_DESFEITO, recurso_tipo="movimento",
+          recurso_id=mov.id)
+    flash("Conciliação desfeita.", "success")
+    return redirect(url_for("financeiro.conciliacao"))
+
+
+# ===================== Fechamento de caixa diário =====================
+
+def _dec(valor) -> Decimal:
+    """Parse tolerante de dinheiro do form (aceita '150,50' ou '150.50')."""
+    s = (valor or "").strip().replace("R$", "").replace(" ", "")
+    if not s:
+        return Decimal("0.00")
+    if "," in s:                       # BR: '.' milhar, ',' decimal
+        s = s.replace(".", "").replace(",", ".")
+    elif s.count(".") >= 1 and len(s.rsplit(".", 1)[1]) == 3:
+        s = s.replace(".", "")         # ponto de milhar sem vírgula (1.234 = 1234)
+    try:
+        return Decimal(s).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return Decimal("0.00")
+
+
+def _esperado_por_forma(dia):
+    """Receitas PAGAS no dia (fuso BR) somadas por forma de pagamento.
+    Retorna dict {forma|'nao_informada': Decimal}."""
+    L = LancamentoFinanceiro
+    ini = datetime.combine(dia, time.min, tzinfo=_BR_TZ).astimezone(timezone.utc)
+    fim = ini + timedelta(days=1)
+    rows = db.session.execute(
+        select(L.forma_pagamento, func.coalesce(func.sum(L.valor), 0))
+        .where(L.status == L.STATUS_PAGO, L.tipo == L.TIPO_RECEITA,
+               L.pago_em >= ini, L.pago_em < fim)
+        .group_by(L.forma_pagamento)
+    ).all()
+    return {(forma or "nao_informada"): Decimal(str(total)) for forma, total in rows}
+
+
+@financeiro_bp.route("/caixa")
+@login_required
+@recepcao_ou_admin
+def caixa():
+    """Fechamento de caixa do dia: esperado (receitas pagas por forma) × contado."""
+    dia = _parse_ref(request.args.get("dia", ""))
+    esperado = _esperado_por_forma(dia)
+    esperado_total = sum(esperado.values(), Decimal("0.00"))
+    # Formas a exibir: as canônicas + 'nao_informada' se houver receita sem forma.
+    formas = list(LancamentoFinanceiro.FORMAS_PAGAMENTO)
+    if "nao_informada" in esperado:
+        formas.append("nao_informada")
+
+    fechamento = db.session.execute(
+        select(FechamentoCaixa).where(FechamentoCaixa.dia == dia)
+    ).scalars().first()
+    contado = {}
+    if fechamento and fechamento.detalhes:
+        try:
+            det = json.loads(fechamento.detalhes)
+            contado = {f: v.get("contado") for f, v in det.items()}
+        except (ValueError, AttributeError):
+            contado = {}
+
+    hoje = datetime.now(_BR_TZ).date()
+    return render_template(
+        "financeiro/caixa.html",
+        dia=dia, formas=formas, esperado=esperado,
+        esperado_total=esperado_total, fechamento=fechamento, contado=contado,
+        dia_anterior=(dia - timedelta(days=1)).isoformat(),
+        dia_seguinte=(dia + timedelta(days=1)).isoformat(),
+        hoje=hoje,
+    )
+
+
+@financeiro_bp.route("/caixa/fechar", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def caixa_fechar():
+    dia = _parse_ref(request.form.get("dia", ""))
+    # Esperado é SEMPRE recalculado no servidor (não confia no cliente).
+    esperado = _esperado_por_forma(dia)
+    formas = set(LancamentoFinanceiro.FORMAS_PAGAMENTO) | set(esperado)
+    detalhes = {}
+    contado_total = Decimal("0.00")
+    esperado_total = Decimal("0.00")
+    for f in formas:
+        e = esperado.get(f, Decimal("0.00"))
+        c = _dec(request.form.get(f"contado_{f}", ""))
+        if e == 0 and c == 0:
+            continue   # não polui o snapshot com formas zeradas
+        detalhes[f] = {"esperado": str(e), "contado": str(c)}
+        esperado_total += e
+        contado_total += c
+    divergencia = contado_total - esperado_total
+
+    fechamento = db.session.execute(
+        select(FechamentoCaixa).where(FechamentoCaixa.dia == dia)
+    ).scalars().first()
+    if fechamento is None:
+        fechamento = FechamentoCaixa(dia=dia)
+        db.session.add(fechamento)
+    fechamento.esperado_total = esperado_total
+    fechamento.contado_total = contado_total
+    fechamento.divergencia = divergencia
+    fechamento.detalhes = json.dumps(detalhes)
+    fechamento.observacoes = request.form.get("observacoes", "").strip()[:500] or None
+    fechamento.fechado_por_id = current_user.id
+    fechamento.fechado_em = datetime.now(timezone.utc)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Corrida: outro fechamento do mesmo dia entrou (duplo-clique/2 abas).
+        db.session.rollback()
+        flash("Este caixa acabou de ser fechado. Recarregue a página.", "error")
+        return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))
+    audit(AuditLog.ACAO_CAIXA_FECHADO, recurso_tipo="caixa",
+          recurso_id=fechamento.id,
+          detalhes=f"dia={dia.isoformat()} divergencia={divergencia}")
+    if divergencia == 0:
+        flash("Caixa fechado: bate certinho com o esperado.", "success")
+    else:
+        flash(f"Caixa fechado com divergência de {divergencia:+.2f}.", "error")
+    return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))
+
+
+@financeiro_bp.route("/caixa/<int:fechamento_id>/reabrir", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+def caixa_reabrir(fechamento_id):
+    fechamento = _get_tenant(FechamentoCaixa, fechamento_id)
+    if not fechamento:
+        flash("Fechamento não encontrado.", "error")
+        return redirect(url_for("financeiro.caixa"))
+    dia = fechamento.dia
+    # Preserva o snapshot (esperado/contado/divergência) na trilha ANTES de
+    # apagar — senão reabrir destrói a evidência do que foi contado.
+    snap = (f"dia={dia.isoformat()} esperado={fechamento.esperado_total} "
+            f"contado={fechamento.contado_total} "
+            f"divergencia={fechamento.divergencia}")
+    db.session.delete(fechamento)
+    db.session.commit()
+    audit(AuditLog.ACAO_CAIXA_REABERTO, recurso_tipo="caixa", detalhes=snap)
+    flash("Caixa reaberto.", "success")
+    return redirect(url_for("financeiro.caixa", dia=dia.isoformat()))

@@ -83,7 +83,7 @@
       <label for="observacoes">Observações</label>
       <textarea id="observacoes" name="observacoes" rows="3">{{ (f.observacoes or '') if paciente else form.get('observacoes','') }}</textarea>
     </div>
-    <button type="submit" class="btn btn-primary">Salvar</button>
+    <button type="submit" class="btn btn-primary">Salvar paciente</button>
     <a href="{{ url_for('pacientes.listar') }}" class="btn btn-outline">Cancelar</a>
   </form>
 </div>

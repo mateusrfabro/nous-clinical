@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app import db
-from app.models import Profissional, Paciente, Agendamento
+from app.models import Profissional, Paciente, Agendamento, Clinica
 
 _BR = ZoneInfo("America/Sao_Paulo")
 # CPF válido + nascimento agora exigidos no agendamento online (req. do sócio).
@@ -131,3 +131,52 @@ def test_online_telefone_invalido(client):
         "cpf": CPF_VALIDO, "data_nascimento": NASC,
     }, follow_redirects=True)
     assert Agendamento.query.count() == antes
+
+
+# ---- Gate: agendamento online por clínica (default OFF) ----
+
+def _desliga_online():
+    c = Clinica.query.filter_by(slug="teste").first()
+    c.agendamento_online_ativo = False
+    db.session.commit()
+    return c
+
+
+def test_online_desligado_nao_mostra_slots(client):
+    _desliga_online()
+    prof = Profissional.query.first()
+    # Nem por clinica_id explícito a clínica desligada expõe profissionais/slots.
+    r = client.get(f"/agenda/agendar?clinica_id={prof.clinica_id}"
+                   f"&profissional_id={prof.id}&dia={_proximo_dia_util()}")
+    assert r.status_code == 200
+    assert b"slot-grid" not in r.data
+    assert b"Nenhuma cl" in r.data           # "Nenhuma clínica disponível..."
+
+
+def test_online_desligado_rejeita_post(client):
+    _desliga_online()
+    prof = Profissional.query.first()
+    antes = Agendamento.query.count()
+    r = client.post("/agenda/agendar", data={
+        "clinica_id": prof.clinica_id,
+        "profissional_id": prof.id, "dia": _proximo_dia_util(), "hora": "08:00",
+        "nome": "Nao Deve Marcar", "telefone": "(43) 90000-1111",
+        "cpf": CPF_VALIDO, "data_nascimento": NASC,
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    assert Agendamento.query.count() == antes
+
+
+def test_admin_liga_desliga_online(client_admin):
+    c = _desliga_online()
+    client_admin.post("/configuracoes/agendamento-online",
+                      data={"ativar": "1"}, follow_redirects=True)
+    assert db.session.get(Clinica, c.id).agendamento_online_ativo is True
+    client_admin.post("/configuracoes/agendamento-online",
+                      data={"ativar": "0"}, follow_redirects=True)
+    assert db.session.get(Clinica, c.id).agendamento_online_ativo is False
+
+
+def test_toggle_online_so_admin(client_recepcao):
+    assert client_recepcao.post("/configuracoes/agendamento-online",
+                                data={"ativar": "1"}).status_code in (301, 302)

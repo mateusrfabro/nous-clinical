@@ -1,9 +1,13 @@
 # Nous Clinical — guia do Claude Code
 
 ## O que é o projeto
-**Nous Clinical** — *"Menos gestão. Mais medicina."* SaaS de **gestão de clínica** com
+**Nous Clinical** — *"Menos gestão. Mais cuidado."* SaaS de **gestão de clínica** com
 inteligência clínica: recepção marca consultas, profissionais de saúde registram o
-atendimento (prontuário), gestor acompanha a operação e o financeiro. Nicho médico.
+atendimento (prontuário), gestor acompanha a operação e o financeiro. **Nicho: área
+da saúde em geral** — clínicas e consultórios de qualquer especialidade (medicina,
+odontologia, psicologia, fisioterapia, nutrição, biomedicina, etc.), 1 a 5
+profissionais. O produto é agnóstico de vertical: papel é `profissional` (não
+"médico"), `registro_conselho` é texto livre (CRM/CRP/CRO/CREFITO/CRN…).
 *Nous* (grego: inteligência/razão) — "a inteligência que auxilia a prática clínica".
 
 > **Marca definida: Nous Clinical** (identidade dark indigo/teal). O scaffold nasceu
@@ -35,13 +39,24 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
 
 ## Modelos (`app/models.py`)
 - **Clinica** — tenant. Escopo automático via `app/services/tenant.py`.
+  `agendamento_online_ativo` (**default False**): liga/desliga o agendamento público
+  (portal `/c/<slug>/agendar` e `/agendar`); admin liga em Configurações › Aparência.
 - **Usuario** — auth (email, senha Argon2id, tipo, ativo, telegram_chat_id, clinica_id).
+  **2FA/TOTP opcional** (`totp_secret` cifrado via `services/cripto.py`, `totp_ativado`,
+  `totp_recovery`=hashes uso-único, `totp_ultimo_contador`=**anti-replay** do código).
+  **Lockout por-conta** (`tentativas_falhas`/`bloqueado_ate`, 5 falhas→15min, incremento
+  **atômico**) + `ultimo_login_ip` (alerta e-mail de acesso novo). Ver `services/totp.py`.
 - **Profissional** — 1:1 com Usuario(tipo=profissional): especialidade, conselho, cor,
   `duracao_padrao_min`, `comissao_percent`, **`sala`**.
 - **Paciente** — cadastro (nome/CPF/nascimento/**telefone** **obrigatórios no form**, contato,
   endereço via CEP, convênio, observações). Cadastro só por recepção/admin (médico não cadastra).
+  **Anonimização LGPD (art. 18)**: `anonimizado_em` + `services/anonimizacao.py` — admin apaga
+  PII + prontuário + exames, **preserva o financeiro** (fiscal). Rota `POST /pacientes/<id>/anonimizar`.
 - **Agendamento** — paciente + profissional + início/fim + status + valor/convênio + **sala**
   (puxada do profissional) + checkin_em. Duração selecionável (30/60/90/120).
+  **Trava anti-double-book no banco**: índice único parcial `uq_ag_prof_inicio_ativo`
+  em `(profissional_id, inicio)` where `status != 'cancelado'` (fecha corrida TOCTOU;
+  rotas de agendar/reagendar tratam `IntegrityError` como "horário acabou de ser ocupado").
 - **Atendimento** — prontuário (queixa/evolução/prescrição, retorno CRM, **atestado:
   `atestado_dias`/`atestado_cid`**). **Dado sensível LGPD.** Edição é auditada
   (`ACAO_ATENDIMENTO_EDITADO`). Gera PDF de **receita** e **atestado** (`/documentos`,
@@ -56,6 +71,12 @@ com o domínio de compras removido e substituído pelo domínio clínica/agenda.
   convênio são **`<select>` da lista cadastrada** (macro `convenio_select` em `_macros.html`;
   sem digitação livre — req. do sócio), populado por `convenios_ativos()`.
 - **AuditLog** — trilha de auditoria (constantes `ACAO_*`). Tela admin em `/auditoria`.
+- **WhatsAppConta/Contato/Mensagem** — WhatsApp Business por clínica (token cifrado em
+  repouso via `services/cripto.py`). Gated por `WHATSAPP_ATIVO`.
+- **ConfigFiscalClinica** — config de emissão de NFS-e por clínica (1:1): emitente (CNPJ,
+  razão social, endereço, IM, regime, ISS, código LC116, `gateway_empresa_id`). Gated por
+  `NF_ATIVO`. Credenciais do gateway são globais (env); certificado A1 vai pro gateway.
+  Ver `docs/11-emissao-nf.md`.
 
 ## Fluxo principal
 ```
@@ -91,11 +112,24 @@ histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissi
 - App factory + Talisman (CSP sem unsafe-inline) + CSRF + Flask-Limiter + Cache.
 - Auth: login/logout/esqueci-senha/redefinir-senha, Argon2id + rehash-on-login,
   anti timing-attack, anti open-redirect, anti session-fixation, token de reset 1-uso.
-- Services: `passwords`, `storage` (uploads), `email` (SMTP), `audit`, `pii`,
+  **2FA/TOTP** (RFC 6238 hand-rolled em `services/totp.py`; login 2 etapas em `/login/2fa`;
+  enrollment em `/perfil/2fa` com QR via `segno`; códigos de recuperação). **Lockout por-conta**
+  (5 falhas→15min) + alerta de e-mail em IP novo.
+- Services: `passwords`, `totp` (2FA), `anonimizacao` (LGPD art. 18), `cripto` (Fernet),
+  `storage` (uploads), `email` (SMTP), `audit`, `pii`,
   `notificacoes` (e-mail + Telegram), `app_info` (versão/migration no /health),
-  `ajuda` (chatbot "Nous Assistente": Claude Haiku via SDK oficial, base em
-  `docs/ajuda/*.md` filtrada por papel, **default-OFF** via `AJUDA_IA_ATIVA` +
-  `ANTHROPIC_API_KEY`; rota `/ajuda/chat`, widget gated em `base.html`).
+  `ajuda` ("Suporte Nous": busca local na base `docs/ajuda/*.md` filtrada por papel —
+  **custo zero, sempre ON** p/ equipe logada; rota `/ajuda/buscar`, widget em `base.html`.
+  Modo IA opcional (Claude Haiku) **default-OFF** via `AJUDA_IA_ATIVA`+`ANTHROPIC_API_KEY`,
+  rota `/ajuda/chat`),
+  `fiscal` (emissão de NFS-e via **adaptador agnóstico de gateway** — Nuvem Fiscal;
+  OAuth2; **default-OFF** via `NF_ATIVO`; cadastro do emitente por clínica; ver
+  docs/11-emissao-nf.md),
+  `concierge` (gera a mensagem de **retorno/reativação** nos painéis de Retornos/Evasão —
+  **templates de custo ZERO por padrão** + **modo IA opcional default-OFF** via `CONCIERGE_ATIVO`
+  reusando `ANTHROPIC_API_KEY`; `gerar_mensagem()` decide IA×template e cai no template se a IA
+  falhar; **não lê prontuário** — só nome/profissional/tempo; recepção revisa e envia; rota
+  `/crm/mensagem-ia`).
 - Error handlers 400/403/404/429/500 com template próprio.
 - Design system CSS **tema claro** (tokens `--brand-*`/semânticos, utilitários, componentes) —
   **identidade oficial Nous Clinical: teal `#43B8A5` (primária/CTA) + sage `#6FB59C`

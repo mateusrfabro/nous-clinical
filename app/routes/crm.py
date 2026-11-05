@@ -11,14 +11,17 @@ from urllib.parse import quote
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash, abort,
+    jsonify,
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from app import db
+from app import db, limiter
 from app.auth_decorators import recepcao_ou_admin
-from app.models import Atendimento, Agendamento, Paciente, AuditLog
+from app.models import Atendimento, Agendamento, Paciente, AuditLog, Clinica
 from app.services.audit import audit
+from app.services.concierge import gerar_mensagem
 
 crm_bp = Blueprint("crm", __name__, url_prefix="/crm")
 _BR_TZ = ZoneInfo("America/Sao_Paulo")
@@ -55,37 +58,38 @@ def _pacientes_com_consulta_futura():
     ).scalars())
 
 
-def _retornos_pendentes(janela_dias: int):
-    """Retornos due (<= hoje+janela) considerando só o ÚLTIMO atendimento.
+def _atendimentos_retorno_due(limite, *, hydrate):
+    """Núcleo compartilhado: os atendimentos cujo retorno está due (<= limite).
 
-    Regra (sócio): o paciente perde a flag toda vez que se consulta — o médico
-    precisa marcar um novo retorno pra ele voltar ao CRM. Logo, olhamos apenas
-    o atendimento mais recente de cada paciente: se ele não tem retorno_em (ou
-    já está fora da janela, ou o paciente já reagendou), não aparece.
+    Regra (sócio): olha só o ÚLTIMO atendimento (não-vazio) de cada paciente —
+    o paciente perde a flag quando volta a se consultar. `hydrate=True` carrega
+    paciente/profissional (pro painel que renderiza os cards); `hydrate=False`
+    pula o selectinload (pro badge de CONTAGEM, que roda em TODA página e não
+    precisa dos objetos nem montar links).
     """
-    hoje = datetime.now(_BR_TZ).date()   # data BR (container em UTC)
-    limite = hoje + timedelta(days=janela_dias)
-
-    # Último atendimento por paciente (mais recente; id desempata de forma
-    # determinística). Ignora atendimento "vazio" (ex: registro criado só pra
-    # anexar exame) — não conta como consulta nem limpa um retorno legítimo.
-    todos = db.session.execute(
-        select(Atendimento).order_by(
-            Atendimento.criado_em.desc(), Atendimento.id.desc())
-    ).scalars().all()
+    q = select(Atendimento).order_by(
+        Atendimento.criado_em.desc(), Atendimento.id.desc())
+    if hydrate:
+        q = q.options(selectinload(Atendimento.paciente),
+                      selectinload(Atendimento.profissional))
     ultimo_por_paciente = {}
-    for a in todos:
+    for a in db.session.execute(q).scalars():
         if not (a.queixa or a.evolucao or a.prescricao or a.retorno_em):
             continue
         ultimo_por_paciente.setdefault(a.paciente_id, a)
 
     com_futuro = _pacientes_com_consulta_futura()
+    return [a for a in ultimo_por_paciente.values()
+            if a.retorno_em is not None and a.retorno_em <= limite
+            and a.paciente_id not in com_futuro]
+
+
+def _retornos_pendentes(janela_dias: int):
+    """Retornos due (<= hoje+janela), com os dados pro painel (cards + WhatsApp)."""
+    hoje = datetime.now(_BR_TZ).date()   # data BR (container em UTC)
+    limite = hoje + timedelta(days=janela_dias)
     linhas = []
-    for a in ultimo_por_paciente.values():
-        if a.retorno_em is None or a.retorno_em > limite:
-            continue
-        if a.paciente_id in com_futuro:
-            continue
+    for a in _atendimentos_retorno_due(limite, hydrate=True):
         dias = (a.retorno_em - hoje).days
         primeiro_nome = (a.paciente.nome_completo.split()[0]
                          if a.paciente and a.paciente.nome_completo else "")
@@ -106,8 +110,10 @@ def _retornos_pendentes(janela_dias: int):
 
 
 def contar_retornos_pendentes():
-    """KPI: nº de retornos já vencidos (retorno_em <= hoje) sem reagendamento."""
-    return sum(1 for x in _retornos_pendentes(0))
+    """KPI (badge em toda página): nº de retornos já vencidos (<= hoje) sem
+    reagendamento. Contagem leve — sem hidratar objetos nem montar links."""
+    hoje = datetime.now(_BR_TZ).date()
+    return len(_atendimentos_retorno_due(hoje, hydrate=False))
 
 
 @crm_bp.route("/retornos")
@@ -177,7 +183,81 @@ def registrar_interacao(paciente_id):
     paciente = db.session.get(Paciente, paciente_id)
     if paciente is None:
         abort(404)
+    # Guard explícito FAIL-CLOSED de clínica (consistente com mensagem_ia).
+    if (current_user.clinica_id is None
+            or paciente.clinica_id != current_user.clinica_id):
+        abort(403)
     audit(AuditLog.ACAO_CRM_INTERACAO, recurso_tipo="paciente",
           recurso_id=paciente.id, detalhes="Felicitação de aniversário")
     flash(f"Interação registrada para {paciente.nome_completo}.", "success")
     return redirect(url_for("crm.aniversariantes"))
+
+
+def _rate_key():
+    """Limita por USUÁRIO (vetor de custo de API), não por IP — a equipe da
+    clínica sai pelo mesmo IP público. Cai pro IP se anônimo."""
+    return f"u:{current_user.id}" if getattr(current_user, "id", None) \
+        else (request.remote_addr or "anon")
+
+
+def _rate_key_clinica():
+    """Teto de custo AGREGADO por clínica (além do por-usuário): N operadores não
+    multiplicam o gasto de API sem limite. Cai pro usuário/IP se sem clínica."""
+    cid = getattr(current_user, "clinica_id", None)
+    return f"c:{cid}" if cid else _rate_key()
+
+
+@crm_bp.route("/mensagem-ia", methods=["POST"])
+@login_required
+@recepcao_ou_admin
+@limiter.limit("60 per hour;12 per minute", key_func=_rate_key)
+@limiter.limit("300 per hour", key_func=_rate_key_clinica)
+def mensagem_ia():
+    """Concierge: gera o rascunho da mensagem de retorno/reativação de UM paciente
+    (recepção revisa e envia). JSON in/out. Por padrão usa TEMPLATE (custo zero);
+    só usa IA se a operadora ligar. Não lê prontuário — só nome, profissional e
+    tempo desde a última consulta."""
+    dados = request.get_json(silent=True) or {}
+    try:
+        paciente_id = int(dados.get("paciente_id"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "texto": "Paciente inválido."}), 400
+    motivo = dados.get("motivo")
+    canal = "email" if dados.get("canal") == "email" else "whatsapp"
+
+    paciente = db.session.get(Paciente, paciente_id)
+    if paciente is None:
+        return jsonify({"ok": False, "texto": "Paciente não encontrado."}), 404
+    # Guard explícito de clínica FAIL-CLOSED (defesa em profundidade, além do
+    # tenant loader): usuário sem clínica ou paciente de outra clínica -> 403.
+    if (current_user.clinica_id is None
+            or paciente.clinica_id != current_user.clinica_id):
+        abort(403)
+
+    primeiro = ((paciente.nome_completo or "").split() or [""])[0]
+    clinica_nome = None
+    if current_user.clinica_id:
+        c = db.session.get(Clinica, current_user.clinica_id)
+        clinica_nome = c.nome if c else None
+
+    # Último atendimento -> profissional e tempo desde a última consulta.
+    ult = db.session.execute(
+        select(Atendimento).where(Atendimento.paciente_id == paciente.id)
+        .order_by(Atendimento.criado_em.desc(), Atendimento.id.desc()).limit(1)
+    ).scalars().first()
+    prof = ult.profissional.nome if (ult and ult.profissional) else None
+    dias = None
+    if ult and ult.criado_em:
+        criado = ult.criado_em
+        if criado.tzinfo is None:
+            criado = criado.replace(tzinfo=timezone.utc)
+        dias = (datetime.now(timezone.utc) - criado).days
+
+    ok, texto, fonte = gerar_mensagem(motivo, primeiro, clinica_nome,
+                                      profissional=prof, dias_desde=dias, canal=canal)
+    if ok:
+        # Só metadado (motivo/canal/fonte) — nunca o texto gerado nem PII do paciente.
+        audit(AuditLog.ACAO_CONCIERGE_GERADO, recurso_tipo="paciente",
+              recurso_id=paciente.id,
+              detalhes=f"motivo={motivo} canal={canal} fonte={fonte}")
+    return jsonify({"ok": ok, "texto": texto})

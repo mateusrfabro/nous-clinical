@@ -433,7 +433,7 @@ def _dre(ini, fim):
 # Catálogo de relatórios do seletor (req. do sócio item 2). (chave, rótulo).
 RELATORIOS = [
     ("visao_geral", "Visão geral (KPIs + comparativo)"),
-    ("faturamento", "Faturamento e receita por médico"),
+    ("faturamento", "Faturamento e receita por profissional"),
     ("clientes_ticket", "Clientes e ticket médio"),
     ("pacientes_convenio", "Pacientes por convênio"),
     ("faixa_etaria", "Pacientes por faixa etária"),

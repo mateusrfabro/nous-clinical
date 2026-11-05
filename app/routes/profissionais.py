@@ -12,6 +12,7 @@ from app.auth_decorators import admin_required
 from app.models import Usuario, Profissional, AuditLog
 from app.services.passwords import hash_senha
 from app.services.audit import audit
+from app.services.tenant import get_da_clinica
 
 profissionais_bp = Blueprint("profissionais", __name__,
                              url_prefix="/profissionais")
@@ -177,7 +178,7 @@ def novo():
 @login_required
 @admin_required
 def editar(profissional_id):
-    prof = db.session.get(Profissional, profissional_id)
+    prof = get_da_clinica(Profissional, profissional_id)
     if not prof:
         flash("Profissional não encontrado.", "error")
         return redirect(url_for("profissionais.listar"))

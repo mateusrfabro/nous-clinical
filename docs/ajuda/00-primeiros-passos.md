@@ -7,7 +7,7 @@ rotas: [/login, /, /dashboard]
 
 ## O que é o Nous Clinical
 Sistema de gestão da clínica: agenda, cadastro de pacientes, prontuário,
-financeiro, relatórios e CRM — tudo num só lugar. Lema: *"Menos gestão. Mais medicina."*
+financeiro, relatórios e CRM — tudo num só lugar. Lema: *"Menos gestão. Mais cuidado."*
 
 ## Como entrar
 1. Acesse o endereço da sua clínica e clique em **Entrar na plataforma**.
@@ -23,5 +23,5 @@ financeiro, relatórios e CRM — tudo num só lugar. Lema: *"Menos gestão. Mai
 6. **Recepção/admin** registra o recebimento da consulta (botão "Receber" na agenda).
 
 ## O que você vê depende do seu papel
-Recepção, médico e gestora veem telas e botões diferentes. Veja [Papéis e permissões](papeis.md).
+Recepção, profissional e gestora veem telas e botões diferentes. Veja [Papéis e permissões](papeis.md).
 Se você não encontra um menu, provavelmente ele é de outro perfil.

@@ -15,7 +15,7 @@ ao clicar).
 ## Relatórios disponíveis
 - **Visão geral (KPIs + comparativo):** faturamento, despesas, saldo, ticket médio,
   atendidos, taxa de faltas, novos pacientes — com comparação ao período anterior.
-- **Faturamento e receita por médico** (+ repasse/comissão).
+- **Faturamento e receita por profissional** (+ repasse/comissão).
 - **Clientes e ticket médio:** quanto cada paciente gastou, nº de consultas e ticket.
 - **Pacientes por convênio:** lista por convênio (com filtro de convênio).
 - **Faixa etária:** distribuição por idade + total gasto.

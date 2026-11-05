@@ -1,6 +1,9 @@
-"""Configurações da clínica (admin): Aparência — white-label (tema + logo)."""
+"""Configurações da clínica (admin): Aparência — white-label (tema + logo);
+Fiscal — emissão de NFS-e (config do emitente, gated por NF_ATIVO)."""
 import io
 import os
+import re
+from decimal import Decimal, InvalidOperation
 
 from flask import (
     Blueprint, render_template, redirect, url_for, flash, request,
@@ -13,8 +16,9 @@ from sqlalchemy import select
 
 from app import db
 from app.auth_decorators import admin_required
-from app.models import Clinica, AuditLog
+from app.models import Clinica, AuditLog, ConfigFiscalClinica
 from app.services.audit import audit
+from app.services.fiscal import nf_disponivel, get_gateway, GatewayError
 from app.services.storage import get_storage
 from app.services.cores import (
     hex_to_rgb, css_para_cor, cor_de_marca, svg_favicon,
@@ -76,6 +80,97 @@ def aparencia():
 
     return render_template("configuracoes/aparencia.html",
                            temas=TEMAS, atual=clinica.tema, clinica=clinica)
+
+
+def _parse_aliquota(valor):
+    """'5,00' / '5.00' / '5' -> Decimal clampado em 0..100; vazio/inválido -> None."""
+    s = (valor or "").strip().replace("%", "").replace(",", ".")
+    if not s:
+        return None
+    try:
+        v = Decimal(s)
+    except InvalidOperation:
+        return None
+    return min(max(v, Decimal(0)), Decimal(100))
+
+
+@configuracoes_bp.route("/fiscal", methods=["GET", "POST"])
+@login_required
+@admin_required
+def fiscal():
+    """Config de emissão de NFS-e da clínica (dados do emitente). Gated por NF_ATIVO:
+    se o módulo está desligado globalmente, a tela nem existe (404)."""
+    if not nf_disponivel():
+        abort(404)
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    cfg = db.session.execute(
+        select(ConfigFiscalClinica).where(
+            ConfigFiscalClinica.clinica_id == clinica.id)
+    ).scalar_one_or_none()
+
+    if request.method == "POST":
+        # "Testar conexão" valida as credenciais do gateway (não salva nada).
+        if request.form.get("acao") == "testar":
+            try:
+                get_gateway().ping()
+                flash("Conexão com o emissor fiscal OK.", "success")
+            except GatewayError as exc:
+                flash(f"Falha na conexão: {exc}", "error")
+            return redirect(url_for("configuracoes.fiscal"))
+
+        # "Cadastrar emitente" registra a empresa no gateway (não exige certificado).
+        if request.form.get("acao") == "cadastrar_emitente":
+            if cfg is None:
+                flash("Salve a configuração antes de cadastrar o emitente.", "error")
+                return redirect(url_for("configuracoes.fiscal"))
+            try:
+                cfg.gateway_empresa_id = \
+                    get_gateway(cfg.gateway).cadastrar_emitente(cfg)
+                db.session.commit()
+                audit(AuditLog.ACAO_FISCAL_CONFIG, recurso_tipo="config_fiscal",
+                      recurso_id=cfg.id, detalhes="emitente_cadastrado")
+                flash("Emitente cadastrado no emissor fiscal.", "success")
+            except GatewayError as exc:
+                flash(f"Falha ao cadastrar o emitente: {exc}", "error")
+            return redirect(url_for("configuracoes.fiscal"))
+
+        if cfg is None:
+            cfg = ConfigFiscalClinica(clinica_id=clinica.id)
+            db.session.add(cfg)
+
+        cfg.cnpj = re.sub(r"\D", "", request.form.get("cnpj", ""))[:14] or None
+        cfg.razao_social = request.form.get("razao_social", "").strip()[:160] or None
+        cfg.email = request.form.get("email", "").strip()[:160] or None
+        cfg.inscricao_municipal = \
+            request.form.get("inscricao_municipal", "").strip()[:30] or None
+        cfg.logradouro = request.form.get("logradouro", "").strip()[:160] or None
+        cfg.numero = request.form.get("numero", "").strip()[:20] or None
+        cfg.complemento = request.form.get("complemento", "").strip()[:80] or None
+        cfg.bairro = request.form.get("bairro", "").strip()[:80] or None
+        cfg.cidade = request.form.get("cidade", "").strip()[:80] or None
+        cfg.uf = request.form.get("uf", "").strip().upper()[:2] or None
+        cfg.cep = re.sub(r"\D", "", request.form.get("cep", ""))[:8] or None
+        cfg.codigo_municipio_ibge = \
+            re.sub(r"\D", "", request.form.get("codigo_municipio_ibge", ""))[:7] or None
+        regime = request.form.get("regime_tributario", "").strip().lower()
+        cfg.regime_tributario = regime if regime in ConfigFiscalClinica.REGIMES else None
+        cfg.aliquota_iss = _parse_aliquota(request.form.get("aliquota_iss"))
+        cfg.codigo_servico = request.form.get("codigo_servico", "").strip()[:20] or None
+        cfg.cnae = re.sub(r"\D", "", request.form.get("cnae", ""))[:10] or None
+        cfg.iss_retido_padrao = request.form.get("iss_retido_padrao") == "on"
+        cfg.ativo = request.form.get("ativo") == "on"
+        db.session.commit()
+        audit(AuditLog.ACAO_FISCAL_CONFIG, recurso_tipo="config_fiscal",
+              recurso_id=cfg.id, detalhes=f"ativo={cfg.ativo}")
+        flash("Configuração fiscal salva.", "success")
+        return redirect(url_for("configuracoes.fiscal"))
+
+    return render_template("configuracoes/fiscal.html", cfg=cfg,
+                           regimes=ConfigFiscalClinica.REGIMES, clinica=clinica)
 
 
 @configuracoes_bp.route("/logo", methods=["POST"])
@@ -206,6 +301,28 @@ def slug_salvar():
     clinica.slug = slug
     db.session.commit()
     flash("Endereço público atualizado.", "success")
+    return redirect(url_for("configuracoes.aparencia"))
+
+
+@configuracoes_bp.route("/agendamento-online", methods=["POST"])
+@login_required
+@admin_required
+def agendamento_toggle():
+    """Liga/desliga o agendamento online público da clínica. Desligado por
+    padrão: só quando o admin liga é que a clínica fica bookable/enumerável na
+    rota pública (/agendar e portal /c/<slug>/agendar)."""
+    clinica = _minha_clinica()
+    if not clinica:
+        flash("Clínica não encontrada.", "error")
+        return redirect(url_for("main.dashboard"))
+    ativar = request.form.get("ativar") == "1"
+    clinica.agendamento_online_ativo = ativar
+    db.session.commit()
+    audit(AuditLog.ACAO_CLINICA_STATUS, recurso_tipo="clinica",
+          recurso_id=clinica.id,
+          detalhes=f"agendamento_online={'on' if ativar else 'off'}")
+    flash("Agendamento online " + ("ligado." if ativar
+          else "desligado."), "success")
     return redirect(url_for("configuracoes.aparencia"))
 
 
