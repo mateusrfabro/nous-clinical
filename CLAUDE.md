@@ -94,7 +94,7 @@ Financeiro: fluxo de caixa (`/financeiro`), contas a receber/pagar (`/financeiro
 histórico financeiro no detalhe do paciente. Gate `recepcao_ou_admin` (profissional não vê).
 
 ## Ambiente
-- **Python 3.12:** `C:/Users/NITRO/AppData/Local/Programs/Python/Python312/python.exe`
+- **Python 3.12:** `C:/Users/mateu/AppData/Local/Programs/Python/Python312/python.exe`
 - **Rodar Flask:** `python run.py` (porta 5050; setar `PORT` se ocupada)
 - **DB dev:** SQLite em `instance/nous.db`
 - **Testes:** `python -m pytest tests/ -q`
