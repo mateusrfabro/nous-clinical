@@ -6,6 +6,10 @@ de segurança/auth/CI reaproveitada de um projeto irmão (Aggron).
 
 > *Nous* (grego: inteligência/razão) — "a inteligência que auxilia a prática clínica".
 
+## Estado (05/11/2026)
+
+Ultima versao em 06/10/2026, sem cliente pagante, deploy no Render.
+
 ## Rodar localmente (dev)
 
 ```bash

@@ -11,3 +11,8 @@ cf_tunnel.log
 .coverage
 .pytest_cache/
 htmlcov/
+# Claude Code: config local
+.claude/
+# env: qualquer .env* fica fora; so o exemplo e versionado
+.env*
+!.env.example
